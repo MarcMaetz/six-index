@@ -4,6 +4,7 @@ import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
+import com.example.indexreviewer.review.RankingStrategies;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -21,6 +22,8 @@ public class IndexCatalog {
 
     public IndexCatalog(IndexReviewerProperties properties) {
         this.properties = properties;
+        // Fail at startup, not at the first review, if an index names a ranking strategy that doesn't exist.
+        properties.indices().forEach(index -> RankingStrategies.byName(index.rankingStrategy()));
     }
 
     public List<IndexDefinition> indices() {

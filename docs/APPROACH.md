@@ -17,6 +17,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | `domain` input model and `ingest` CSV loader with data-quality warnings, unit-tested (D9, A9, A10) |
 | 2026-09-25 | Design review of the ingest decisions ("grill me"): review status, business config, input layout, precision (D10–D13) |
 | 2026-09-25 | Implemented D11/D12: `config/indices.yml`, input in `data/SMI/2026-Q3/`, SHA-256 checksums; endpoints to list indices and check a review's input, added to Postman (D14) |
+| 2026-09-25 | Review engine: eligibility, FFMCAP ranking, buffer selection, iterative capping; Q3 result confirmed in a unit test (D15, A11, A12) |
 
 ## Design decisions
 
@@ -157,6 +158,22 @@ decided, why, and what we rejected.
 - **Rejected:** separate Jakarta Bean Validation annotations on a properties class (would duplicate the domain
   checks); a 500 for unusable input (it isn't a bug in the app).
 
+### D15 — Review engine as a pipeline of small, pure steps
+- `ReviewEngine.run(index, period, input)` chains `Eligibility` → `Ranking` → `Selection` → `WeightCapping`,
+  each a static, framework-free function with its own unit tests. `ReviewResult` keeps every intermediate
+  result: exclusions with reasons, a `SelectionDecision` for **every** ranked security (direct, buffer
+  incumbent, buffer new, buffer full, below buffer), capping rounds, and leavers with a `LeaveReason`
+  (not in universe, not eligible, buffer full, below buffer).
+- The ranking criterion is a `RankingStrategy` looked up by the name in `indices.yml`; an unknown name stops
+  startup. Weights always use FFMCAP (rulebook 5.12.4), whatever the ranking strategy.
+- Capping: capped constituents get exactly the cap; the rest share the remaining weight in proportion to
+  FFMCAP; repeat until none is above the cap. This is the brief's redistribution rule (proportional to current
+  weight = proportional to FFMCAP) written without accumulating rounding. It ends in at most n rounds.
+- Invariants (D13) are checked inside `WeightCapping`; a violation throws, since it would be a bug.
+- **Why:** Every decision in the report can be traced to one step and one rule, and each rule can be changed
+  or replaced (e.g. the selection list for A4) without touching the others.
+- **Rejected:** one method doing it all (hard to test and explain); weights as `double` (see D13).
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -197,6 +214,9 @@ section 5.12, with definitions in 2 and 4.3.
   - Buffer 19–22: `249` (new), `28` (new), `160` (incumbent), `81` (incumbent). Incumbents take priority,
     so `160` and `81` fill the last two slots.
   - Leaver: `103` (rank 35).
+- **Confirmed by `ReviewEngineTest`** on the provided data: 20 constituents, joiner `177`, leaver `103`
+  (rank 35); `155` (raw 25.42%) and `205` (raw 23.49%) capped to 18% in a single round, capping factors
+  0.5654 and 0.6117; the others scale up by the same factor (e.g. `63`: 11.38% → 14.26%). `166` excluded (A2).
 - **Not applied** (see A4–A6): the full selection-list formula, the liquidity rule for multi-listed
   instruments, and issuer-level capping.
 
@@ -216,6 +236,8 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A8 | Ties in FFMCAP are broken by id, so results are deterministic. | No ties occur in this data; the rule only guards reproducibility. |
 | A9 | Conflicting rows in `sec_data.csv` (same id and date, different values) are all dropped with a warning; identical ones are de-duplicated. | Neither row can be trusted; dropping them makes the security ineligible (visible in the report) rather than silently picking one. Doesn't occur in this data. |
 | A10 | Rows with out-of-range values (price or shares not positive, fractional shares, free float outside (0, 1]) are skipped with a warning. | Such values can't be real and would distort FFMCAP. None occur in this data. |
+| A11 | Capping factors are normalised so the largest is 1, i.e. uncapped constituents have factor 1 and capped ones below 1. | Only the ratios between factors affect weights; this is the usual published form. Check with SIX (open question). |
+| A12 | If fewer securities can be ranked than the index needs, all ranked securities are selected and the review adds a warning. | The rulebook doesn't cover it; a smaller index with a visible warning beats inventing a fill rule. Can't happen with this data. |
 
 ## Open questions
 
@@ -226,7 +248,7 @@ Candidates to send to the SIX contacts from the original brief.
 - Are the duplicate rows in `spi_universe.csv` intentional (a data-validation test) or an export artifact?
 - Id `166` has no review-date data: exclude it, or is there a missing row?
 - Is there a required precision for published weights and capping factors that the calculation itself must
-  use (D13)?
+  use (D13)? And are capping factors normalised so the largest is 1 (A11)?
 
 ## Interview talking points
 
