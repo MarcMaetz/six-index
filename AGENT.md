@@ -7,6 +7,8 @@ Take-home assignment: SIX Index Reviewer for the SMI Q3 2026 review. Java 25 / S
 - `docs/ASSIGNMENT.md`: the assignment brief (source of truth for requirements). Local only, excluded in
   `.git/info/exclude`: never commit it.
 - `docs/APPROACH.md`: decision log, assumptions, open questions and interview talking points.
+- `docs/six-methodology-smi-equity-and-re-en.pdf`: SIX methodology rulebook v3.40, local only like the brief.
+  SMI rules are in section 5.12; its summary is in `docs/APPROACH.md` under **Rulebook rules applied**.
 
 ## Keep `docs/APPROACH.md` up to date
 

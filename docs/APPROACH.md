@@ -11,6 +11,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Scaffolded Spring Boot project |
 | 2026-09-25 | IntelliJ run configs (`.run/`); Postman collection "SIX Index Reviewer" created via MCP |
 | 2026-09-25 | Input CSVs added to `data/`; profiled them (see **Input data findings**) |
+| 2026-09-25 | SMI rules extracted from the SIX rulebook v3.40 (see **Rulebook rules applied**) |
 
 ## Design decisions
 
@@ -69,10 +70,29 @@ Profiled 2026-09-25, before writing any parsing code.
 - **Preliminary ranking** (FFMCAP = price(t') × shares(t) × free float(t), plain top 20, no buffer):
   - Current constituents are at ranks 1–6, 8–18, 21 (`160`), 22 (`81`) and 35 (`103`).
   - Non-constituents in the top 20: rank 7 (`177`), 19 (`249`), 20 (`28`).
-  - So **the buffer rule decides the outcome**: a plain top 20 gives 3 joiners and 3 leavers, and a
-    buffer keeping incumbents ranked 21–22 changes that.
+  - So **the buffer rule decides the outcome**: a plain top 20 gives 3 joiners and 3 leavers.
+    With the rulebook buffer (see below) it is 1 joiner (`177`) and 1 leaver (`103`).
   - Ranks 1 (`155`, ~25%) and 2 (`205`, ~23%) exceed the 18% cap on raw weights, so capping must
     iterate (redistributing can push others over the cap).
+
+## Rulebook rules applied
+
+Source: *SIX Index Methodology Rulebook Governing Equity and Real Estate Indices*, v3.40 (08.06.2026),
+section 5.12, with definitions in 2 and 4.3.
+
+- **Universe (5.12.3.2):** SPI.
+- **Selection (5.12.3.2):** 20 components. Ranks 1–18 are selected directly. Ranks 19–22 are the buffer:
+  current constituents in the buffer are included first, then new candidates from the buffer, in rank
+  order, until there are 20. A current constituent ranked 23 or lower leaves.
+- **Capping (5.12.4):** a component whose FFMCAP exceeds 18% of the total is capped at 18% with a
+  capping factor. Excess weight is redistributed (brief's example) until no component exceeds 18%.
+- **Expected Q3 2026 outcome with this data:**
+  - Ranks 1–18: 17 incumbents plus `177` (rank 7, joiner).
+  - Buffer 19–22: `249` (new), `28` (new), `160` (incumbent), `81` (incumbent). Incumbents take priority,
+    so `160` and `81` fill the last two slots.
+  - Leaver: `103` (rank 35).
+- **Not applied** (see A4–A6): the full selection-list formula, the liquidity rule for multi-listed
+  instruments, and issuer-level capping.
 
 ## Assumptions
 
@@ -83,20 +103,26 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A1 | Exact duplicate rows in `spi_universe.csv` are de-duplicated, with a data-quality warning in the report, not rejected. | They are identical (same date and id), so no information conflicts. |
 | A2 | A universe security with no review-date security data (`166`) is excluded from ranking, with a warning in the report. | FFMCAP needs shares(t) and free float(t); falling back to cut-off values would break the brief's date rule. |
 | A3 | The empty review-date price column is expected: prices are only taken at cut-off (t'). | Matches the FFMCAP formula in the brief. |
+| A4 | Ranking uses FFMCAP only, as the brief specifies, not the rulebook's selection list (4.3: 50% average 12-month FFMCAP share + 50% 12-month turnover share). | No turnover or history data is provided; the brief defines FFMCAP ranking explicitly. The ranking criterion is a pluggable rule so the full formula could be added. |
+| A5 | The extra liquidity rule for instruments with primary listings on several exchanges (5.12.3.2) is not applied. | The data has no listing or turnover fields. |
+| A6 | Each id is treated as a separate issuer, so issuer-level cumulative capping (5.12.4) is not applied. | The data has no issuer field. |
+| A7 | Buffer candidates of the same kind (incumbent or new) are taken in rank order. | Rulebook says incumbents come first but not how to order within a group; rank order is the natural reading. |
+| A8 | Ties in FFMCAP are broken by id, so results are deterministic. | No ties occur in this data; the rule only guards reproducibility. |
 
 ## Open questions
 
 Candidates to send to the SIX contacts from the original brief.
 
-- Exact SMI selection buffer rule (rulebook 5.12.3.2): which rank thresholds apply to joiners and to
-  incumbents? We don't have the rulebook text in the repo yet, and the Q3 2026 outcome depends on it
-  (incumbents at ranks 21 and 22).
+- ~~Exact SMI selection buffer rule~~ — resolved from rulebook 5.12.3.2 (see **Rulebook rules applied**).
+- Confirm that ranking on point-in-time FFMCAP (A4), without turnover, is intended.
 - Are the duplicate rows in `spi_universe.csv` intentional (a data-validation test) or an export artifact?
 - Id `166` has no review-date data: exclude it, or is there a missing row?
 
 ## Interview talking points
 
 - How the design accommodates new indices, dates and rules (D3, D4).
+- Where the brief simplifies the rulebook (A4–A6) and how the design leaves room for the full rules.
+- The buffer is what changes the result: plain top 20 gives 3 joiners and 3 leavers, the buffer gives 1 and 1.
 - Traceability/auditability: how a reviewer can see why a security joined, left or was capped.
 - Testing strategy: the brief's worked example (A/B/C, 50% cap → 50 / 37.5 / 12.5) as a first test case.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
