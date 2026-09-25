@@ -70,31 +70,53 @@ class StatusAssessmentTest {
     }
 
     @Test
-    void unrankedSecurityIsJudgedByEstimatedRank() {
-        // D has no review-date row: estimated from cut-off shares and free float, FFMCAP 200 → rank 4, harmless.
+    void unrankedSecurityIsHarmlessOnlyWellBelowTheBuffer() {
+        // D has no review-date row, so it is estimated from cut-off shares and free float. Without D the ranking
+        // is A 500, B 400, C 300, E 100: the buffer end (rank 3) is 300, so an estimate is harmless below 150.
         var data = fullData();
-        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "2", "1", 100L)));
+        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "1", "1", 100L)));
         var harmless = assess(data, List.of());
         assertThat(harmless.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
         assertThat(harmless.reasons()).singleElement().asString()
-                .contains("D: not ranked, estimated rank 4 is below buffer end 3");
+                .contains("D: not ranked, estimated FFMCAP 100 is below half the value at buffer end rank 3 (300)");
 
-        // Same, but big enough to reach the buffer: needs attention.
-        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "9", "1", 100L)));
-        assertThat(assess(data, List.of()).reasons()).singleElement().asString()
-                .contains("D: not ranked, estimated rank 1 is within buffer end 3");
+        // 200 would rank 4th, below the buffer, but within the margin: the estimate is too close to call (A13).
+        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "2", "1", 100L)));
+        var nearBuffer = assess(data, List.of());
+        assertThat(nearBuffer.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
+        assertThat(nearBuffer.reasons()).singleElement().asString()
+                .contains("D: not ranked, estimated FFMCAP 200 is not below half the value at buffer end rank 3 (300)");
 
         // No price on either date: can't estimate, so it counts as relevant.
         data.put("D", Map.of(REVIEW, sec("D", REVIEW, null, "1", 100L)));
         assertThat(assess(data, List.of()).reasons()).singleElement().asString()
-                .contains("too little data to estimate its rank");
+                .contains("too little data to estimate its ranking value");
+    }
+
+    @Test
+    void unrankedSecurityNeedsAttentionWhenTheBufferIsNotFull() {
+        // Buffer end 5, but only 4 securities can be ranked: D could take a buffer place whatever its size.
+        var index = new IndexDefinition("TEST", "SPI", 2, 1, 5, BigDecimal.ONE, "FFMCAP", List.of(PERIOD));
+        var data = fullData();
+        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "1", "1", 1L)));
+
+        var status = assess(index, data, List.of());
+
+        assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
+        assertThat(status.reasons()).singleElement().asString().contains("fewer than 5 securities are ranked");
     }
 
     private static StatusAssessment.Result assess(Map<String, Map<LocalDate, SecurityData>> data,
                                                   List<DataQualityWarning> inputWarnings) {
+        return assess(INDEX, data, inputWarnings);
+    }
+
+    private static StatusAssessment.Result assess(IndexDefinition index,
+                                                  Map<String, Map<LocalDate, SecurityData>> data,
+                                                  List<DataQualityWarning> inputWarnings) {
         var input = new InputData(Map.of(REVIEW, Set.of("A", "B", "C", "D", "E")), data, Set.of("A", "B"),
                 inputWarnings, List.of());
-        return StatusAssessment.assess(new ReviewEngine().run(INDEX, PERIOD, input));
+        return StatusAssessment.assess(new ReviewEngine().run(index, PERIOD, input));
     }
 
     /** Price 1 on the cut-off date; shares 500, 400, … on the review date, so FFMCAP 500, 400, … */

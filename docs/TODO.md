@@ -11,13 +11,12 @@ review (D20–D22) added the changes below. See the Timeline in [APPROACH.md](AP
 
 ## Next, in order
 
-1. Status margin (A13): an unranked security is harmless only if its estimated ranking value is below half the
-   value at the buffer end rank.
-2. Structured status reasons (D22): record with `securityId`, `relevance` enum, `warning`, `explanation`;
+1. Structured status reasons (D22): record with `securityId`, `relevance` enum, `warning`, `explanation`;
    status derived from the enum; A12's warning maps to `INDEX_INCOMPLETE`. Update `StatusAssessmentTest` to
    assert on the enum.
-3. Report storage (D21): `ReportStore` interface with a file implementation under `reports/`; `POST` returns
+2. Report storage (D21): `ReportStore` interface with a file implementation under `reports/`; `POST` returns
    201 + `Location`; `GET .../reports` and `GET .../reports/{id}`. Tests with a temp directory.
-4. Postman: update the run-review request (201), add list/get report requests, re-export to `postman/`.
-5. Docs: `DESIGN.md` (capping reading, weights vs factors, status margin and reasons, storage, API table) and
-   `README.md` (endpoints, 201). Mention the 15% capping test in the DESIGN testing table.
+3. Postman: update the run-review request (201), add list/get report requests, re-export to `postman/`.
+4. Docs: `DESIGN.md` (capping reading, weights vs factors, status margin and reasons, storage, API table) and
+   `README.md` (endpoints, 201). Mention the 15% capping test in the DESIGN testing table. (The status margin
+   is already documented.)

@@ -94,9 +94,11 @@ The **review status** tells a reviewer whether to look closer (D10, D16):
 |---|---|
 | `COMPLETED` | No warnings. |
 | `COMPLETED_WITH_WARNINGS` | Only warnings that can't change the result. |
-| `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated rank is within the buffer end (A13), or on an unknown security. |
+| `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated ranking value is not below half the value at the buffer end rank (A13), or on an unknown security. |
 
-Every status comes with reasons. For Q3: `166: not ranked, estimated rank 197 is below buffer end 22`.
+The estimate fills the gaps from the other date, so it gets a safety margin: 17 ids change shares and 41 change
+free float between the two dates. Every status comes with reasons. For Q3: `166: not ranked, estimated FFMCAP
+12890814 is below half the value at buffer end rank 22 (15376002109)`.
 
 ## Traceability
 
@@ -144,7 +146,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 
 | Level | Tests |
 |---|---|
-| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `IndexDefinitionTest`, `StatusAssessmentTest` (every status path, estimated ranks) |
+| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `IndexDefinitionTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin) |
 | Ingest | `InputDataLoaderTest`: BOM and CRLF, duplicates, invalid rows with line numbers, conflicts, checksums, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs |
 | API | `IndexControllerTest`: all endpoints on the real config and data, including 404s |

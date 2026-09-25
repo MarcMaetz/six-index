@@ -18,7 +18,7 @@ status, plus an audit trail showing why each security was selected or not.
 | Leaver | `103` (rank 35, below the buffer) |
 | Buffer (ranks 19–22) | incumbents `160` and `81` keep their places over the new candidates `249` and `28` |
 | Capped at 18% | `155` (raw weight 25.42%, capping factor 0.5654) and `205` (23.49%, 0.6117) |
-| Review status | `COMPLETED_WITH_WARNINGS`: duplicate rows in `spi_universe.csv` (nothing lost), and id `166` excluded for missing review-date data (its estimated rank, 197, can't affect the result) |
+| Review status | `COMPLETED_WITH_WARNINGS`: duplicate rows in `spi_universe.csv` (nothing lost), and id `166` excluded for missing review-date data (its estimated FFMCAP, 12.9M, is far below the 15.4bn at rank 22, so it can't affect the result) |
 
 ## Build and run
 

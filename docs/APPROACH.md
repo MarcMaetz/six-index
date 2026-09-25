@@ -25,6 +25,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | README rewritten for reviewers, `docs/DESIGN.md` added, Postman collection exported to `postman/` (D19) |
 | 2026-09-25 | Design review of review and report ("grill me"): iterative capping kept, both weights and factors, status margin, report storage, structured status reasons (D20–D22, A11, A13, A14) |
 | 2026-09-25 | Iterative capping shown on real data: Q3 at a 15% cap needs two rounds, `[[155, 205], [63, 64]]` (D20) |
+| 2026-09-25 | Status margin: an unranked security is harmless only if its estimate is below half the buffer-end value (A13) |
 
 ## Design decisions
 
@@ -195,9 +196,11 @@ decided, why, and what we rejected.
   - each `DataQualityWarning` has an `Impact`: `NONE` (nothing lost, e.g. identical duplicate dropped) or
     `MISSING_DATA` (a row ignored, conflicting rows, a security excluded). Only `MISSING_DATA` can raise the
     status;
-  - a security that couldn't be ranked is judged by an **estimated rank** from the values it has on either
-    date (A13). No estimate possible, or no security named → counts as relevant.
-- Result for Q3: `COMPLETED_WITH_WARNINGS`; `166`'s estimate is rank 197 of 205, far below the buffer end 22.
+  - a security that couldn't be ranked is judged by an **estimated ranking value** from the values it has on
+    either date: harmless only if below half the value at the buffer end rank (A13). No estimate possible, or
+    no security named → counts as relevant.
+- Result for Q3: `COMPLETED_WITH_WARNINGS`; `166`'s estimated FFMCAP is 12.9M against 15.4bn at the buffer end
+  rank 22 (it would rank 197 of 205).
 - Every status comes with reasons naming the warning, the security and why it does or doesn't matter.
 - **Why:** The status should tell a reviewer whether to look closer, and the reasons should say where.
 - **Rejected:** a warning count threshold (says nothing about impact); treating every unranked security as
@@ -356,7 +359,7 @@ Candidates to send to the SIX contacts from the original brief.
 - Traceability/auditability: how a reviewer can see why a security joined, left or was capped.
 - Separating business-owned parameters (`config/indices.yml`) from technical config and from formulas (D11).
 - Why data-quality warnings drive the review status instead of blocking the load (D9, D10), and how
-  impact plus estimated rank keep harmless warnings from flagging a review (D16).
+  impact plus an estimate with a safety margin keep harmless warnings from flagging a review (D16, A13).
 - Testing strategy: each pipeline step unit-tested on small hand-made cases (the brief's A/B/C example, a
   two-round capping case, buffer edge cases, each status case); the real Q3 data checked at engine, report and
   API level; Postman test scripts for manual runs. Tests compare decimals with tolerances where the last of
