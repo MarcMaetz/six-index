@@ -11,10 +11,9 @@ review (D20–D22) added the changes below. See the Timeline in [APPROACH.md](AP
 
 ## Next, in order
 
-1. Report storage (D21): `ReportStore` interface with a file implementation under `reports/`; `POST` returns
-   201 + `Location`; `GET .../reports` and `GET .../reports/{id}`. Tests with a temp directory.
-2. Postman: update the run-review request (201, and check `statusReasons[*].relevance` =
+1. Postman: update the run-review request (201, and check `statusReasons[*].relevance` =
    `NO_DATA_LOST`, `ESTIMATED_FAR_BELOW_BUFFER`), add list/get report requests, re-export to `postman/`.
-3. Docs: `DESIGN.md` (capping reading, weights vs factors, status margin and reasons, storage, API table) and
-   `README.md` (endpoints, 201). Mention the 15% capping test in the DESIGN testing table. (The status margin
-   and structured reasons are already documented.)
+2. Docs: `DESIGN.md` (capping reading, weights vs factors, storage incl. the `store` package in the
+   architecture diagram and table, API table, "Known simplifications" no longer says reports aren't stored) and
+   `README.md` (endpoints, 201, layout with `store/`). Mention the 15% capping test and `FileReportStoreTest`
+   in the DESIGN testing table. (The status margin and structured reasons are already documented.)

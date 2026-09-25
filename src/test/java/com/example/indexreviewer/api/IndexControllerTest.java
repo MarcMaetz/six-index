@@ -3,9 +3,14 @@ package com.example.indexreviewer.api;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+
+import java.nio.file.Path;
 
 import java.util.List;
 
@@ -15,6 +20,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @AutoConfigureMockMvc
 class IndexControllerTest {
+
+    @TempDir
+    static Path reportsDir;
+
+    /** Stored reports go to a temp folder, not the working directory's {@code reports/}. */
+    @DynamicPropertySource
+    static void reportsDir(DynamicPropertyRegistry registry) {
+        registry.add("index-reviewer.reports-dir", () -> reportsDir.toString());
+    }
 
     @Autowired
     MockMvcTester mvc;
@@ -53,7 +67,7 @@ class IndexControllerTest {
 
     @Test
     void runsSmiQ3Review() {
-        assertThat(mvc.post().uri("/api/indices/SMI/reviews/2026-Q3")).hasStatusOk().bodyJson()
+        assertThat(mvc.post().uri("/api/indices/SMI/reviews/2026-Q3")).hasStatus(HttpStatus.CREATED).bodyJson()
                 .satisfies(json -> {
                     assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
                     assertThat(json).extractingPath("$.statusReasons[*].relevance")
@@ -68,6 +82,30 @@ class IndexControllerTest {
                     assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
                     assertThat(json).extractingPath("$.excluded[0].securityId").isEqualTo("166");
                 });
+    }
+
+    @Test
+    void storesEveryRunAndReturnsItAsWritten() {
+        var run = mvc.post().uri("/api/indices/SMI/reviews/2026-Q3").exchange();
+        assertThat(run).hasStatus(HttpStatus.CREATED);
+        String location = run.getResponse().getHeader("Location");
+        assertThat(location).matches("http://localhost/api/indices/SMI/reviews/2026-Q3/reports/\\d{8}T\\d{9}Z(-\\d+)?");
+        String id = location.substring(location.lastIndexOf('/') + 1);
+
+        assertThat(mvc.get().uri(location)).hasStatusOk().bodyJson().satisfies(json -> {
+            assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
+            assertThat(json).extractingPath("$.joiners[0].securityId").isEqualTo("177");
+        });
+        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/reports")).hasStatusOk().bodyJson()
+                .extractingPath("$[*].id").asArray().contains(id);
+    }
+
+    @Test
+    void unknownStoredReportIsNotFound() {
+        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/reports/20000101T000000000Z"))
+                .hasStatus(HttpStatus.NOT_FOUND)
+                .bodyJson().extractingPath("$.title").isEqualTo("Report not found");
+        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q4/reports")).hasStatus(HttpStatus.NOT_FOUND);
     }
 
     @Test

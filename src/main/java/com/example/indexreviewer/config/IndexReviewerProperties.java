@@ -14,14 +14,17 @@ import java.util.Objects;
  * (D11); {@link IndexDefinition} validates each one, so a bad definition fails at startup.
  *
  * @param dataDir root folder of the input files, holding one folder per index and review period (D12)
+ * @param reportsDir root folder of stored review reports (D21)
  * @param report  display precision of review reports (D13)
  * @param indices configured indices, with unique names
  */
 @ConfigurationProperties("index-reviewer")
-public record IndexReviewerProperties(Path dataDir, ReportFormat report, List<IndexDefinition> indices) {
+public record IndexReviewerProperties(Path dataDir, Path reportsDir, ReportFormat report,
+                                      List<IndexDefinition> indices) {
 
     public IndexReviewerProperties {
         Objects.requireNonNull(dataDir, "index-reviewer.data-dir must be set");
+        Objects.requireNonNull(reportsDir, "index-reviewer.reports-dir must be set");
         Objects.requireNonNull(report, "index-reviewer.report.* must be set");
         indices = List.copyOf(indices == null ? List.of() : indices);
         var names = new HashSet<String>();

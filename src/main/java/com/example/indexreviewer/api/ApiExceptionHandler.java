@@ -2,6 +2,7 @@ package com.example.indexreviewer.api;
 
 import com.example.indexreviewer.config.NotConfiguredException;
 import com.example.indexreviewer.ingest.InputDataException;
+import com.example.indexreviewer.store.ReportNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +15,11 @@ class ApiExceptionHandler {
     @ExceptionHandler
     ProblemDetail notConfigured(NotConfiguredException e) {
         return problem(HttpStatus.NOT_FOUND, "Not configured", e);
+    }
+
+    @ExceptionHandler
+    ProblemDetail reportNotFound(ReportNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "Report not found", e);
     }
 
     /** The request is valid, but the review's input files are missing or unusable. */

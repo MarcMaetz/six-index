@@ -27,6 +27,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Iterative capping shown on real data: Q3 at a 15% cap needs two rounds, `[[155, 205], [63, 64]]` (D20) |
 | 2026-09-25 | Status margin: an unranked security is harmless only if its estimate is below half the buffer-end value (A13) |
 | 2026-09-25 | Structured status reasons with a `relevance` enum; index incompleteness detected from the result (D22, A12) |
+| 2026-09-25 | Report storage: every run saved as JSON, `POST` returns 201 + `Location`, list and get endpoints (D21) |
 
 ## Design decisions
 
@@ -49,7 +50,7 @@ decided, why, and what we rejected.
 ### D4 — Package layout by responsibility
 - `domain` (framework-free model) · `ingest` (CSV + validation) · `review` (ranking, selection,
   capping as rules) · `report` (constituents, weights, joiners, leavers, status) · `api` (REST) ·
-  `config` (Spring wiring and config binding, added in D14).
+  `config` (Spring wiring and config binding, added in D14) · `store` (stored reports, added in D21).
 - **Why:** Keeps the review logic independent of Spring and I/O, so it is unit-testable in isolation
   and new rules slot into `review` without touching ingest or API.
 
@@ -258,6 +259,13 @@ decided, why, and what we rejected.
   `GET .../reviews/{period}/reports` lists the stored runs; `GET .../reports/{id}` returns one.
 - Files are written once, never changed. `reports/` is git-ignored. Storage sits behind a `ReportStore`
   interface, so a database can replace files without touching the review (D2).
+- Implementation (`store` package, `FileReportStore`): the run id is the UTC generation time
+  (`20260925T201052184Z`), with `-2`, `-3`, … if runs share a millisecond; files are created with
+  `CREATE_NEW`, so an existing run can't be overwritten. JSON is written with the application's `JsonMapper`,
+  so a stored report looks exactly like the API response. `GET .../reports/{id}` returns the stored bytes
+  unchanged rather than re-serializing, so what you get is what was written. Ids and path segments are checked
+  against a safe pattern, so a request can't read outside the store. The folder is
+  `index-reviewer.reports-dir` (technical config).
 - **Why:** Without storage, "which report did we publish for Q3, and when?" has no answer, and re-running
   after a config change gives a different report. Traceability is required and auditability is asked for.
 - **Rejected:** no storage (D17); a database (out of scope, D2).
