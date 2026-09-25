@@ -24,6 +24,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Delivery via the GitHub repo instead of a ZIP (D18) |
 | 2026-09-25 | README rewritten for reviewers, `docs/DESIGN.md` added, Postman collection exported to `postman/` (D19) |
 | 2026-09-25 | Design review of review and report ("grill me"): iterative capping kept, both weights and factors, status margin, report storage, structured status reasons (D20–D22, A11, A13, A14) |
+| 2026-09-25 | Iterative capping shown on real data: Q3 at a 15% cap needs two rounds, `[[155, 205], [63, 64]]` (D20) |
 
 ## Design decisions
 

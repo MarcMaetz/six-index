@@ -67,6 +67,31 @@ class ReviewEngineTest {
         });
     }
 
+    /**
+     * D20: at 18% the Q3 data needs one capping round, so a lower cap shows why capping must repeat. After
+     * capping 155 and 205 at 15%, sharing their excess lifts 63 to 15.60% and 64 above 15% too. A single pass
+     * would publish 63 above the cap; the loop caps 63 and 64 in round 2.
+     */
+    @Test
+    void capsIterativelyWhenRedistributionPushesOthersOverTheCap() {
+        var cap = new BigDecimal("0.15");
+        var index = new IndexDefinition("SMI", "SPI", 20, 18, 22, cap, "FFMCAP", List.of(Q3));
+        InputData input = new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI");
+
+        ReviewResult result = engine.run(index, Q3, input);
+
+        assertThat(result.cappingRounds()).containsExactly(List.of("155", "205"), List.of("63", "64"));
+        assertThat(result.constituents()).filteredOn(c -> c.weight().capped())
+                .allSatisfy(c -> assertThat(c.weight().weight()).isEqualByComparingTo(cap));
+        assertThat(result.constituents()).allSatisfy(c ->
+                assertThat(c.weight().weight()).isLessThanOrEqualTo(cap));
+        assertThat(result.constituents().stream().map(c -> c.weight().weight())
+                .reduce(BigDecimal.ZERO, BigDecimal::add)).isCloseTo(BigDecimal.ONE, within(new BigDecimal("1E-20")));
+        // 63's raw share is below the cap: only the redistribution pushes it over (A14).
+        assertThat(result.constituents()).filteredOn(c -> c.securityId().equals("63")).singleElement()
+                .satisfies(c -> assertThat(c.weight().rawWeight()).isLessThan(cap));
+    }
+
     @Test
     void incumbentsLeaveWhenNotInUniverseOrNotEligible() {
         var input = new InputData(
