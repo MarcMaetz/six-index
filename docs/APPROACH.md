@@ -15,6 +15,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Prepared handover to fresh sessions: working docs split into `AGENT.md` / `docs/TODO.md` / `docs/APPROACH.md` (D7) |
 | 2026-09-25 | Claude Code hook enforcing approach-log updates on commit (D8) |
 | 2026-09-25 | `domain` input model and `ingest` CSV loader with data-quality warnings, unit-tested (D9, A9, A10) |
+| 2026-09-25 | Design review of the ingest decisions ("grill me"): review status, business config, input layout, precision (D10–D13) |
 
 ## Design decisions
 
@@ -32,6 +33,7 @@ decided, why, and what we rejected.
 - **Why:** "Additional indices / additional review dates" is an explicit extensibility requirement.
   SMI (universe SPI, 20 constituents, 18% cap, cut-off 2026-09-10, review 2026-09-21) lives in
   `application.properties` under `index-reviewer.indices.*`, so a new index or quarter is a config change.
+- **Superseded in part by D11:** the index definitions move to a separate business-owned file.
 
 ### D4 — Package layout by responsibility
 - `domain` (framework-free model) · `ingest` (CSV + validation) · `review` (ranking, selection,
@@ -88,6 +90,52 @@ decided, why, and what we rejected.
 - OpenCSV does the parsing (quoting, CRLF); the UTF-8 BOM is skipped by hand since OpenCSV doesn't.
 - **Rejected:** failing on the first bad row (one typo would block the quarterly review); OpenCSV bean
   binding (annotations on domain classes and coarse errors instead of per-row warnings).
+
+### D10 — Review status reflects whether data-quality problems can affect the result
+- The loader stays lenient (D9), but the review derives its status from the warnings:
+  `COMPLETED` (no warnings), `COMPLETED_WITH_WARNINGS` (warnings only on securities that can't change the
+  result), `REQUIRES_ATTENTION` (a warning touches a current constituent or a security ranked within the
+  buffer end, i.e. 1–22 for SMI). Uses the ids in `DataQualityWarning.securityIds`.
+- **Why:** With D9 alone, a typo in a top constituent's row would make it a leaver under a normal-looking
+  status. A wrong published composition costs more than a delayed one. It also gives the brief's
+  "review status" real meaning.
+- **Rejected:** failing the load on any bad row (blocks reviews over irrelevant rows); status that only says
+  whether the calculation ran (hides typo-driven outcomes).
+
+### D11 — Business parameters in a separate `config/indices.yml`, formulas in code
+- Index definitions (universe, constituent count, direct-selection rank, buffer end rank, weight cap, ranking
+  strategy name, review periods with cut-off and review dates) move from `application.properties` to
+  `config/indices.yml`, imported via `spring.config.import=optional:file:./config/indices.yml`. A default copy
+  is packaged so the app runs out of the box. `application.properties` keeps only technical settings.
+- Bound to a validated `@ConfigurationProperties` record; inconsistent config (e.g. buffer end below
+  constituent count, cap outside (0, 1]) fails at startup.
+- The status relevance band (D10) is derived from the buffer end rank, not configured separately.
+- Ranking formulas stay in code as named strategies (`FFMCAP` now, the rulebook selection list later, A4);
+  the YAML only picks one by name.
+- **Why:** In practice these values are owned by the index business, not engineering; changing the cap or
+  adding a quarter should not need a rebuild.
+- **Rejected:** database or admin UI (out of scope: no UI or user management); rules engine (far too heavy
+  for a handful of parameters); formulas as config expressions.
+
+### D12 — Input folder per index and review period, with file checksums in the report
+- Input lives in `<data-dir>/<index>/<period>/`, e.g. `data/SMI/2026-Q3/`. File names are fixed by
+  convention; the universe file is named after the index's universe (`spi` → `spi_universe.csv`).
+- The report records the input directory and a SHA-256 checksum per file.
+- **Why:** One flat `data/` allows one index only and lets Q4 files overwrite Q3's, so past reviews can't be
+  re-run or audited. Checksums prove which input produced a result (traceability).
+- **Rejected:** explicit file paths per period in `indices.yml` (mixes business config with file
+  operations); sharing universe and market data across indices (possible later, not needed now).
+
+### D13 — Full-precision arithmetic, rounding only for display
+- FFMCAP, weights and capping factors are calculated with `BigDecimal` and `MathContext.DECIMAL128`
+  (34 significant digits, HALF_EVEN), with no intermediate rounding.
+- Invariants are asserted and tested: weights sum to 1 within 1e-20, and no weight exceeds the cap.
+- Display precision (weights 6 decimals in percent, capping factors 10 decimals) is a technical setting in
+  `application.properties`, not a business one. Displayed weights are not adjusted to add up to exactly 100%.
+- **Why:** Iterative capping divides repeatedly; rounding in between compounds and makes results depend on
+  the number of iterations.
+- **Rejected:** `double` (loses the reason for exact decimals and makes test comparisons fragile); rounding
+  each capping iteration to the published precision.
 
 ## Input data findings
 
@@ -157,6 +205,8 @@ Candidates to send to the SIX contacts from the original brief.
 - Confirm that ranking on point-in-time FFMCAP (A4), without turnover, is intended.
 - Are the duplicate rows in `spi_universe.csv` intentional (a data-validation test) or an export artifact?
 - Id `166` has no review-date data: exclude it, or is there a missing row?
+- Is there a required precision for published weights and capping factors that the calculation itself must
+  use (D13)?
 
 ## Interview talking points
 
@@ -164,6 +214,8 @@ Candidates to send to the SIX contacts from the original brief.
 - Where the brief simplifies the rulebook (A4–A6) and how the design leaves room for the full rules.
 - The buffer is what changes the result: plain top 20 gives 3 joiners and 3 leavers, the buffer gives 1 and 1.
 - Traceability/auditability: how a reviewer can see why a security joined, left or was capped.
+- Separating business-owned parameters (`config/indices.yml`) from technical config and from formulas (D11).
+- Why data-quality warnings drive the review status instead of blocking the load (D9, D10).
 - Testing strategy: the brief's worked example (A/B/C, 50% cap → 50 / 37.5 / 12.5) as a first test case.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
