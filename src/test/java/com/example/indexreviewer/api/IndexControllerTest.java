@@ -7,6 +7,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Runs against the packaged {@code config/indices.yml} and the provided data in {@code data/SMI/2026-Q3}. */
@@ -47,5 +49,27 @@ class IndexControllerTest {
                 .bodyJson().extractingPath("$.detail").isEqualTo("Index XYZ is not configured");
         assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q4/input")).hasStatus(HttpStatus.NOT_FOUND)
                 .bodyJson().extractingPath("$.detail").isEqualTo("Review period 2026-Q4 is not configured for SMI");
+    }
+
+    @Test
+    void runsSmiQ3Review() {
+        assertThat(mvc.post().uri("/api/indices/SMI/reviews/2026-Q3")).hasStatusOk().bodyJson()
+                .satisfies(json -> {
+                    assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
+                    assertThat(json).extractingPath("$.constituents.length()").isEqualTo(20);
+                    assertThat(json).extractingPath("$.joiners[*].securityId").isEqualTo(List.of("177"));
+                    assertThat(json).extractingPath("$.leavers[*].securityId").isEqualTo(List.of("103"));
+                    assertThat(json).extractingPath("$.leavers[0].reason").isEqualTo("BELOW_BUFFER");
+                    assertThat(json).extractingPath("$.constituents[?(@.capped == true)].securityId")
+                            .isEqualTo(List.of("155", "205"));
+                    assertThat(json).extractingPath("$.constituents[0].weightPercent").isEqualTo(18.0);
+                    assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
+                    assertThat(json).extractingPath("$.excluded[0].securityId").isEqualTo("166");
+                });
+    }
+
+    @Test
+    void reviewOfUnknownPeriodIsNotFound() {
+        assertThat(mvc.post().uri("/api/indices/SMI/reviews/2026-Q4")).hasStatus(HttpStatus.NOT_FOUND);
     }
 }

@@ -19,6 +19,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Implemented D11/D12: `config/indices.yml`, input in `data/SMI/2026-Q3/`, SHA-256 checksums; endpoints to list indices and check a review's input, added to Postman (D14) |
 | 2026-09-25 | Review engine: eligibility, FFMCAP ranking, buffer selection, iterative capping; Q3 result confirmed in a unit test (D15, A11, A12) |
 | 2026-09-25 | Review report with audit trail and review status; warnings got an impact so harmless ones don't flag the review (D16, A13) |
+| 2026-09-25 | `POST /api/indices/{index}/reviews/{period}` returns the report; end-to-end API test and Postman request with the expected Q3 results (D17) |
 
 ## Design decisions
 
@@ -194,6 +195,19 @@ decided, why, and what we rejected.
 - **Rejected:** a warning count threshold (says nothing about impact); treating every unranked security as
   relevant (would flag this quarter over a penny stock).
 
+### D17 — Review endpoint: POST, returns the report, stores nothing
+- `POST /api/indices/{index}/reviews/{period}` loads the input, runs `ReviewEngine`, builds the report and
+  returns it (200). The controller only wires the three steps; the logic stays in the framework-free packages.
+- Report display precision is technical config (`index-reviewer.report.*` in `application.properties`, D13),
+  bound into `ReportFormat`. `ReviewEngine`, `ReportBuilder` and a UTC `Clock` are beans in `ReviewConfiguration`.
+- JSON keeps the fixed decimals (`18.000000`, capping factor `0.5653526015`). The rounded weights add up to
+  99.999999% for Q3; at full precision they add up to 1 (D13), and the display is not adjusted.
+- **Why POST:** running a review is an action, not a lookup of a stored resource, even though the same input
+  gives the same result. No 201, because nothing is created.
+- **Rejected:** storing reports (a file in `reports/` or a DB) — the brief doesn't need it, and the report
+  already carries input checksums, so any report can be reproduced. It is the obvious next step for an audit
+  history.
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -284,4 +298,6 @@ Candidates to send to the SIX contacts from the original brief.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
   choice is written down and can be explained.
-- What I'd do next with more time.
+- Why the displayed weights add up to 99.999999% and that's correct (D13, D17).
+- What I'd do next with more time: store reports for an audit history (D17), the rulebook selection list as a
+  second ranking strategy (A4), issuer-level capping (A6).
