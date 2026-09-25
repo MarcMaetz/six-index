@@ -1,6 +1,7 @@
 package com.example.indexreviewer.ingest;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
+import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.InputFile;
 import com.example.indexreviewer.domain.SecurityData;
@@ -90,7 +91,7 @@ public final class InputDataLoader {
             }
         }
         if (!duplicates.isEmpty()) {
-            warnings.add(new DataQualityWarning(source, null,
+            warnings.add(new DataQualityWarning(source, null, Impact.NONE,
                     "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
         }
         return universe;
@@ -119,7 +120,7 @@ public final class InputDataLoader {
                     duplicates.add(data.securityId());
                 } else {
                     conflicts.add(existing);
-                    warnings.add(new DataQualityWarning(source, row.line(),
+                    warnings.add(new DataQualityWarning(source, row.line(), Impact.MISSING_DATA,
                             "Conflicting data for %s on %s; all rows for that date ignored"
                                     .formatted(data.securityId(), data.date()), List.of(data.securityId())));
                 }
@@ -132,7 +133,7 @@ public final class InputDataLoader {
         }
         byId.values().removeIf(Map::isEmpty);
         if (!duplicates.isEmpty()) {
-            warnings.add(new DataQualityWarning(source, null,
+            warnings.add(new DataQualityWarning(source, null, Impact.NONE,
                     "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
         }
         return byId;
@@ -154,7 +155,7 @@ public final class InputDataLoader {
             }
         }
         if (!duplicates.isEmpty()) {
-            warnings.add(new DataQualityWarning(source, null,
+            warnings.add(new DataQualityWarning(source, null, Impact.NONE,
                     "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
         }
         return composition;
@@ -222,7 +223,7 @@ public final class InputDataLoader {
 
     private static DataQualityWarning invalidRow(String source, CsvFile.Row row, InvalidRowException e) {
         String id = row.values().containsKey(ID) ? row.get(ID) : "";
-        return new DataQualityWarning(source, row.line(), "Row ignored: " + e.getMessage(),
+        return new DataQualityWarning(source, row.line(), Impact.MISSING_DATA, "Row ignored: " + e.getMessage(),
                 id.isEmpty() ? List.of() : List.of(id));
     }
 

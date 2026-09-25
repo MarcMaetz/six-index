@@ -1,6 +1,7 @@
 package com.example.indexreviewer.ingest;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
+import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.InputFile;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReaderBuilder;
@@ -89,7 +90,7 @@ final class CsvFile {
                     continue;
                 }
                 if (fields.length != columns.size()) {
-                    warnings.add(new DataQualityWarning(source, line, "Row ignored: expected %d fields, found %d"
+                    warnings.add(new DataQualityWarning(source, line, Impact.MISSING_DATA, "Row ignored: expected %d fields, found %d"
                             .formatted(columns.size(), fields.length), List.of()));
                     continue;
                 }

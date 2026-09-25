@@ -1,6 +1,7 @@
 package com.example.indexreviewer.review;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
+import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
@@ -27,7 +28,7 @@ public final class ReviewEngine {
 
         var eligibility = Eligibility.check(input, period);
         for (var exclusion : eligibility.excluded()) {
-            warnings.add(new DataQualityWarning(SOURCE, null,
+            warnings.add(new DataQualityWarning(SOURCE, null, Impact.MISSING_DATA,
                     "Excluded from ranking: " + exclusion.reason(), List.of(exclusion.securityId())));
         }
 
@@ -36,7 +37,7 @@ public final class ReviewEngine {
         var selection = Selection.select(ranked, index);
         var selected = selection.stream().filter(o -> o.decision().selected()).toList();
         if (selected.size() < index.constituentCount()) {
-            warnings.add(new DataQualityWarning(SOURCE, null, "Only %d securities could be selected, %d needed"
+            warnings.add(new DataQualityWarning(SOURCE, null, Impact.MISSING_DATA, "Only %d securities could be selected, %d needed"
                     .formatted(selected.size(), index.constituentCount()), List.of()));
         }
 

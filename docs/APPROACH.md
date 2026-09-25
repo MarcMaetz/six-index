@@ -18,6 +18,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Design review of the ingest decisions ("grill me"): review status, business config, input layout, precision (D10–D13) |
 | 2026-09-25 | Implemented D11/D12: `config/indices.yml`, input in `data/SMI/2026-Q3/`, SHA-256 checksums; endpoints to list indices and check a review's input, added to Postman (D14) |
 | 2026-09-25 | Review engine: eligibility, FFMCAP ranking, buffer selection, iterative capping; Q3 result confirmed in a unit test (D15, A11, A12) |
+| 2026-09-25 | Review report with audit trail and review status; warnings got an impact so harmless ones don't flag the review (D16, A13) |
 
 ## Design decisions
 
@@ -174,6 +175,25 @@ decided, why, and what we rejected.
   or replaced (e.g. the selection list for A4) without touching the others.
 - **Rejected:** one method doing it all (hard to test and explain); weights as `double` (see D13).
 
+### D16 — Report with audit trail; status from warning impact and relevance
+- `ReportBuilder` (framework-free, `report` package) turns a `ReviewResult` into a `ReviewReport`: status with
+  reasons, index parameters used, constituents (rank, selection decision, joiner flag, FFMCAP, raw and final
+  weight in %, capping factor), joiners, leavers with reasons, exclusions, the full ranking with a decision per
+  security, capping rounds, input files with checksums, and all warnings. Values are rounded only here (D13).
+  A `Clock` is injected for `generatedAt`, so tests are deterministic.
+- Refines D10. Applied literally, D10 flagged the Q3 review: the duplicate-rows warning names all 204
+  duplicated ids, constituents included, and `166` can't be ranked at all. So:
+  - each `DataQualityWarning` has an `Impact`: `NONE` (nothing lost, e.g. identical duplicate dropped) or
+    `MISSING_DATA` (a row ignored, conflicting rows, a security excluded). Only `MISSING_DATA` can raise the
+    status;
+  - a security that couldn't be ranked is judged by an **estimated rank** from the values it has on either
+    date (A13). No estimate possible, or no security named → counts as relevant.
+- Result for Q3: `COMPLETED_WITH_WARNINGS`; `166`'s estimate is rank 197 of 205, far below the buffer end 22.
+- Every status comes with reasons naming the warning, the security and why it does or doesn't matter.
+- **Why:** The status should tell a reviewer whether to look closer, and the reasons should say where.
+- **Rejected:** a warning count threshold (says nothing about impact); treating every unranked security as
+  relevant (would flag this quarter over a penny stock).
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -238,6 +258,7 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A10 | Rows with out-of-range values (price or shares not positive, fractional shares, free float outside (0, 1]) are skipped with a warning. | Such values can't be real and would distort FFMCAP. None occur in this data. |
 | A11 | Capping factors are normalised so the largest is 1, i.e. uncapped constituents have factor 1 and capped ones below 1. | Only the ratios between factors affect weights; this is the usual published form. Check with SIX (open question). |
 | A12 | If fewer securities can be ranked than the index needs, all ranked securities are selected and the review adds a warning. | The rulebook doesn't cover it; a smaller index with a visible warning beats inventing a fill rule. Can't happen with this data. |
+| A13 | For the review status, an unranked security's rank is estimated with its price from the cut-off date (else the review date) and shares and free float from the review date (else the cut-off date). | Only used to judge whether missing data could matter; never used for selection or weights, which keep the strict date rule. |
 
 ## Open questions
 
@@ -257,7 +278,8 @@ Candidates to send to the SIX contacts from the original brief.
 - The buffer is what changes the result: plain top 20 gives 3 joiners and 3 leavers, the buffer gives 1 and 1.
 - Traceability/auditability: how a reviewer can see why a security joined, left or was capped.
 - Separating business-owned parameters (`config/indices.yml`) from technical config and from formulas (D11).
-- Why data-quality warnings drive the review status instead of blocking the load (D9, D10).
+- Why data-quality warnings drive the review status instead of blocking the load (D9, D10), and how
+  impact plus estimated rank keep harmless warnings from flagging a review (D16).
 - Testing strategy: the brief's worked example (A/B/C, 50% cap → 50 / 37.5 / 12.5) as a first test case.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
