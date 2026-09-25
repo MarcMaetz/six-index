@@ -21,7 +21,9 @@ This file is what the author will use to explain the work in the interview. When
 
 Keep entries short and factual. Update it **in the same change** as the work it describes, before
 committing. A timeline row alone is not enough when the work involved a choice: tooling, libraries and
-project setup count as decisions too.
+project setup count as decisions too. A hook in `.claude/settings.json` enforces this: a `git commit` is
+blocked while `docs/APPROACH.md` is unchanged. Use `[no-approach]` in the commit message only when a change
+truly needs no entry, and tell the user why.
 
 ## Build
 

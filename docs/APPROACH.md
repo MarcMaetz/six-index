@@ -13,6 +13,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Input CSVs added to `data/`; profiled them (see **Input data findings**) |
 | 2026-09-25 | SMI rules extracted from the SIX rulebook v3.40 (see **Rulebook rules applied**) |
 | 2026-09-25 | Prepared handover to fresh sessions: working docs split into `AGENT.md` / `docs/TODO.md` / `docs/APPROACH.md` (D7) |
+| 2026-09-25 | Claude Code hook enforcing approach-log updates on commit (D8) |
 
 ## Design decisions
 
@@ -61,6 +62,15 @@ decided, why, and what we rejected.
   picks up work from `TODO.md`, and records reasoning here, so nothing lives only in a chat transcript.
   Keeping volatile status out of `AGENT.md` stops it going stale.
 - **Rejected:** A status section inside `AGENT.md` (mixes lasting rules with fast-changing state).
+
+### D8 — Enforce the approach log with a hook, not just an instruction
+- A Claude Code `PreToolUse` hook (`.claude/settings.json` → `.claude/hooks/require-approach-log.sh`) blocks
+  any `git commit` the assistant runs while `docs/APPROACH.md` is unchanged versus HEAD. `[no-approach]` in
+  the commit message opts out for changes that need no entry.
+- **Why:** The written rule in `AGENT.md` was loaded but still skipped twice. A check that runs at commit
+  time makes the rule deterministic instead of relying on the assistant remembering.
+- **Rejected:** A git pre-commit hook (would also block the author's own IDE commits, and git hooks aren't
+  shared through the repo without extra setup).
 
 ## Input data findings
 
