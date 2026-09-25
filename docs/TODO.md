@@ -12,5 +12,5 @@ leaver `103`, `155` and `205` capped at 18%, status `COMPLETED_WITH_WARNINGS`). 
 
 ## Next, in order
 
-1. Submission: README with build/run instructions and how to try the API (Swagger UI, Postman), a design
-   doc (can draw on `docs/APPROACH.md`), and the ZIP.
+1. README with build/run instructions and how to try the API (Swagger UI, Postman), and a design doc (can
+   draw on `docs/APPROACH.md`).

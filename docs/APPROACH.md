@@ -21,6 +21,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Review report with audit trail and review status; warnings got an impact so harmless ones don't flag the review (D16, A13) |
 | 2026-09-25 | `POST /api/indices/{index}/reviews/{period}` returns the report; end-to-end API test and Postman request with the expected Q3 results (D17) |
 | 2026-09-25 | Consistency pass over this log: earlier entries (D4, D9–D11, D13, data findings) updated to match later decisions |
+| 2026-09-25 | Delivery via the GitHub repo instead of a ZIP (D18) |
 
 ## Design decisions
 
@@ -211,6 +212,12 @@ decided, why, and what we rejected.
 - **Rejected:** storing reports (a file in `reports/` or a DB) — the brief doesn't need it, and the report
   already carries input checksums, so any report can be reproduced. It is the obvious next step for an audit
   history.
+
+### D18 — Deliver the GitHub repository instead of a ZIP
+- The submission is the GitHub repo; no ZIP task is built.
+- **Why:** Reviewers get the full commit history, which shows how the work progressed alongside this log.
+  GitHub's "Download ZIP" still gives the plain archive the brief mentions.
+- **Rejected:** a Gradle ZIP task (extra work, and it would drop the history).
 
 ## Input data findings
 
