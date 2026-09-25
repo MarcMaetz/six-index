@@ -36,10 +36,6 @@ public final class ReviewEngine {
                 input.currentComposition());
         var selection = Selection.select(ranked, index);
         var selected = selection.stream().filter(o -> o.decision().selected()).toList();
-        if (selected.size() < index.constituentCount()) {
-            warnings.add(new DataQualityWarning(SOURCE, null, Impact.MISSING_DATA, "Only %d securities could be selected, %d needed"
-                    .formatted(selected.size(), index.constituentCount()), List.of()));
-        }
 
         var ffmcapById = new LinkedHashMap<String, BigDecimal>();
         selected.forEach(o -> ffmcapById.put(o.security().securityId(), o.security().security().ffmcap()));

@@ -3,6 +3,7 @@ package com.example.indexreviewer.report;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
+import com.example.indexreviewer.report.StatusReason.Relevance;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.SelectionDecision;
@@ -17,6 +18,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class ReportBuilderTest {
 
@@ -38,10 +40,10 @@ class ReportBuilderTest {
 
         // Duplicate universe rows lose nothing; 166 can't be ranked, but its estimate is far below the buffer.
         assertThat(report.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
-        assertThat(report.statusReasons()).hasSize(2);
-        assertThat(report.statusReasons().get(0)).endsWith("(no data lost)");
-        assertThat(report.statusReasons().get(1)).contains("166: not ranked, estimated FFMCAP 12890814 is below "
-                + "half the value at buffer end rank 22 (15376002109)");
+        assertThat(report.statusReasons()).extracting(StatusReason::securityId, StatusReason::relevance)
+                .containsExactly(tuple(null, Relevance.NO_DATA_LOST), tuple("166", Relevance.ESTIMATED_FAR_BELOW_BUFFER));
+        assertThat(report.statusReasons().getLast().explanation()).isEqualTo("Not ranked, estimated FFMCAP 12890814 "
+                + "is below half the value at buffer end rank 22 (15376002109)");
 
         assertThat(report.constituents()).hasSize(20).first().satisfies(c -> {
             assertThat(c.securityId()).isEqualTo("155");

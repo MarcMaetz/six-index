@@ -22,7 +22,7 @@ public record ReviewReport(
         LocalDate reviewDate,
         Instant generatedAt,
         ReviewStatus status,
-        List<String> statusReasons,
+        List<StatusReason> statusReasons,
         Parameters parameters,
         List<Constituent> constituents,
         List<Joiner> joiners,

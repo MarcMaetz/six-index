@@ -94,11 +94,20 @@ The **review status** tells a reviewer whether to look closer (D10, D16):
 |---|---|
 | `COMPLETED` | No warnings. |
 | `COMPLETED_WITH_WARNINGS` | Only warnings that can't change the result. |
-| `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated ranking value is not below half the value at the buffer end rank (A13), or on an unknown security. |
+| `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated ranking value is not below half the value at the buffer end rank (A13), or on an unknown security; or fewer constituents than needed (A12). |
 
 The estimate fills the gaps from the other date, so it gets a safety margin: 17 ids change shares and 41 change
-free float between the two dates. Every status comes with reasons. For Q3: `166: not ranked, estimated FFMCAP
-12890814 is below half the value at buffer end rank 22 (15376002109)`.
+free float between the two dates.
+
+Every status comes with structured reasons (D22): one per warning and affected security, plus one if the index
+is incomplete. Each has a `relevance` value that decides the status, and a sentence for people. All reasons are
+kept, harmless ones too. For Q3:
+
+```json
+{ "securityId": "166", "relevance": "ESTIMATED_FAR_BELOW_BUFFER",
+  "explanation": "Not ranked, estimated FFMCAP 12890814 is below half the value at buffer end rank 22 (15376002109)",
+  "warning": { "source": "review", "line": null, "impact": "MISSING_DATA", "message": "Excluded from ranking: ..." } }
+```
 
 ## Traceability
 

@@ -56,6 +56,8 @@ class IndexControllerTest {
         assertThat(mvc.post().uri("/api/indices/SMI/reviews/2026-Q3")).hasStatusOk().bodyJson()
                 .satisfies(json -> {
                     assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
+                    assertThat(json).extractingPath("$.statusReasons[*].relevance")
+                            .isEqualTo(List.of("NO_DATA_LOST", "ESTIMATED_FAR_BELOW_BUFFER"));
                     assertThat(json).extractingPath("$.constituents.length()").isEqualTo(20);
                     assertThat(json).extractingPath("$.joiners[*].securityId").isEqualTo(List.of("177"));
                     assertThat(json).extractingPath("$.leavers[*].securityId").isEqualTo(List.of("103"));

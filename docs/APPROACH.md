@@ -26,6 +26,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Design review of review and report ("grill me"): iterative capping kept, both weights and factors, status margin, report storage, structured status reasons (D20–D22, A11, A13, A14) |
 | 2026-09-25 | Iterative capping shown on real data: Q3 at a 15% cap needs two rounds, `[[155, 205], [63, 64]]` (D20) |
 | 2026-09-25 | Status margin: an unranked security is harmless only if its estimate is below half the buffer-end value (A13) |
+| 2026-09-25 | Structured status reasons with a `relevance` enum; index incompleteness detected from the result (D22, A12) |
 
 ## Design decisions
 
@@ -262,11 +263,16 @@ decided, why, and what we rejected.
 - **Rejected:** no storage (D17); a database (out of scope, D2).
 
 ### D22 — Structured status reasons
-- Each status reason is a record: `securityId`, `relevance`, the `warning` it comes from, and an
-  `explanation` sentence. `relevance` is an enum covering every path of the status logic; attention:
-  `CURRENT_CONSTITUENT`, `RANKED_WITHIN_BUFFER`, `ESTIMATED_NEAR_BUFFER`, `NOT_ESTIMABLE`, `SECURITY_UNKNOWN`,
+- Each status reason is a record: `securityId`, `relevance`, an `explanation` sentence, and the `warning` it
+  comes from (source, line, impact, message; without the id list, since the reason names the one id that
+  matters). `relevance` is an enum covering every path of the status logic; attention: `CURRENT_CONSTITUENT`,
+  `RANKED_WITHIN_BUFFER`, `ESTIMATED_NEAR_BUFFER`, `NOT_ESTIMABLE`, `BUFFER_NOT_FULL`, `SECURITY_UNKNOWN`,
   `INDEX_INCOMPLETE` (A12); harmless: `NO_DATA_LOST`, `RANKED_BELOW_BUFFER`, `ESTIMATED_FAR_BELOW_BUFFER`.
   The status follows from the enum.
+- All reasons are kept, harmless ones too, even when the status is `REQUIRES_ATTENTION`.
+- `INDEX_INCOMPLETE` is detected from the result, not from a warning: too few constituents is a review outcome,
+  not a data problem, and matching a warning by its message would be fragile. So the engine no longer adds a
+  warning for it.
 - **Why:** Sentences can't be filtered or acted on, tests had to match substrings, and stored reports (D21)
   are a long-lived record where free text ages badly.
 
@@ -334,7 +340,7 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A9 | Conflicting rows in `sec_data.csv` (same id and date, different values) are all dropped with a warning; identical ones are de-duplicated. | Neither row can be trusted; dropping them makes the security ineligible (visible in the report) rather than silently picking one. Doesn't occur in this data. |
 | A10 | Rows with out-of-range values (price or shares not positive, fractional shares, free float outside (0, 1]) are skipped with a warning. | Such values can't be real and would distort FFMCAP. None occur in this data. |
 | A11 | Capping factors are normalised so the largest is 1, i.e. uncapped constituents have factor 1 and capped ones below 1. | Only the ratios between factors affect weights; this is the usual published form. Check with SIX (open question). The brief's "weighting factors" is read as capping factors; final weights are reported as well (D20). |
-| A12 | If fewer securities can be ranked than the index needs, all ranked securities are selected and the review adds a warning. | The rulebook doesn't cover it; a smaller index with a visible warning beats inventing a fill rule. Can't happen with this data. |
+| A12 | If fewer securities can be ranked than the index needs, all ranked securities are selected and the review status is `REQUIRES_ATTENTION` with reason `INDEX_INCOMPLETE` (D22). | The rulebook doesn't cover it; a smaller index with a visible warning beats inventing a fill rule. Can't happen with this data. |
 | A13 | For the review status, an unranked security's rank is estimated with its price from the cut-off date (else the review date) and shares and free float from the review date (else the cut-off date). | Only used to judge whether missing data could matter; never used for selection or weights, which keep the strict date rule. The estimate counts as harmless only if its value is below **half** the ranking value at the buffer end, a margin for the data it borrows from the other date (17 ids change shares and 41 change free float between the dates). |
 | A14 | Capping is iterative: a security pushed above the cap by redistribution is capped too, even if its raw share was below the cap (D20). | Guarantees no published weight above the cap; the rulebook's wording only names components above 18% of the total. |
 

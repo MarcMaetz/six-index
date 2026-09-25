@@ -6,6 +6,7 @@ import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.domain.SecurityData;
+import com.example.indexreviewer.report.StatusReason.Relevance;
 import com.example.indexreviewer.review.ReviewEngine;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * Index of 2 constituents, rank 1 direct, buffer up to rank 3. Universe A–E with FFMCAP 500, 400, 300, 200,
@@ -43,6 +45,7 @@ class StatusAssessmentTest {
         var status = assess(fullData(), List.of(warning(Impact.NONE, "A", "B")));
 
         assertThat(status.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
+        assertThat(status.reasons()).extracting(StatusReason::relevance).containsExactly(Relevance.NO_DATA_LOST);
     }
 
     @Test
@@ -50,15 +53,24 @@ class StatusAssessmentTest {
         var status = assess(fullData(), List.of(warning(Impact.MISSING_DATA, "E")));
 
         assertThat(status.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
-        assertThat(status.reasons()).singleElement().asString().contains("E: ranked 5, below buffer end 3");
+        assertThat(status.reasons()).singleElement().satisfies(r -> {
+            assertThat(r.securityId()).isEqualTo("E");
+            assertThat(r.relevance()).isEqualTo(Relevance.RANKED_BELOW_BUFFER);
+            assertThat(r.explanation()).isEqualTo("Ranked 5, below buffer end 3");
+            assertThat(r.warning().source()).isEqualTo("test.csv");
+        });
     }
 
     @Test
     void missingDataOnConstituentOrWithinBufferNeedsAttention() {
-        assertThat(assess(fullData(), List.of(warning(Impact.MISSING_DATA, "B"))).reasons())
-                .singleElement().asString().contains("B: current constituent");
-        assertThat(assess(fullData(), List.of(warning(Impact.MISSING_DATA, "C"))).reasons())
-                .singleElement().asString().contains("C: ranked 3, within buffer end 3");
+        var status = assess(fullData(), List.of(warning(Impact.MISSING_DATA, "B", "C", "E")));
+
+        // All reasons are kept, harmless ones included, so the audit trail shows the whole picture.
+        assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
+        assertThat(status.reasons()).extracting(StatusReason::securityId, StatusReason::relevance).containsExactly(
+                tuple("B", Relevance.CURRENT_CONSTITUENT),
+                tuple("C", Relevance.RANKED_WITHIN_BUFFER),
+                tuple("E", Relevance.RANKED_BELOW_BUFFER));
     }
 
     @Test
@@ -66,7 +78,8 @@ class StatusAssessmentTest {
         var status = assess(fullData(), List.of(warning(Impact.MISSING_DATA)));
 
         assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(status.reasons()).singleElement().asString().contains("affected security unknown");
+        assertThat(status.reasons()).extracting(StatusReason::relevance)
+                .containsExactly(Relevance.SECURITY_UNKNOWN);
     }
 
     @Test
@@ -77,20 +90,23 @@ class StatusAssessmentTest {
         data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "1", "1", 100L)));
         var harmless = assess(data, List.of());
         assertThat(harmless.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
-        assertThat(harmless.reasons()).singleElement().asString()
-                .contains("D: not ranked, estimated FFMCAP 100 is below half the value at buffer end rank 3 (300)");
+        assertThat(harmless.reasons()).singleElement().satisfies(r -> {
+            assertThat(r.relevance()).isEqualTo(Relevance.ESTIMATED_FAR_BELOW_BUFFER);
+            assertThat(r.explanation())
+                    .isEqualTo("Not ranked, estimated FFMCAP 100 is below half the value at buffer end rank 3 (300)");
+        });
 
         // 200 would rank 4th, below the buffer, but within the margin: the estimate is too close to call (A13).
         data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "2", "1", 100L)));
         var nearBuffer = assess(data, List.of());
         assertThat(nearBuffer.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(nearBuffer.reasons()).singleElement().asString()
-                .contains("D: not ranked, estimated FFMCAP 200 is not below half the value at buffer end rank 3 (300)");
+        assertThat(nearBuffer.reasons()).extracting(StatusReason::relevance)
+                .containsExactly(Relevance.ESTIMATED_NEAR_BUFFER);
 
         // No price on either date: can't estimate, so it counts as relevant.
         data.put("D", Map.of(REVIEW, sec("D", REVIEW, null, "1", 100L)));
-        assertThat(assess(data, List.of()).reasons()).singleElement().asString()
-                .contains("too little data to estimate its ranking value");
+        assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
+                .containsExactly(Relevance.NOT_ESTIMABLE);
     }
 
     @Test
@@ -103,7 +119,23 @@ class StatusAssessmentTest {
         var status = assess(index, data, List.of());
 
         assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(status.reasons()).singleElement().asString().contains("fewer than 5 securities are ranked");
+        assertThat(status.reasons()).extracting(StatusReason::relevance).containsExactly(Relevance.BUFFER_NOT_FULL);
+    }
+
+    @Test
+    void incompleteIndexNeedsAttention() {
+        // 5 constituents needed, but D can't be ranked, so only 4 are selected (A12).
+        var index = new IndexDefinition("TEST", "SPI", 5, 3, 5, BigDecimal.ONE, "FFMCAP", List.of(PERIOD));
+        var data = fullData();
+        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "1", "1", 1L)));
+
+        var status = assess(index, data, List.of());
+
+        assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
+        assertThat(status.reasons()).extracting(StatusReason::relevance)
+                .containsExactly(Relevance.BUFFER_NOT_FULL, Relevance.INDEX_INCOMPLETE);
+        assertThat(status.reasons().getLast().explanation()).isEqualTo("Only 4 securities could be selected, 5 needed");
+        assertThat(status.reasons().getLast().warning()).isNull();
     }
 
     private static StatusAssessment.Result assess(Map<String, Map<LocalDate, SecurityData>> data,

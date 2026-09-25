@@ -13,7 +13,7 @@ import java.util.Map;
  * (A7), until the index has its constituent count. Every ranked security gets a decision, for traceability.
  * <p>
  * Since the buffer end is at least the constituent count, the buffer always has enough candidates unless fewer
- * securities are ranked than the index needs; then all are selected and the engine warns (A12).
+ * securities are ranked than the index needs; then all are selected and the review status flags it (A12).
  */
 public final class Selection {
 
