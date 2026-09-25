@@ -17,7 +17,9 @@ This file is what the author will use to explain the work in the interview. When
 - makes a design or technology decision → add a `D<n>` entry (what, why, what was rejected),
 - makes an assumption about ambiguous requirements or rulebook details → add it to **Assumptions**,
 - hits something that should be clarified with SIX → add it to **Open questions**,
-- completes a meaningful step → add a row to **Timeline**.
+- completes a meaningful step → add a row to **Timeline**,
+- changes or refines an earlier decision → also update that earlier entry (e.g. "Refined by D16"), so no
+  entry describes behaviour the code no longer has.
 
 Keep entries short and factual. Update it **in the same change** as the work it describes, before
 committing. A timeline row alone is not enough when the work involved a choice: tooling, libraries and

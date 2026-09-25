@@ -20,6 +20,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Review engine: eligibility, FFMCAP ranking, buffer selection, iterative capping; Q3 result confirmed in a unit test (D15, A11, A12) |
 | 2026-09-25 | Review report with audit trail and review status; warnings got an impact so harmless ones don't flag the review (D16, A13) |
 | 2026-09-25 | `POST /api/indices/{index}/reviews/{period}` returns the report; end-to-end API test and Postman request with the expected Q3 results (D17) |
+| 2026-09-25 | Consistency pass over this log: earlier entries (D4, D9–D11, D13, data findings) updated to match later decisions |
 
 ## Design decisions
 
@@ -41,7 +42,8 @@ decided, why, and what we rejected.
 
 ### D4 — Package layout by responsibility
 - `domain` (framework-free model) · `ingest` (CSV + validation) · `review` (ranking, selection,
-  capping as rules) · `report` (constituents, weights, joiners, leavers, status) · `api` (REST).
+  capping as rules) · `report` (constituents, weights, joiners, leavers, status) · `api` (REST) ·
+  `config` (Spring wiring and config binding, added in D14).
 - **Why:** Keeps the review logic independent of Spring and I/O, so it is unit-testable in isolation
   and new rules slot into `review` without touching ingest or API.
 
@@ -82,7 +84,7 @@ decided, why, and what we rejected.
 ### D9 — Ingest: strict per file, lenient per row; date-dependent checks in the review
 - `InputDataLoader` (framework-free) reads the three CSVs into an immutable `InputData`: universe per date,
   `SecurityData` per security and date, current composition, plus a list of `DataQualityWarning`s
-  (source file, line, message, affected ids).
+  (source file, line, message, affected ids; an `impact` was added in D16).
 - A missing file or column throws `InputDataException`: nothing sensible can be reviewed. A bad row (wrong
   field count, unparsable or out-of-range value) or a duplicate is skipped with a warning, so one bad row
   doesn't block the review but stays visible in the report.
@@ -105,14 +107,16 @@ decided, why, and what we rejected.
   "review status" real meaning.
 - **Rejected:** failing the load on any bad row (blocks reviews over irrelevant rows); status that only says
   whether the calculation ran (hides typo-driven outcomes).
+- **Refined by D16:** only warnings that lose data count, and unranked securities are judged by an estimated
+  rank.
 
 ### D11 — Business parameters in a separate `config/indices.yml`, formulas in code
 - Index definitions (universe, constituent count, direct-selection rank, buffer end rank, weight cap, ranking
   strategy name, review periods with cut-off and review dates) move from `application.properties` to
-  `config/indices.yml`, imported via `spring.config.import=optional:file:./config/indices.yml`. A default copy
-  is packaged so the app runs out of the box. `application.properties` keeps only technical settings.
-- Bound to a validated `@ConfigurationProperties` record; inconsistent config (e.g. buffer end below
-  constituent count, cap outside (0, 1]) fails at startup.
+  `config/indices.yml`. A default copy is packaged so the app runs out of the box, and `./config/indices.yml`
+  overrides it. `application.properties` keeps only technical settings.
+- Inconsistent config (e.g. buffer end below constituent count, cap outside (0, 1]) fails at startup.
+  How the file is imported, bound and validated is in D14.
 - The status relevance band (D10) is derived from the buffer end rank, not configured separately.
 - Ranking formulas stay in code as named strategies (`FFMCAP` now, the rulebook selection list later, A4);
   the YAML only picks one by name.
@@ -134,8 +138,8 @@ decided, why, and what we rejected.
 - FFMCAP, weights and capping factors are calculated with `BigDecimal` and `MathContext.DECIMAL128`
   (34 significant digits, HALF_EVEN), with no intermediate rounding.
 - Invariants are asserted and tested: weights sum to 1 within 1e-20, and no weight exceeds the cap.
-- Display precision (weights 6 decimals in percent, capping factors 10 decimals) is a technical setting in
-  `application.properties`, not a business one. Displayed weights are not adjusted to add up to exactly 100%.
+- Display precision (weights 6 decimals in percent, capping factors 10 decimals, FFMCAP 2 decimals, D17) is a
+  technical setting in `application.properties`, not a business one. Displayed weights are not adjusted to add up to exactly 100%.
 - **Why:** Iterative capping divides repeatedly; rounding in between compounds and makes results depend on
   the number of iterations.
 - **Rejected:** `double` (loses the reason for exact decimals and makes test comparisons fragile); rounding
@@ -229,8 +233,9 @@ Profiled 2026-09-25, before writing any parsing code.
   - Non-constituents in the top 20: rank 7 (`177`), 19 (`249`), 20 (`28`).
   - So **the buffer rule decides the outcome**: a plain top 20 gives 3 joiners and 3 leavers.
     With the rulebook buffer (see below) it is 1 joiner (`177`) and 1 leaver (`103`).
-  - Ranks 1 (`155`, ~25%) and 2 (`205`, ~23%) exceed the 18% cap on raw weights, so capping must
-    iterate (redistributing can push others over the cap).
+  - Ranks 1 (`155`, ~25%) and 2 (`205`, ~23%) exceed the 18% cap on raw weights. Capping must be able to
+    iterate, since redistributing can push others over the cap; for Q3 one round is enough (next largest,
+    `63`, ends at 14.26%).
 
 ## Rulebook rules applied
 
@@ -294,7 +299,10 @@ Candidates to send to the SIX contacts from the original brief.
 - Separating business-owned parameters (`config/indices.yml`) from technical config and from formulas (D11).
 - Why data-quality warnings drive the review status instead of blocking the load (D9, D10), and how
   impact plus estimated rank keep harmless warnings from flagging a review (D16).
-- Testing strategy: the brief's worked example (A/B/C, 50% cap → 50 / 37.5 / 12.5) as a first test case.
+- Testing strategy: each pipeline step unit-tested on small hand-made cases (the brief's A/B/C example, a
+  two-round capping case, buffer edge cases, each status case); the real Q3 data checked at engine, report and
+  API level; Postman test scripts for manual runs. Tests compare decimals with tolerances where the last of
+  34 digits can round either way.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
   choice is written down and can be explained.
