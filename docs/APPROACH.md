@@ -86,7 +86,7 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 
 ## Open questions
 
-Candidates to send to lucas.damalix@six-group.com / sorin.ivascu@six-group.com.
+Candidates to send to the SIX contacts from the original brief.
 
 - Exact SMI selection buffer rule (rulebook 5.12.3.2): which rank thresholds apply to joiners and to
   incumbents? We don't have the rulebook text in the repo yet, and the Q3 2026 outcome depends on it
