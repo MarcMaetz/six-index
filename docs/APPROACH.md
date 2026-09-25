@@ -12,6 +12,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | IntelliJ run configs (`.run/`); Postman collection "SIX Index Reviewer" created via MCP |
 | 2026-09-25 | Input CSVs added to `data/`; profiled them (see **Input data findings**) |
 | 2026-09-25 | SMI rules extracted from the SIX rulebook v3.40 (see **Rulebook rules applied**) |
+| 2026-09-25 | Prepared handover to fresh sessions: working docs split into `AGENT.md` / `docs/TODO.md` / `docs/APPROACH.md` (D7) |
 
 ## Design decisions
 
@@ -50,6 +51,16 @@ decided, why, and what we rejected.
 - A Postman collection "SIX Index Reviewer" (created via the Postman MCP server) holds example requests
   with test scripts, using a `{{baseUrl}}` variable. It contains only endpoints that actually exist.
 - **Why:** The spec can't drift from the code; the collection gives reviewers ready-made calls with checks.
+
+### D7 — Working docs split by how often they change
+- `AGENT.md` (loaded by the AI assistant via `CLAUDE.md`): lasting guidance only: what to read, conventions,
+  build, rules for keeping the docs current.
+- `docs/TODO.md`: current status and ordered next steps; finished items are removed.
+- `docs/APPROACH.md` (this file): history and reasoning: timeline, decisions, assumptions, open questions.
+- **Why:** Work happens across several AI sessions with fresh context. Each session starts from `AGENT.md`,
+  picks up work from `TODO.md`, and records reasoning here, so nothing lives only in a chat transcript.
+  Keeping volatile status out of `AGENT.md` stops it going stale.
+- **Rejected:** A status section inside `AGENT.md` (mixes lasting rules with fast-changing state).
 
 ## Input data findings
 
