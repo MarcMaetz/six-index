@@ -35,6 +35,13 @@ docs/       assignment brief, design notes, assumptions
 - OpenAPI spec: http://localhost:8080/api-docs
 - Health: http://localhost:8080/actuator/health
 
+### IntelliJ IDEA
+
+1. *File → Open* the project root (inside WSL: `\\wsl$\<distro>\home\...\six-index`) and trust it as a Gradle project.
+2. *Settings → Build Tools → Gradle*: any Gradle JVM ≥ 17 works; the build itself compiles and runs on the
+   Java 25 toolchain, which Gradle downloads automatically.
+3. Pick the shared run configuration **IndexReviewer (bootRun)** (or **All tests**) from `.run/` and run or debug it.
+
 ## Configuration
 
 Index definitions and review dates live in `src/main/resources/application.properties`

@@ -9,6 +9,7 @@ decided, why, and what we rejected.
 | Date       | Step                                                                 |
 |------------|----------------------------------------------------------------------|
 | 2026-09-25 | Scaffolded Spring Boot project |
+| 2026-09-25 | IntelliJ run configs (`.run/`); Postman collection "SIX Index Reviewer" created via MCP |
 
 ## Design decisions
 

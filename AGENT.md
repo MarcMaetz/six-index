@@ -30,3 +30,10 @@ Keep entries short and factual.
 - Review logic in `domain` / `review` stays framework-free and unit-tested.
 - Index parameters and review dates come from configuration (`index-reviewer.indices.*`), not code.
 - Input CSVs live in `data/`.
+
+## Postman
+
+Collection **SIX Index Reviewer** (id `fed703bb-9ae7-4baf-a21c-f42ec10f15ba`) in "My Workspace"
+(`b64038fa-2991-452c-8277-a9910531823a`), reachable via the `postman` MCP server. Requests use the
+`{{baseUrl}}` collection variable (default `http://localhost:8080`). When adding or changing API endpoints,
+add or update the matching request there.
