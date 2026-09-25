@@ -1,0 +1,212 @@
+package com.example.indexreviewer.ingest;
+
+import com.example.indexreviewer.domain.DataQualityWarning;
+import com.example.indexreviewer.domain.InputData;
+import com.example.indexreviewer.domain.SecurityData;
+
+import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Loads and validates the review input from a data directory holding {@code spi_universe.csv},
+ * {@code sec_data.csv} and {@code composition.csv}.
+ * <p>
+ * Only unusable input (missing file or column) fails the load. Invalid and duplicate rows are skipped and
+ * reported as {@link DataQualityWarning}s, so a single bad row does not block a review but stays visible in
+ * the report. Checks that depend on the review dates (e.g. a security without review-date data, A2) belong to
+ * the review, not here.
+ */
+public final class InputDataLoader {
+
+    public static final String UNIVERSE_FILE = "spi_universe.csv";
+    public static final String SECURITY_DATA_FILE = "sec_data.csv";
+    public static final String COMPOSITION_FILE = "composition.csv";
+
+    private static final String ID = "id";
+    private static final String DATE = "date";
+    private static final String PRICE = "price";
+    private static final String FREE_FLOAT = "free_float";
+    private static final String SHARES = "shares";
+
+    public InputData load(Path dataDir) {
+        var warnings = new ArrayList<DataQualityWarning>();
+        var universe = loadUniverse(dataDir.resolve(UNIVERSE_FILE), warnings);
+        var securityData = loadSecurityData(dataDir.resolve(SECURITY_DATA_FILE), warnings);
+        var composition = loadComposition(dataDir.resolve(COMPOSITION_FILE), warnings);
+        return new InputData(universe, securityData, composition, warnings);
+    }
+
+    /** A1: exact duplicate rows are dropped with one summary warning. */
+    private Map<LocalDate, Set<String>> loadUniverse(Path file, List<DataQualityWarning> warnings) {
+        var content = CsvFile.read(file, List.of(DATE, ID));
+        warnings.addAll(content.warnings());
+        String source = file.getFileName().toString();
+
+        var universe = new LinkedHashMap<LocalDate, Set<String>>();
+        var duplicates = new ArrayList<String>();
+        for (var row : content.rows()) {
+            try {
+                LocalDate date = parseDate(row, DATE);
+                String id = requireValue(row, ID);
+                if (!universe.computeIfAbsent(date, d -> new LinkedHashSet<>()).add(id)) {
+                    duplicates.add(id);
+                }
+            } catch (InvalidRowException e) {
+                warnings.add(invalidRow(source, row, e));
+            }
+        }
+        if (!duplicates.isEmpty()) {
+            warnings.add(new DataQualityWarning(source, null,
+                    "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
+        }
+        return universe;
+    }
+
+    /**
+     * Rows with values out of range are skipped. Identical duplicates are dropped with one summary warning;
+     * conflicting rows for the same security and date are all dropped (A9), since neither can be trusted.
+     */
+    private Map<String, Map<LocalDate, SecurityData>> loadSecurityData(Path file, List<DataQualityWarning> warnings) {
+        var content = CsvFile.read(file, List.of(ID, DATE, PRICE, FREE_FLOAT, SHARES));
+        warnings.addAll(content.warnings());
+        String source = file.getFileName().toString();
+
+        var byId = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
+        var duplicates = new ArrayList<String>();
+        var conflicts = new LinkedHashSet<SecurityData>();
+        for (var row : content.rows()) {
+            try {
+                var data = new SecurityData(requireValue(row, ID), parseDate(row, DATE),
+                        parsePrice(row), parseFreeFloat(row), parseShares(row));
+                var byDate = byId.computeIfAbsent(data.securityId(), id -> new LinkedHashMap<>());
+                var existing = byDate.putIfAbsent(data.date(), data);
+                if (existing == null) {
+                    continue;
+                }
+                if (existing.sameValuesAs(data)) {
+                    duplicates.add(data.securityId());
+                } else {
+                    conflicts.add(existing);
+                    warnings.add(new DataQualityWarning(source, row.line(),
+                            "Conflicting data for %s on %s; all rows for that date ignored"
+                                    .formatted(data.securityId(), data.date()), List.of(data.securityId())));
+                }
+            } catch (InvalidRowException e) {
+                warnings.add(invalidRow(source, row, e));
+            }
+        }
+        for (var conflict : conflicts) {
+            byId.get(conflict.securityId()).remove(conflict.date());
+        }
+        byId.values().removeIf(Map::isEmpty);
+        if (!duplicates.isEmpty()) {
+            warnings.add(new DataQualityWarning(source, null,
+                    "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
+        }
+        return byId;
+    }
+
+    private Set<String> loadComposition(Path file, List<DataQualityWarning> warnings) {
+        var content = CsvFile.read(file, List.of(ID));
+        warnings.addAll(content.warnings());
+        String source = file.getFileName().toString();
+
+        var composition = new LinkedHashSet<String>();
+        var duplicates = new ArrayList<String>();
+        for (var row : content.rows()) {
+            try {
+                String id = requireValue(row, ID);
+                if (!composition.add(id)) {
+                    duplicates.add(id);
+                }
+            } catch (InvalidRowException e) {
+                warnings.add(invalidRow(source, row, e));
+            }
+        }
+        if (!duplicates.isEmpty()) {
+            warnings.add(new DataQualityWarning(source, null,
+                    "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
+        }
+        return composition;
+    }
+
+    private static String requireValue(CsvFile.Row row, String column) {
+        String value = row.get(column);
+        if (value.isEmpty()) {
+            throw new InvalidRowException(column + " is empty");
+        }
+        return value;
+    }
+
+    private static LocalDate parseDate(CsvFile.Row row, String column) {
+        String value = requireValue(row, column);
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException e) {
+            throw new InvalidRowException(column + " '" + value + "' is not an ISO date");
+        }
+    }
+
+    private static BigDecimal parsePrice(CsvFile.Row row) {
+        BigDecimal price = parseOptionalDecimal(row, PRICE);
+        if (price != null && price.signum() <= 0) {
+            throw new InvalidRowException("price " + price + " is not positive");
+        }
+        return price;
+    }
+
+    private static BigDecimal parseFreeFloat(CsvFile.Row row) {
+        BigDecimal freeFloat = parseOptionalDecimal(row, FREE_FLOAT);
+        if (freeFloat != null && (freeFloat.signum() <= 0 || freeFloat.compareTo(BigDecimal.ONE) > 0)) {
+            throw new InvalidRowException("free_float " + freeFloat + " is not in (0, 1]");
+        }
+        return freeFloat;
+    }
+
+    private static Long parseShares(CsvFile.Row row) {
+        BigDecimal shares = parseOptionalDecimal(row, SHARES);
+        if (shares == null) {
+            return null;
+        }
+        if (shares.signum() <= 0 || shares.stripTrailingZeros().scale() > 0) {
+            throw new InvalidRowException("shares " + shares + " is not a positive whole number");
+        }
+        try {
+            return shares.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new InvalidRowException("shares " + shares + " is out of range");
+        }
+    }
+
+    private static BigDecimal parseOptionalDecimal(CsvFile.Row row, String column) {
+        String value = row.get(column);
+        if (value.isEmpty()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            throw new InvalidRowException(column + " '" + value + "' is not a number");
+        }
+    }
+
+    private static DataQualityWarning invalidRow(String source, CsvFile.Row row, InvalidRowException e) {
+        String id = row.values().containsKey(ID) ? row.get(ID) : "";
+        return new DataQualityWarning(source, row.line(), "Row ignored: " + e.getMessage(),
+                id.isEmpty() ? List.of() : List.of(id));
+    }
+
+    private static final class InvalidRowException extends RuntimeException {
+        InvalidRowException(String message) {
+            super(message);
+        }
+    }
+}

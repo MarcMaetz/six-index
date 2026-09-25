@@ -14,6 +14,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | SMI rules extracted from the SIX rulebook v3.40 (see **Rulebook rules applied**) |
 | 2026-09-25 | Prepared handover to fresh sessions: working docs split into `AGENT.md` / `docs/TODO.md` / `docs/APPROACH.md` (D7) |
 | 2026-09-25 | Claude Code hook enforcing approach-log updates on commit (D8) |
+| 2026-09-25 | `domain` input model and `ingest` CSV loader with data-quality warnings, unit-tested (D9, A9, A10) |
 
 ## Design decisions
 
@@ -72,6 +73,22 @@ decided, why, and what we rejected.
 - **Rejected:** A git pre-commit hook (would also block the author's own IDE commits, and git hooks aren't
   shared through the repo without extra setup).
 
+### D9 — Ingest: strict per file, lenient per row; date-dependent checks in the review
+- `InputDataLoader` (framework-free) reads the three CSVs into an immutable `InputData`: universe per date,
+  `SecurityData` per security and date, current composition, plus a list of `DataQualityWarning`s
+  (source file, line, message, affected ids).
+- A missing file or column throws `InputDataException`: nothing sensible can be reviewed. A bad row (wrong
+  field count, unparsable or out-of-range value) or a duplicate is skipped with a warning, so one bad row
+  doesn't block the review but stays visible in the report.
+- Values are nullable in `SecurityData`: which values are required depends on the date's role (price at t',
+  shares and free float at t), which only the review period knows. So A2 (`166`) is an eligibility check in
+  `review`, not a load error.
+- Numbers are `BigDecimal` (exact decimal input, no float rounding in FFMCAP); shares are `long`.
+- Collections keep insertion order, so results and warnings are reproducible run to run.
+- OpenCSV does the parsing (quoting, CRLF); the UTF-8 BOM is skipped by hand since OpenCSV doesn't.
+- **Rejected:** failing on the first bad row (one typo would block the quarterly review); OpenCSV bean
+  binding (annotations on domain classes and coarse errors instead of per-row warnings).
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -129,6 +146,8 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A6 | Each id is treated as a separate issuer, so issuer-level cumulative capping (5.12.4) is not applied. | The data has no issuer field. |
 | A7 | Buffer candidates of the same kind (incumbent or new) are taken in rank order. | Rulebook says incumbents come first but not how to order within a group; rank order is the natural reading. |
 | A8 | Ties in FFMCAP are broken by id, so results are deterministic. | No ties occur in this data; the rule only guards reproducibility. |
+| A9 | Conflicting rows in `sec_data.csv` (same id and date, different values) are all dropped with a warning; identical ones are de-duplicated. | Neither row can be trusted; dropping them makes the security ineligible (visible in the report) rather than silently picking one. Doesn't occur in this data. |
+| A10 | Rows with out-of-range values (price or shares not positive, fractional shares, free float outside (0, 1]) are skipped with a warning. | Such values can't be real and would distort FFMCAP. None occur in this data. |
 
 ## Open questions
 
