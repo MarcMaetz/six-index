@@ -46,4 +46,5 @@ truly needs no entry, and tell the user why.
 Collection **SIX Index Reviewer** (id `fed703bb-9ae7-4baf-a21c-f42ec10f15ba`) in "My Workspace"
 (`b64038fa-2991-452c-8277-a9910531823a`), reachable via the `postman` MCP server. Requests use the
 `{{baseUrl}}` collection variable (default `http://localhost:8080`). When adding or changing API endpoints,
-add or update the matching request there.
+add or update the matching request there, then re-export it to `postman/six-index-reviewer.postman_collection.json`
+(reviewers only get the repo, not the workspace).

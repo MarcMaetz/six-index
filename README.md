@@ -1,48 +1,99 @@
 # SIX Index Reviewer
 
-Index Reviewer application for the SIX Index IT home assignment: executes the SMI index review for Q3 2026
-and exposes it through a REST API.
+Runs the SMI index review for Q3 2026 and exposes it through a REST API. Solution to the SIX Index IT home
+assignment.
 
-## Stack
+The review follows SIX rulebook section 5.12. Securities in the SPI universe are ranked by free float market
+capitalization (FFMCAP = price at cut-off × shares × free float at the review date). Ranks 1–18 are selected
+directly, and ranks 19–22 form a buffer where current constituents have priority. Weights are then capped at
+18%. The report lists the new composition with weights and capping factors, joiners, leavers and a review
+status, plus an audit trail showing why each security was selected or not.
 
-- Java 25 (Gradle toolchain, auto-provisioned via foojay)
-- Spring Boot 4.1 (Web MVC, Validation, Actuator)
-- OpenCSV for input parsing
-- springdoc-openapi for API docs / Swagger UI
-- JUnit 5 for tests
+## Result for SMI Q3 2026
+
+| | |
+|---|---|
+| Constituents | 20 |
+| Joiner | `177` (rank 7) |
+| Leaver | `103` (rank 35, below the buffer) |
+| Buffer (ranks 19–22) | incumbents `160` and `81` keep their places over the new candidates `249` and `28` |
+| Capped at 18% | `155` (raw weight 25.42%, capping factor 0.5654) and `205` (23.49%, 0.6117) |
+| Review status | `COMPLETED_WITH_WARNINGS`: duplicate rows in `spi_universe.csv` (nothing lost), and id `166` excluded for missing review-date data (its estimated rank, 197, can't affect the result) |
+
+## Build and run
+
+You need a JDK 17 or newer on the `PATH` to start Gradle. Gradle downloads the Java 25 toolchain the project
+compiles with, so no JDK 25 install is needed.
+
+```bash
+./gradlew build      # compile and run all tests
+./gradlew bootRun    # start the API on http://localhost:8080
+```
+
+Run the review:
+
+```bash
+curl -X POST http://localhost:8080/api/indices/SMI/reviews/2026-Q3
+```
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/indices` | Configured indices and review periods |
+| `GET /api/indices/{index}/reviews/{period}/input` | Load and validate a review's input without running it: files with SHA-256 checksums, counts, warnings |
+| `POST /api/indices/{index}/reviews/{period}` | Run the review and return the report |
+
+- Swagger UI: http://localhost:8080/swagger-ui.html (OpenAPI spec at `/api-docs`)
+- Postman: import [`postman/six-index-reviewer.postman_collection.json`](postman/six-index-reviewer.postman_collection.json)
+  and run the *Indices* folder. Each request has test scripts that check the expected Q3 results.
+- Errors are RFC 9457 problem responses: an unknown index or period returns 404, and missing or unusable input
+  files return 422.
+
+### IntelliJ IDEA
+
+Open the project root as a Gradle project, then use the shared run configurations **IndexReviewer (bootRun)**
+and **All tests** from `.run/`. Any Gradle JVM ≥ 17 works.
+
+## Configuration
+
+| What | Where | Owner |
+|---|---|---|
+| Index definitions: universe, constituent count, direct-selection and buffer ranks, weight cap, ranking strategy, review periods with cut-off and review dates | [`config/indices.yml`](config/indices.yml) | Index business |
+| Data folder, report display precision, API docs paths | [`application.properties`](src/main/resources/application.properties) | Engineering |
+| Input CSVs | `data/<index>/<review period>/`, e.g. [`data/SMI/2026-Q3/`](data/SMI/2026-Q3) | Operations |
+
+A copy of `config/indices.yml` is packaged in the jar. A `config/indices.yml` in the working directory
+overrides it, so it can be changed without a rebuild. Inconsistent values stop the app at startup with a clear
+message.
+
+**Adding a quarter:** add a review period to `config/indices.yml` and put its three CSVs in
+`data/SMI/<period>/`. **Adding an index:** add an index block and a `data/<index>/<period>/` folder.
+**Adding a ranking rule** (such as the rulebook's full selection list): implement `RankingStrategy`, register
+it, and select it by name in the YAML.
+
+## Documentation
+
+- [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing.
+- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D19), assumptions (A1–A13), open questions for SIX,
+  input data findings and the rulebook rules applied.
+- [data/README.md](data/README.md): input file formats.
 
 ## Layout
 
 ```
+config/indices.yml   index definitions and review periods (business configuration)
+data/SMI/2026-Q3/    input CSVs of the Q3 2026 SMI review
+postman/             Postman collection with test scripts
+docs/                design doc, decision log
 src/main/java/com/example/indexreviewer/
-  domain/   core model (framework-free)
-  ingest/   CSV loading + data validation
-  review/   review engine: ranking, selection, capping
-  report/   review report (constituents, weights, joiners, leavers, status)
-  api/      REST controllers
-data/       input CSVs (spi_universe.csv, sec_data.csv, composition.csv)
-docs/       assignment brief, design notes, assumptions
+  domain/            input model and index definitions (framework-free)
+  ingest/            CSV loading and row validation
+  review/            eligibility, ranking, buffer selection, weight capping (framework-free)
+  report/            review report and review status (framework-free)
+  config/            Spring wiring and configuration binding
+  api/               REST controllers and error handling
 ```
 
-## Build & run
+## Use of AI assistance
 
-```bash
-./gradlew build          # compile + tests
-./gradlew bootRun        # start on http://localhost:8080
-```
-
-- Swagger UI: http://localhost:8080/swagger-ui.html
-- OpenAPI spec: http://localhost:8080/api-docs
-- Health: http://localhost:8080/actuator/health
-
-### IntelliJ IDEA
-
-1. *File → Open* the project root (inside WSL: `\\wsl$\<distro>\home\...\six-index`) and trust it as a Gradle project.
-2. *Settings → Build Tools → Gradle*: any Gradle JVM ≥ 17 works; the build itself compiles and runs on the
-   Java 25 toolchain, which Gradle downloads automatically.
-3. Pick the shared run configuration **IndexReviewer (bootRun)** (or **All tests**) from `.run/` and run or debug it.
-
-## Configuration
-
-Index definitions and review dates live in `src/main/resources/application.properties`
-under `index-reviewer.indices.*`, so further indices or review periods can be added without code changes.
+The brief allows AI tools. This project was built with Claude Code. `AGENT.md` holds the instructions it
+worked under, and `docs/APPROACH.md` records every decision as it was made, so each choice can be explained.

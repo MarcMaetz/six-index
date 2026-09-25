@@ -22,6 +22,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | `POST /api/indices/{index}/reviews/{period}` returns the report; end-to-end API test and Postman request with the expected Q3 results (D17) |
 | 2026-09-25 | Consistency pass over this log: earlier entries (D4, D9–D11, D13, data findings) updated to match later decisions |
 | 2026-09-25 | Delivery via the GitHub repo instead of a ZIP (D18) |
+| 2026-09-25 | README rewritten for reviewers, `docs/DESIGN.md` added, Postman collection exported to `postman/` (D19) |
 
 ## Design decisions
 
@@ -218,6 +219,17 @@ decided, why, and what we rejected.
 - **Why:** Reviewers get the full commit history, which shows how the work progressed alongside this log.
   GitHub's "Download ZIP" still gives the plain archive the brief mentions.
 - **Rejected:** a Gradle ZIP task (extra work, and it would drop the history).
+
+### D19 — Reviewer-facing docs: README, DESIGN.md, exported Postman collection
+- `README.md` is the entry point: the Q3 result, build and run, endpoints, configuration and where each
+  setting lives, and a map of the docs. `docs/DESIGN.md` describes the system as it is (architecture,
+  pipeline, validation and status, traceability, extensibility, testing) and links here for the reasoning.
+- The Postman collection is exported to `postman/six-index-reviewer.postman_collection.json` (without
+  workspace metadata). The MCP-managed workspace copy stays the working copy; `AGENT.md` says to re-export after
+  changes.
+- **Why:** Reviewers only get the repo (D18), and the workspace collection is private. This log is ordered by
+  time and full of alternatives, which makes it a poor first read; the design doc gives the structured view.
+- **Rejected:** turning this log into the design doc (it would lose the history the interview needs).
 
 ## Input data findings
 

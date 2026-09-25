@@ -5,12 +5,13 @@ add a row to the Timeline in [APPROACH.md](APPROACH.md) (plus any decisions or a
 
 ## Status
 
-The review works end to end: `POST /api/indices/SMI/reviews/2026-Q3` returns the Q3 report (joiner `177`,
-leaver `103`, `155` and `205` capped at 18%, status `COMPLETED_WITH_WARNINGS`). It is covered by
-`IndexControllerTest` and by test scripts in the Postman collection. See the Timeline in
+All planned work is done. The review works end to end: `POST /api/indices/SMI/reviews/2026-Q3` returns the Q3
+report (joiner `177`, leaver `103`, `155` and `205` capped at 18%, status `COMPLETED_WITH_WARNINGS`). The
+README, `docs/DESIGN.md` and the exported Postman collection are in place for reviewers. See the Timeline in
 [APPROACH.md](APPROACH.md).
 
 ## Next, in order
 
-1. README with build/run instructions and how to try the API (Swagger UI, Postman), and a design doc (can
-   draw on `docs/APPROACH.md`).
+Nothing planned. Candidates if there is time (see "What I'd do next" in [APPROACH.md](APPROACH.md)): store
+reports for an audit history (D17), the rulebook selection list as a second ranking strategy (A4), and sending
+the open questions to SIX.

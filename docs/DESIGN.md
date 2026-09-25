@@ -1,0 +1,166 @@
+# Design
+
+How the Index Reviewer is built. The reasoning behind each choice, and the options that were rejected, are in
+the decision log [APPROACH.md](APPROACH.md) (referenced below as D*n* for decisions and A*n* for assumptions).
+
+## Goals
+
+The brief asks for a correct SMI Q3 2026 review with data validation, traceability and design documentation.
+It must be easy to extend to new indices, review dates and rules. The design follows from that:
+
+- **Correct and explainable:** every number and every decision in the report can be traced to a rule and to
+  the input it came from.
+- **Configurable, not hard-coded:** index parameters and review dates are business configuration.
+- **Testable:** the review logic is plain Java without Spring or I/O, so each rule is unit-tested in isolation.
+- **Simple:** no database, no persistence, one module (D2, D5). Anything more waits until a requirement needs it.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Spring
+        api[api<br/>REST, errors]
+        config[config<br/>wiring, config binding]
+    end
+    subgraph "Plain Java"
+        ingest[ingest<br/>CSV → InputData]
+        review[review<br/>eligibility → ranking → selection → capping]
+        report[report<br/>ReviewReport, status]
+        domain[domain<br/>InputData, IndexDefinition, ...]
+    end
+    yml[(config/indices.yml)] --> config
+    csv[(data/index/period/*.csv)] --> ingest
+    api --> config
+    api --> review
+    api --> report
+    config --> ingest
+    config --> review
+    config --> report
+    report --> review
+    ingest --> domain
+    review --> domain
+    report --> domain
+```
+
+| Package | Responsibility |
+|---|---|
+| `domain` | Input model (`InputData`, `SecurityData`, `DataQualityWarning`, `InputFile`) and index definitions (`IndexDefinition`, `ReviewPeriod`). The definitions validate themselves when constructed. |
+| `ingest` | Reads the three CSVs of one review into `InputData`, recording a warning for each problem row. |
+| `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step. |
+| `report` | Turns a `ReviewResult` into the `ReviewReport`: rounding for display, review status. |
+| `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the engine and report builder as beans. |
+| `api` | `IndexController` and RFC 9457 error mapping. The controller only chains load → review → report. |
+
+Only `config` and `api` depend on Spring (D4, D14).
+
+## Review pipeline
+
+`ReviewEngine.run(index, period, input)` runs four small, independent steps (D15):
+
+| Step | Class | Rule |
+|---|---|---|
+| 1. Eligibility | `Eligibility` | In the universe on the review date, with a price on the cut-off date and shares and free float on the review date. Others are excluded with a reason (A2). |
+| 2. Ranking | `Ranking` + `RankingStrategy` | Ranking value from the strategy configured by name (`FFMCAP`), highest first. Ties are broken by id (A8). |
+| 3. Selection | `Selection` | Ranks 1–18 are selected directly. From the buffer (ranks 19–22), current constituents are taken first, then new candidates, in rank order, until there are 20 (rulebook 5.12.3.2, A7). |
+| 4. Capping | `WeightCapping` | Constituents above 18% get exactly 18%. The rest share the remaining weight in proportion to FFMCAP. This repeats until none is above the cap (rulebook 5.12.4 and the brief's example). |
+
+Joiners and leavers come from comparing the selection with the current composition. Each leaver has a reason:
+not in the universe, not eligible, buffer full, or below the buffer.
+
+**Capping factors** are derived from the final weights: factor ∝ weight / FFMCAP, scaled so uncapped
+constituents have factor 1 (A11). FFMCAP × factor, normalised, gives back the final weights.
+
+**Precision (D13):** all arithmetic uses `BigDecimal` with 34 significant digits and no intermediate rounding.
+`WeightCapping` checks two invariants on every run: weights add up to 1 within 1e-20, and none exceeds the
+cap. Only the report rounds: weights to 6 decimals in percent, capping factors to 10. So the displayed Q3
+weights add up to 99.999999%, which is expected; the displayed values are never adjusted to force 100%.
+
+## Data validation and review status
+
+Validation happens in two layers (D9):
+
+- **Per file, strict:** a missing file, folder or column stops the review with a 422 response. Nothing
+  meaningful can be computed without it.
+- **Per row, lenient:** an invalid row (wrong field count, unparsable or out-of-range value) or a duplicate is
+  skipped with a `DataQualityWarning` naming the file, line and security. One bad row doesn't block a quarterly
+  review, but it stays visible.
+
+Each warning has an **impact**: `NONE` (nothing lost, e.g. an identical duplicate row was dropped) or
+`MISSING_DATA` (a row was ignored, conflicting rows were dropped, or a security was excluded).
+
+The **review status** tells a reviewer whether to look closer (D10, D16):
+
+| Status | When |
+|---|---|
+| `COMPLETED` | No warnings. |
+| `COMPLETED_WITH_WARNINGS` | Only warnings that can't change the result. |
+| `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated rank is within the buffer end (A13), or on an unknown security. |
+
+Every status comes with reasons. For Q3: `166: not ranked, estimated rank 197 is below buffer end 22`.
+
+## Traceability
+
+A report answers "why is this security in or out, and with what weight?" without re-running anything:
+
+- the index parameters the review ran with;
+- the full ranking, with a selection decision for every security;
+- exclusions and leavers with reasons;
+- each constituent's raw weight, final weight and capping factor, and the capping rounds;
+- the input files with SHA-256 checksums, which prove which data produced the report (D12);
+- all data-quality warnings, and the reasons behind the status.
+
+The same input always gives the same report, apart from `generatedAt`. Collections keep insertion order, and
+ties are broken by id.
+
+## Configuration and extensibility
+
+- **Business parameters** live in `config/indices.yml` (D11). A default copy is packaged in the jar, and a file
+  in the working directory overrides it. Inconsistent values stop the app at startup. The records it binds to
+  reject a buffer end below the constituent count, a cap outside (0, 1], or a cap too small for the weights to
+  reach 100%. `IndexCatalog` rejects an unknown ranking strategy.
+- **Input** lives in one folder per index and review period, so past reviews can be re-run (D12).
+- **Technical settings** (data folder, display precision) stay in `application.properties`.
+
+| Change | What to do |
+|---|---|
+| New quarter | Add a review period to the YAML and a `data/<index>/<period>/` folder. No code change. |
+| New index (e.g. SLI) | Add an index block to the YAML and its data folder. No code change. |
+| New ranking criterion (e.g. the rulebook's selection list, A4) | Implement `RankingStrategy`, register it in `RankingStrategies`, and select it in the YAML. |
+| New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
+| Store reports for an audit history | Add a store after `ReportBuilder`. The report is already a self-contained value (D17). |
+
+## API
+
+| Method and path | Result |
+|---|---|
+| `GET /api/indices` | Configured indices and review periods |
+| `GET /api/indices/{index}/reviews/{period}/input` | Loaded input: files with checksums, counts per date, composition, warnings |
+| `POST /api/indices/{index}/reviews/{period}` | `ReviewReport` |
+
+A review is a `POST`: it's an action, and nothing is stored (D17). The contract is the springdoc OpenAPI spec
+at `/api-docs`. The Postman collection in `postman/` holds example calls with test scripts (D6).
+
+## Testing
+
+| Level | Tests |
+|---|---|
+| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `IndexDefinitionTest`, `StatusAssessmentTest` (every status path, estimated ranks) |
+| Ingest | `InputDataLoaderTest`: BOM and CRLF, duplicates, invalid rows with line numbers, conflicts, checksums, missing files and columns |
+| Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs |
+| API | `IndexControllerTest`: all endpoints on the real config and data, including 404s |
+| Manual | Postman test scripts for the same expected results |
+
+Decimal assertions use tolerances where the last of 34 digits can round either way.
+
+## Known simplifications
+
+Where the brief simplifies the rulebook, this is recorded and the design leaves room for the full rule:
+
+- Ranking uses point-in-time FFMCAP, not the rulebook's selection list with turnover (A4). This is a pluggable
+  `RankingStrategy`.
+- The liquidity rule for instruments listed on several exchanges isn't applied (A5): the data has no listing
+  or turnover fields.
+- Each id is its own issuer, so issuer-level capping isn't applied (A6).
+- Reports aren't stored (D17).
+
+Open questions for SIX are listed in [APPROACH.md](APPROACH.md#open-questions).
