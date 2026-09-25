@@ -5,13 +5,21 @@ add a row to the Timeline in [APPROACH.md](APPROACH.md) (plus any decisions or a
 
 ## Status
 
-All planned work is done. The review works end to end: `POST /api/indices/SMI/reviews/2026-Q3` returns the Q3
-report (joiner `177`, leaver `103`, `155` and `205` capped at 18%, status `COMPLETED_WITH_WARNINGS`). The
-README, `docs/DESIGN.md` and the exported Postman collection are in place for reviewers. See the Timeline in
-[APPROACH.md](APPROACH.md).
+The review works end to end (Q3: joiner `177`, leaver `103`, `155` and `205` capped at 18%, status
+`COMPLETED_WITH_WARNINGS`), with README, `docs/DESIGN.md` and the exported Postman collection. A second design
+review (D20–D22) added the changes below. See the Timeline in [APPROACH.md](APPROACH.md).
 
 ## Next, in order
 
-Nothing planned. Candidates if there is time (see "What I'd do next" in [APPROACH.md](APPROACH.md)): store
-reports for an audit history (D17), the rulebook selection list as a second ranking strategy (A4), and sending
-the open questions to SIX.
+1. Iterative capping demo (D20, A14): `ReviewEngineTest` case with the Q3 data at a 15% cap, expecting capping
+   rounds `[[155, 205], [63, 64]]`, no weight above 15%, weights adding up to 1.
+2. Status margin (A13): an unranked security is harmless only if its estimated ranking value is below half the
+   value at the buffer end rank.
+3. Structured status reasons (D22): record with `securityId`, `relevance` enum, `warning`, `explanation`;
+   status derived from the enum; A12's warning maps to `INDEX_INCOMPLETE`. Update `StatusAssessmentTest` to
+   assert on the enum.
+4. Report storage (D21): `ReportStore` interface with a file implementation under `reports/`; `POST` returns
+   201 + `Location`; `GET .../reports` and `GET .../reports/{id}`. Tests with a temp directory.
+5. Postman: update the run-review request (201), add list/get report requests, re-export to `postman/`.
+6. Docs: `DESIGN.md` (capping reading, weights vs factors, status margin and reasons, storage, API table) and
+   `README.md` (endpoints, 201).

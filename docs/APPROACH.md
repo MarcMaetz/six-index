@@ -23,6 +23,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Consistency pass over this log: earlier entries (D4, D9–D11, D13, data findings) updated to match later decisions |
 | 2026-09-25 | Delivery via the GitHub repo instead of a ZIP (D18) |
 | 2026-09-25 | README rewritten for reviewers, `docs/DESIGN.md` added, Postman collection exported to `postman/` (D19) |
+| 2026-09-25 | Design review of review and report ("grill me"): iterative capping kept, both weights and factors, status margin, report storage, structured status reasons (D20–D22, A11, A13, A14) |
 
 ## Design decisions
 
@@ -200,6 +201,8 @@ decided, why, and what we rejected.
 - **Why:** The status should tell a reviewer whether to look closer, and the reasons should say where.
 - **Rejected:** a warning count threshold (says nothing about impact); treating every unranked security as
   relevant (would flag this quarter over a penny stock).
+- **Refined** in the second design review: the estimate is compared with a safety margin (A13), and reasons
+  become structured records (D22).
 
 ### D17 — Review endpoint: POST, returns the report, stores nothing
 - `POST /api/indices/{index}/reviews/{period}` loads the input, runs `ReviewEngine`, builds the report and
@@ -213,6 +216,7 @@ decided, why, and what we rejected.
 - **Rejected:** storing reports (a file in `reports/` or a DB) — the brief doesn't need it, and the report
   already carries input checksums, so any report can be reproduced. It is the obvious next step for an audit
   history.
+- **Superseded by D21:** reports are now stored, and `POST` returns 201.
 
 ### D18 — Deliver the GitHub repository instead of a ZIP
 - The submission is the GitHub repo; no ZIP task is built.
@@ -230,6 +234,37 @@ decided, why, and what we rejected.
 - **Why:** Reviewers only get the repo (D18), and the workspace collection is private. This log is ordered by
   time and full of alternatives, which makes it a poor first read; the design doc gives the structured view.
 - **Rejected:** turning this log into the design doc (it would lose the history the interview needs).
+
+### D20 — Capping is iterative, even where the rulebook wording is narrower
+- Kept: cap, share the excess, repeat while anyone is above the cap (D15). Rejected: a single pass that caps only
+  securities whose **raw** share is above the cap, as a literal reading of rulebook 5.12.4 suggests.
+- The loop can cap a security whose raw share was below the cap (A14); a single pass can publish a weight
+  above the cap. Real data shows the difference: at a 15% cap, a single pass leaves `63` at 15.60%; the loop
+  caps `63` and `64` in round 2. At 18% both give the same Q3 result.
+- **Why:** The cap exists to limit concentration, and the brief's example ends with "all constituents are now
+  below the cap". SIX's intra-review rule also re-caps "so that any component again has a maximum weight of 18%".
+  A visible breach on day one is worse than capping one more security.
+- The report gives both final weights (the review's result, checkable against the cap and the brief's example)
+  and capping factors (what index calculation carries forward until the next review). See A11.
+
+### D21 — Every review run is stored as written
+- `POST /api/indices/{index}/reviews/{period}` saves the report as JSON under
+  `reports/<index>/<period>/<run id>.json` and returns **201 Created** with a `Location` header.
+  `GET .../reviews/{period}/reports` lists the stored runs; `GET .../reports/{id}` returns one.
+- Files are written once, never changed. `reports/` is git-ignored. Storage sits behind a `ReportStore`
+  interface, so a database can replace files without touching the review (D2).
+- **Why:** Without storage, "which report did we publish for Q3, and when?" has no answer, and re-running
+  after a config change gives a different report. Traceability is required and auditability is asked for.
+- **Rejected:** no storage (D17); a database (out of scope, D2).
+
+### D22 — Structured status reasons
+- Each status reason is a record: `securityId`, `relevance`, the `warning` it comes from, and an
+  `explanation` sentence. `relevance` is an enum covering every path of the status logic; attention:
+  `CURRENT_CONSTITUENT`, `RANKED_WITHIN_BUFFER`, `ESTIMATED_NEAR_BUFFER`, `NOT_ESTIMABLE`, `SECURITY_UNKNOWN`,
+  `INDEX_INCOMPLETE` (A12); harmless: `NO_DATA_LOST`, `RANKED_BELOW_BUFFER`, `ESTIMATED_FAR_BELOW_BUFFER`.
+  The status follows from the enum.
+- **Why:** Sentences can't be filtered or acted on, tests had to match substrings, and stored reports (D21)
+  are a long-lived record where free text ages badly.
 
 ## Input data findings
 
@@ -294,9 +329,10 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A8 | Ties in FFMCAP are broken by id, so results are deterministic. | No ties occur in this data; the rule only guards reproducibility. |
 | A9 | Conflicting rows in `sec_data.csv` (same id and date, different values) are all dropped with a warning; identical ones are de-duplicated. | Neither row can be trusted; dropping them makes the security ineligible (visible in the report) rather than silently picking one. Doesn't occur in this data. |
 | A10 | Rows with out-of-range values (price or shares not positive, fractional shares, free float outside (0, 1]) are skipped with a warning. | Such values can't be real and would distort FFMCAP. None occur in this data. |
-| A11 | Capping factors are normalised so the largest is 1, i.e. uncapped constituents have factor 1 and capped ones below 1. | Only the ratios between factors affect weights; this is the usual published form. Check with SIX (open question). |
+| A11 | Capping factors are normalised so the largest is 1, i.e. uncapped constituents have factor 1 and capped ones below 1. | Only the ratios between factors affect weights; this is the usual published form. Check with SIX (open question). The brief's "weighting factors" is read as capping factors; final weights are reported as well (D20). |
 | A12 | If fewer securities can be ranked than the index needs, all ranked securities are selected and the review adds a warning. | The rulebook doesn't cover it; a smaller index with a visible warning beats inventing a fill rule. Can't happen with this data. |
-| A13 | For the review status, an unranked security's rank is estimated with its price from the cut-off date (else the review date) and shares and free float from the review date (else the cut-off date). | Only used to judge whether missing data could matter; never used for selection or weights, which keep the strict date rule. |
+| A13 | For the review status, an unranked security's rank is estimated with its price from the cut-off date (else the review date) and shares and free float from the review date (else the cut-off date). | Only used to judge whether missing data could matter; never used for selection or weights, which keep the strict date rule. The estimate counts as harmless only if its value is below **half** the ranking value at the buffer end, a margin for the data it borrows from the other date (17 ids change shares and 41 change free float between the dates). |
+| A14 | Capping is iterative: a security pushed above the cap by redistribution is capped too, even if its raw share was below the cap (D20). | Guarantees no published weight above the cap; the rulebook's wording only names components above 18% of the total. |
 
 ## Open questions
 
@@ -308,6 +344,8 @@ Candidates to send to the SIX contacts from the original brief.
 - Id `166` has no review-date data: exclude it, or is there a missing row?
 - Is there a required precision for published weights and capping factors that the calculation itself must
   use (D13)? And are capping factors normalised so the largest is 1 (A11)?
+- Is the 18% cap applied iteratively, i.e. is a component that exceeds 18% only after redistribution capped
+  too (A14, D20)?
 
 ## Interview talking points
 
@@ -326,5 +364,9 @@ Candidates to send to the SIX contacts from the original brief.
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
   choice is written down and can be explained.
 - Why the displayed weights add up to 99.999999% and that's correct (D13, D17).
-- What I'd do next with more time: store reports for an audit history (D17), the rulebook selection list as a
-  second ranking strategy (A4), issuer-level capping (A6).
+- Iterative vs single-pass capping (D20): Q3 needs one round, but at a 15% cap the real data shows a single
+  pass publishing `63` at 15.60%. Live demo: set `weight-cap: 0.15` in `config/indices.yml`, restart, run.
+- Weights vs capping factors: the weight is the review's result and drifts with prices; the factor is what
+  index calculation carries until the next review (D20, A11).
+- What I'd do next with more time: the rulebook selection list as a second ranking strategy (A4), issuer-level
+  capping (A6), a database behind `ReportStore` (D21).
