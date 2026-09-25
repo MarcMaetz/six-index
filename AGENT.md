@@ -16,7 +16,9 @@ This file is what the author will use to explain the work in the interview. When
 - hits something that should be clarified with SIX → add it to **Open questions**,
 - completes a meaningful step → add a row to **Timeline**.
 
-Keep entries short and factual.
+Keep entries short and factual. Update it **in the same change** as the work it describes, before
+committing. A timeline row alone is not enough when the work involved a choice: tooling, libraries and
+project setup count as decisions too.
 
 ## Build
 

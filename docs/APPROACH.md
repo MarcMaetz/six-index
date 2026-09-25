@@ -34,6 +34,21 @@ decided, why, and what we rejected.
 - **Why:** Keeps the review logic independent of Spring and I/O, so it is unit-testable in isolation
   and new rules slot into `review` without touching ingest or API.
 
+### D5 — Single Gradle project at repo root; Gradle-driven IDE setup
+- Unlike `kasse-ai` (with `backend/` + `frontend/`), the app lives at the repo root: there is no UI
+  (out of scope), so one module is all the brief needs.
+- Java 25 is provisioned by the Gradle toolchain (foojay resolver, bumped 0.9.0 → 1.0.0 because 0.9.0
+  breaks on Gradle 9). IntelliJ uses shared Gradle run configs in `.run/` (`bootRun`, `test`).
+- **Why:** Anyone who unzips the submission builds and runs with `./gradlew` only, without a local JDK 25
+  or IDE-specific setup. Gradle run configs work in IntelliJ Community too.
+- **Rejected:** Spring Boot run config type (Ultimate only).
+
+### D6 — OpenAPI spec as API contract; Postman collection for manual testing
+- springdoc generates the spec at `/api-docs` from the code; Swagger UI at `/swagger-ui.html`.
+- A Postman collection "SIX Index Reviewer" (created via the Postman MCP server) holds example requests
+  with test scripts, using a `{{baseUrl}}` variable. It contains only endpoints that actually exist.
+- **Why:** The spec can't drift from the code; the collection gives reviewers ready-made calls with checks.
+
 ## Assumptions
 
 Where the brief or rulebook is ambiguous, record the assumption here (and reference it in code).
@@ -53,4 +68,7 @@ Candidates to send to lucas.damalix@six-group.com / sorin.ivascu@six-group.com.
 - How the design accommodates new indices, dates and rules (D3, D4).
 - Traceability/auditability: how a reviewer can see why a security joined, left or was capped.
 - Testing strategy: the brief's worked example (A/B/C, 50% cap → 50 / 37.5 / 12.5) as a first test case.
+- Tooling: one-command build/run (D5), API contract + Postman collection (D6).
+- Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
+  choice is written down and can be explained.
 - What I'd do next with more time.
