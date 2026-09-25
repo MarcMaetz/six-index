@@ -1,10 +1,11 @@
 # Input data
 
-CSV files provided with the assignment (location configurable via `index-reviewer.data-dir`):
+CSV files provided with the assignment. Each review reads its own folder `<data-dir>/<index>/<review period>/`
+(D12), e.g. `data/SMI/2026-Q3/`; the root is configurable via `index-reviewer.data-dir`.
 
 | File               | Columns                                 | Content                                  |
 |--------------------|-----------------------------------------|------------------------------------------|
-| `spi_universe.csv` | `date;id`                               | SPI universe as of the review date       |
+| `spi_universe.csv` | `date;id`                               | SPI universe as of the review date (named `<universe>_universe.csv`) |
 | `sec_data.csv`     | `id;date;price;free_float;shares`       | Security data at cut-off and review date |
 | `composition.csv`  | `id`                                    | Current SMI constituents                 |
 

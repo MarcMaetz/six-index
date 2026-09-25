@@ -1,16 +1,22 @@
 package com.example.indexreviewer.ingest;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
+import com.example.indexreviewer.domain.InputFile;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +24,7 @@ import java.util.Map;
 /**
  * Reads a {@code ;}-separated CSV file with a header row into rows addressable by column name. Handles a UTF-8
  * byte order mark and CRLF line endings. Blank lines are skipped; rows with the wrong number of fields are
- * reported as warnings and skipped.
+ * reported as warnings and skipped. The checksum is taken from the same bytes that are parsed.
  */
 final class CsvFile {
 
@@ -34,7 +40,12 @@ final class CsvFile {
         }
     }
 
-    record Content(List<Row> rows, List<DataQualityWarning> warnings) {
+    record Content(InputFile file, List<Row> rows, List<DataQualityWarning> warnings) {
+
+        /** File name used as the source of warnings. */
+        String source() {
+            return Path.of(file.path()).getFileName().toString();
+        }
     }
 
     private CsvFile() {
@@ -45,7 +56,15 @@ final class CsvFile {
             throw new InputDataException("Input file not found: " + file);
         }
         String source = file.getFileName().toString();
-        try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+        byte[] bytes;
+        try {
+            bytes = Files.readAllBytes(file);
+        } catch (IOException e) {
+            throw new InputDataException("Cannot read " + file + ": " + e.getMessage(), e);
+        }
+        var inputFile = new InputFile(file.toString(), sha256(bytes));
+        try (var reader = new BufferedReader(
+                new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8))) {
             skipByteOrderMark(reader);
             var csv = new CSVReaderBuilder(reader)
                     .withCSVParser(new CSVParserBuilder().withSeparator(SEPARATOR).build())
@@ -80,9 +99,17 @@ final class CsvFile {
                 }
                 rows.add(new Row(line, values));
             }
-            return new Content(rows, warnings);
+            return new Content(inputFile, rows, warnings);
         } catch (IOException | CsvValidationException e) {
             throw new InputDataException("Cannot read " + file + ": " + e.getMessage(), e);
+        }
+    }
+
+    private static String sha256(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is required on every Java platform", e);
         }
     }
 

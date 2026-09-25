@@ -16,6 +16,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Claude Code hook enforcing approach-log updates on commit (D8) |
 | 2026-09-25 | `domain` input model and `ingest` CSV loader with data-quality warnings, unit-tested (D9, A9, A10) |
 | 2026-09-25 | Design review of the ingest decisions ("grill me"): review status, business config, input layout, precision (D10–D13) |
+| 2026-09-25 | Implemented D11/D12: `config/indices.yml`, input in `data/SMI/2026-Q3/`, SHA-256 checksums; endpoints to list indices and check a review's input, added to Postman (D14) |
 
 ## Design decisions
 
@@ -136,6 +137,25 @@ decided, why, and what we rejected.
   the number of iterations.
 - **Rejected:** `double` (loses the reason for exact decimals and makes test comparisons fragile); rounding
   each capping iteration to the published precision.
+
+### D14 — Config wiring, and an input check endpoint before the review endpoint
+- The domain records `IndexDefinition` and `ReviewPeriod` validate themselves in their constructors; Spring binds
+  `config/indices.yml` straight into them (`IndexReviewerProperties`), so the rules live in one framework-free
+  place and a bad file stops startup with a clear reason. A new `config` package holds the Spring side
+  (properties, `IndexCatalog` for lookups and loading a review's input).
+- Indices and review periods are YAML **lists** with `name`/`id`, not maps: Spring's relaxed binding mangles map
+  keys such as `2026-Q3` unless bracketed.
+- `config/indices.yml` is the single source: Gradle packages it into the jar as the default copy, and
+  `spring.config.import` lets `./config/indices.yml` override it (checked: an external file with an
+  inconsistent buffer stops startup).
+- `GET /api/indices` lists the configuration; `GET /api/indices/{index}/reviews/{period}/input` loads and
+  validates a review's input without running it (files + checksums, counts per date, composition, warnings).
+- Errors are RFC 9457 problem responses: unknown index or period → 404; missing or unusable input files → 422
+  (the request is valid, the data for it isn't).
+- **Why:** Something to try before the review logic exists, and a real use afterwards: operations can check a
+  quarter's files before running the review.
+- **Rejected:** separate Jakarta Bean Validation annotations on a properties class (would duplicate the domain
+  checks); a 500 for unusable input (it isn't a bug in the app).
 
 ## Input data findings
 

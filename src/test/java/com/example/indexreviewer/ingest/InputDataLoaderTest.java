@@ -10,7 +10,10 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
+import java.util.HexFormat;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +32,7 @@ class InputDataLoaderTest {
 
     @Test
     void loadsProvidedData() {
-        InputData data = loader.load(Path.of("data"));
+        InputData data = loader.load(Path.of("data/SMI/2026-Q3"), "SPI");
 
         assertThat(data.universe(REVIEW)).hasSize(205);
         assertThat(data.currentComposition()).hasSize(20);
@@ -54,7 +57,7 @@ class InputDataLoaderTest {
                 "id;date;price;free_float;shares\r\n1;2026-09-10;12.5;0.8;1000\r\n1;2026-09-21;;0.9;1100\r\n",
                 "id\r\n1\r\n");
 
-        InputData data = loader.load(dir);
+        InputData data = loader.load(dir, "SPI");
 
         assertThat(data.universe(REVIEW)).containsExactly("1");
         assertThat(data.currentComposition()).containsExactly("1");
@@ -74,7 +77,7 @@ class InputDataLoaderTest {
                 "id;date;price;free_float;shares\n",
                 "id\n1\n1\n");
 
-        InputData data = loader.load(dir);
+        InputData data = loader.load(dir, "SPI");
 
         assertThat(data.universe(REVIEW)).containsExactly("1", "2");
         assertThat(data.currentComposition()).containsExactly("1");
@@ -99,7 +102,7 @@ class InputDataLoaderTest {
                         """,
                 "id\n1\n");
 
-        InputData data = loader.load(dir);
+        InputData data = loader.load(dir, "SPI");
 
         assertThat(data.universe(REVIEW)).containsExactly("1");
         assertThat(data.securityDataById()).containsOnlyKeys("6");
@@ -127,7 +130,7 @@ class InputDataLoaderTest {
                         """,
                 "id\n");
 
-        InputData data = loader.load(dir);
+        InputData data = loader.load(dir, "SPI");
 
         assertThat(data.securityData("1", CUT_OFF)).isPresent();
         assertThat(data.securityData("2", CUT_OFF)).isEmpty();
@@ -142,22 +145,51 @@ class InputDataLoaderTest {
     void failsOnMissingColumn() throws IOException {
         writeFiles("date;id\n", "id;date;price;shares\n", "id\n");
 
-        assertThatThrownBy(() -> loader.load(dir))
+        assertThatThrownBy(() -> loader.load(dir, "SPI"))
                 .isInstanceOf(InputDataException.class)
                 .hasMessageContaining("sec_data.csv is missing column(s) [free_float]");
     }
 
     @Test
     void failsOnMissingFile() {
-        assertThatThrownBy(() -> loader.load(dir))
+        assertThatThrownBy(() -> loader.load(dir, "SPI"))
                 .isInstanceOf(InputDataException.class)
                 .hasMessageContaining("Input file not found")
-                .hasMessageContaining(InputDataLoader.UNIVERSE_FILE);
+                .hasMessageContaining("spi_universe.csv");
+    }
+
+    @Test
+    void failsOnMissingFolder() {
+        assertThatThrownBy(() -> loader.load(dir.resolve("2026-Q4"), "SPI"))
+                .isInstanceOf(InputDataException.class)
+                .hasMessageContaining("Input folder not found");
+    }
+
+    @Test
+    void recordsFilesWithChecksums() throws IOException {
+        writeFiles("date;id\n", "id;date;price;free_float;shares\n", "id\n");
+
+        InputData data = loader.load(dir, "SPI");
+
+        // sha256 of the BOM followed by "id\n"
+        assertThat(data.files()).hasSize(3).last().satisfies(f -> {
+            assertThat(f.path()).isEqualTo(dir.resolve("composition.csv").toString());
+            assertThat(f.sha256()).isEqualTo(sha256Hex("\uFEFFid\n"));
+        });
+    }
+
+    private static String sha256Hex(String content) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(content.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /** Writes the three input files with a UTF-8 byte order mark, as delivered. */
     private void writeFiles(String universe, String securityData, String composition) throws IOException {
-        write(InputDataLoader.UNIVERSE_FILE, universe);
+        write(InputDataLoader.universeFileName("SPI"), universe);
         write(InputDataLoader.SECURITY_DATA_FILE, securityData);
         write(InputDataLoader.COMPOSITION_FILE, composition);
     }

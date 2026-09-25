@@ -11,7 +11,7 @@ import java.util.Set;
 
 /**
  * Validated input for a review: the universe per date, market data per security and date, the current index
- * composition, and the data-quality warnings raised while loading them.
+ * composition, the data-quality warnings raised while loading them, and the files they were read from.
  * <p>
  * Collections are copied into unmodifiable, insertion-ordered views, so iteration order (and with it every
  * derived result) is reproducible.
@@ -20,7 +20,8 @@ public record InputData(
         Map<LocalDate, Set<String>> universeByDate,
         Map<String, Map<LocalDate, SecurityData>> securityDataById,
         Set<String> currentComposition,
-        List<DataQualityWarning> warnings) {
+        List<DataQualityWarning> warnings,
+        List<InputFile> files) {
 
     public InputData {
         var universe = new LinkedHashMap<LocalDate, Set<String>>();
@@ -33,6 +34,7 @@ public record InputData(
 
         currentComposition = Collections.unmodifiableSet(new LinkedHashSet<>(currentComposition));
         warnings = List.copyOf(warnings);
+        files = List.copyOf(files);
     }
 
     /** Securities in the universe on the given date; empty if the universe has no entries for that date. */

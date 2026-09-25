@@ -35,8 +35,9 @@ truly needs no entry, and tell the user why.
 ## Conventions
 
 - Review logic in `domain` / `review` stays framework-free and unit-tested.
-- Index parameters and review dates come from configuration (`index-reviewer.indices.*`), not code.
-- Input CSVs live in `data/`.
+- Index parameters and review dates are business configuration in `config/indices.yml` (D11), not code.
+  Technical settings stay in `application.properties`.
+- Input CSVs live in `data/<index>/<review period>/`, e.g. `data/SMI/2026-Q3/` (D12).
 
 ## Postman
 

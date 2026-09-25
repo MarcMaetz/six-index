@@ -1,0 +1,21 @@
+# Index definitions and review schedule (D11).
+#
+# Business-owned parameters: changing a value or adding a review period needs no code change or rebuild.
+# The app reads this file from ./config/indices.yml; a copy packaged in the jar is the default.
+# Inconsistent values (e.g. a buffer ending before the constituent count) stop the app at startup.
+#
+# Input files for a review are expected in <data-dir>/<index name>/<review period id>/ (D12).
+
+index-reviewer:
+  indices:
+    - name: SMI
+      universe: SPI                  # reads <universe>_universe.csv, i.e. spi_universe.csv
+      constituent-count: 20
+      direct-selection-rank: 18      # ranks 1-18 are selected directly (rulebook 5.12.3.2)
+      buffer-end-rank: 22            # ranks 19-22 are the buffer; incumbents ranked lower leave
+      weight-cap: 0.18               # maximum weight per constituent (rulebook 5.12.4)
+      ranking-strategy: FFMCAP       # FFMCAP = price(cut-off) x shares(review) x free float(review)
+      review-periods:
+        - id: 2026-Q3
+          cut-off-date: 2026-09-10
+          review-date: 2026-09-21

@@ -2,9 +2,11 @@ package com.example.indexreviewer.ingest;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.InputData;
+import com.example.indexreviewer.domain.InputFile;
 import com.example.indexreviewer.domain.SecurityData;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -12,12 +14,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Loads and validates the review input from a data directory holding {@code spi_universe.csv},
- * {@code sec_data.csv} and {@code composition.csv}.
+ * Loads and validates the input of one review from its folder ({@code <data-dir>/<index>/<period>}, D12), which
+ * holds {@code <universe>_universe.csv} (e.g. {@code spi_universe.csv}), {@code sec_data.csv} and
+ * {@code composition.csv}.
  * <p>
  * Only unusable input (missing file or column) fails the load. Invalid and duplicate rows are skipped and
  * reported as {@link DataQualityWarning}s, so a single bad row does not block a review but stays visible in
@@ -26,7 +30,7 @@ import java.util.Set;
  */
 public final class InputDataLoader {
 
-    public static final String UNIVERSE_FILE = "spi_universe.csv";
+    public static final String UNIVERSE_FILE_SUFFIX = "_universe.csv";
     public static final String SECURITY_DATA_FILE = "sec_data.csv";
     public static final String COMPOSITION_FILE = "composition.csv";
 
@@ -36,19 +40,41 @@ public final class InputDataLoader {
     private static final String FREE_FLOAT = "free_float";
     private static final String SHARES = "shares";
 
-    public InputData load(Path dataDir) {
+    /** File name of a universe's constituent list, e.g. {@code SPI} → {@code spi_universe.csv}. */
+    public static String universeFileName(String universe) {
+        return universe.toLowerCase(Locale.ROOT) + UNIVERSE_FILE_SUFFIX;
+    }
+
+    /**
+     * @param inputDir folder of one review's input files
+     * @param universe universe of the index, which names the universe file
+     */
+    public InputData load(Path inputDir, String universe) {
+        if (!Files.isDirectory(inputDir)) {
+            throw new InputDataException("Input folder not found: " + inputDir);
+        }
         var warnings = new ArrayList<DataQualityWarning>();
-        var universe = loadUniverse(dataDir.resolve(UNIVERSE_FILE), warnings);
-        var securityData = loadSecurityData(dataDir.resolve(SECURITY_DATA_FILE), warnings);
-        var composition = loadComposition(dataDir.resolve(COMPOSITION_FILE), warnings);
-        return new InputData(universe, securityData, composition, warnings);
+        var files = new ArrayList<InputFile>();
+        var universeByDate = loadUniverse(read(inputDir.resolve(universeFileName(universe)),
+                List.of(DATE, ID), files, warnings), warnings);
+        var securityData = loadSecurityData(read(inputDir.resolve(SECURITY_DATA_FILE),
+                List.of(ID, DATE, PRICE, FREE_FLOAT, SHARES), files, warnings), warnings);
+        var composition = loadComposition(read(inputDir.resolve(COMPOSITION_FILE),
+                List.of(ID), files, warnings), warnings);
+        return new InputData(universeByDate, securityData, composition, warnings, files);
+    }
+
+    private static CsvFile.Content read(Path file, List<String> columns, List<InputFile> files,
+                                        List<DataQualityWarning> warnings) {
+        var content = CsvFile.read(file, columns);
+        files.add(content.file());
+        warnings.addAll(content.warnings());
+        return content;
     }
 
     /** A1: exact duplicate rows are dropped with one summary warning. */
-    private Map<LocalDate, Set<String>> loadUniverse(Path file, List<DataQualityWarning> warnings) {
-        var content = CsvFile.read(file, List.of(DATE, ID));
-        warnings.addAll(content.warnings());
-        String source = file.getFileName().toString();
+    private Map<LocalDate, Set<String>> loadUniverse(CsvFile.Content content, List<DataQualityWarning> warnings) {
+        String source = content.source();
 
         var universe = new LinkedHashMap<LocalDate, Set<String>>();
         var duplicates = new ArrayList<String>();
@@ -74,10 +100,8 @@ public final class InputDataLoader {
      * Rows with values out of range are skipped. Identical duplicates are dropped with one summary warning;
      * conflicting rows for the same security and date are all dropped (A9), since neither can be trusted.
      */
-    private Map<String, Map<LocalDate, SecurityData>> loadSecurityData(Path file, List<DataQualityWarning> warnings) {
-        var content = CsvFile.read(file, List.of(ID, DATE, PRICE, FREE_FLOAT, SHARES));
-        warnings.addAll(content.warnings());
-        String source = file.getFileName().toString();
+    private Map<String, Map<LocalDate, SecurityData>> loadSecurityData(CsvFile.Content content, List<DataQualityWarning> warnings) {
+        String source = content.source();
 
         var byId = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
         var duplicates = new ArrayList<String>();
@@ -114,10 +138,8 @@ public final class InputDataLoader {
         return byId;
     }
 
-    private Set<String> loadComposition(Path file, List<DataQualityWarning> warnings) {
-        var content = CsvFile.read(file, List.of(ID));
-        warnings.addAll(content.warnings());
-        String source = file.getFileName().toString();
+    private Set<String> loadComposition(CsvFile.Content content, List<DataQualityWarning> warnings) {
+        String source = content.source();
 
         var composition = new LinkedHashSet<String>();
         var duplicates = new ArrayList<String>();

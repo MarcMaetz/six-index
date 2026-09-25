@@ -34,6 +34,13 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// Package the business configuration (config/indices.yml) as the default copy on the classpath (D11)
+tasks.named('processResources') {
+	from('config') {
+		include 'indices.yml'
+	}
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }
