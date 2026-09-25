@@ -1,9 +1,12 @@
 # Input data
 
-Place the CSV files provided with the assignment here:
+CSV files provided with the assignment (location configurable via `index-reviewer.data-dir`):
 
-- `spi_universe.csv` — SPI universe data
-- `sec_data.csv` — security reference data
-- `composition.csv` — current SMI composition
+| File               | Columns                                 | Content                                  |
+|--------------------|-----------------------------------------|------------------------------------------|
+| `spi_universe.csv` | `date;id`                               | SPI universe as of the review date       |
+| `sec_data.csv`     | `id;date;price;free_float;shares`       | Security data at cut-off and review date |
+| `composition.csv`  | `id`                                    | Current SMI constituents                 |
 
-The location is configurable via `index-reviewer.data-dir`.
+Format: `;`-separated, UTF-8 with BOM, CRLF line endings. Data-quality findings are recorded in
+[`docs/APPROACH.md`](../docs/APPROACH.md#input-data-findings).
