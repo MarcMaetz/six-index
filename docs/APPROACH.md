@@ -36,6 +36,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Capping takes a `CappingRule` (per-constituent caps); `SingleCap` for the SMI, tiered rule proven in a test; DESIGN.md no longer claims the SLI needs no code change (D25) |
 | 2026-09-26 | Ranking seam: claims that the selection list is "another implementation" corrected in code docs, README, DESIGN.md and A4; eligibility recognised as weighting data (D26) |
 | 2026-09-26 | Review status logic moved from `report` to `review`, read via `ReviewResult.assessment()` (D27) |
+| 2026-09-26 | Input loading behind an `InputSource` port, CSV folder as one implementation; `IndexCatalog` only looks up config (D28) |
 
 ## Design decisions
 
@@ -165,7 +166,7 @@ decided, why, and what we rejected.
 - The domain records `IndexDefinition` and `ReviewPeriod` validate themselves in their constructors; Spring binds
   `config/indices.yml` straight into them (`IndexReviewerProperties`), so the rules live in one framework-free
   place and a bad file stops startup with a clear reason. A new `config` package holds the Spring side
-  (properties, `IndexCatalog` for lookups and loading a review's input).
+  (properties, `IndexCatalog` for lookups and loading a review's input; loading moved to `InputSource` in D28).
 - Indices and review periods are YAML **lists** with `name`/`id`, not maps: Spring's relaxed binding mangles map
   keys such as `2026-Q3` unless bracketed.
 - `config/indices.yml` is the single source: Gradle packages it into the jar as the default copy, and
@@ -363,6 +364,18 @@ decided, why, and what we rejected.
   status types living in `review` follows the same pattern.
 - **Rejected:** a `status` field on `ReviewResult` set by the engine (the assessment needs the finished result, so
   the record would need a nullable field or a second result type); keeping it in `report` with a note.
+
+### D28 — Input behind an `InputSource` port
+- `InputSource.load(index, period)` in `ingest` returns a review's `InputData`. `CsvFolderInputSource` implements
+  the folder convention (`<data-dir>/<index>/<period>`, D12) with the existing `InputDataLoader`. It is a bean in
+  `ReviewConfiguration` and injected into `ReviewService`. `IndexCatalog` only looks up configuration now.
+- **Why:** Output already had a port (`ReportStore`), input didn't: `IndexCatalog` created its own
+  `InputDataLoader` and resolved paths itself. At SIX the data would come from a market-data system, not a folder;
+  with the port that is one new class and one bean. It also separates "what is configured" from "where the data
+  lives".
+- **Rejected:** the interface in `config` (it would tie a data concern to Spring wiring); passing a `Path` through
+  the interface (every non-file source would have to fake one); an in-memory test implementation (the CSV one is
+  already covered on real data, and `InputData` is built by hand in `StatusAssessmentTest`).
 
 ## Input data findings
 

@@ -4,12 +4,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** The ranking strategies the application knows, looked up by the name used in the configuration. */
 public final class RankingStrategies {
 
-    private static final Map<String, RankingStrategy> BY_NAME = List.<RankingStrategy>of(new FfmcapRanking())
-            .stream()
+    private static final Map<String, RankingStrategy> BY_NAME = Stream.<RankingStrategy>of(new FfmcapRanking())
             .collect(Collectors.toUnmodifiableMap(RankingStrategy::name, Function.identity()));
 
     private RankingStrategies() {

@@ -5,6 +5,7 @@ import com.example.indexreviewer.config.IndexReviewerProperties;
 import com.example.indexreviewer.config.NotConfiguredException;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
+import com.example.indexreviewer.ingest.CsvFolderInputSource;
 import com.example.indexreviewer.report.ReportBuilder;
 import com.example.indexreviewer.report.ReportFormat;
 import com.example.indexreviewer.review.ReviewEngine;
@@ -42,7 +43,7 @@ class ReviewServiceTest {
         var smi = new IndexDefinition("SMI", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of(q3));
         var format = new ReportFormat(6, 10, 2);
         var catalog = new IndexCatalog(new IndexReviewerProperties(Path.of("data"), reportsDir, format, List.of(smi)));
-        service = new ReviewService(catalog, new ReviewEngine(),
+        service = new ReviewService(catalog, new CsvFolderInputSource(Path.of("data")), new ReviewEngine(),
                 new ReportBuilder(format, Clock.fixed(NOW, ZoneOffset.UTC)),
                 new FileReportStore(reportsDir, JsonMapper.builder().build()));
     }

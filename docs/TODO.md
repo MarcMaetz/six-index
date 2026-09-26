@@ -19,15 +19,13 @@ the brief rates "simplicity, clarity, maintainability, and sound design over fea
 Each item names the brief's point it serves. Q3 results must stay identical; `ReviewEngineTest` and the
 Postman collection are the regression check.
 
-1. **Input behind a port** (extensibility, auditability). `IndexCatalog` does `new InputDataLoader()`. Add an
-   `InputSource` interface next to `ReportStore`, with the CSV folder as one implementation, injected by Spring.
-2. **Record the methodology version** (auditability). Add the rulebook version (v3.40) to the index definition
+1. **Record the methodology version** (auditability). Add the rulebook version (v3.40) to the index definition
    in `indices.yml` and to the report's parameters, so a stored report says which rules produced it.
-3. **Enforce the layering with a test** (automated testing). ArchUnit test: `domain`, `review`, `report`,
+2. **Enforce the layering with a test** (automated testing). ArchUnit test: `domain`, `review`, `report`,
    `ingest` and `store` don't depend on Spring or on `api`/`config`.
-4. **Update docs**: DESIGN.md extensibility section (what adding SLI would take after these changes), APPROACH.md
+3. **Update docs**: DESIGN.md extensibility section (what adding SLI would take after these changes), APPROACH.md
    decisions for each item, README if the config format changes, Postman if any response changes.
-5. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
+4. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
    links work).
 
 ## Deliberately not doing (interview talking points)

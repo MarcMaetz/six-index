@@ -4,6 +4,7 @@ import com.example.indexreviewer.config.IndexCatalog;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
+import com.example.indexreviewer.ingest.InputSource;
 import com.example.indexreviewer.report.ReportBuilder;
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
@@ -15,7 +16,8 @@ import java.util.List;
 
 /**
  * The application's use cases, addressed by index name and review period id (D24). Any entry point (the REST API
- * today, a scheduler or CLI later) calls these instead of chaining catalog, engine, report builder and store itself.
+ * today, a scheduler or CLI later) calls these instead of chaining catalog, input source, engine, report
+ * builder and store itself.
  */
 @Service
 public class ReviewService {
@@ -29,13 +31,15 @@ public class ReviewService {
     }
 
     private final IndexCatalog catalog;
+    private final InputSource inputSource;
     private final ReviewEngine engine;
     private final ReportBuilder reportBuilder;
     private final ReportStore reportStore;
 
-    public ReviewService(IndexCatalog catalog, ReviewEngine engine, ReportBuilder reportBuilder,
-                         ReportStore reportStore) {
+    public ReviewService(IndexCatalog catalog, InputSource inputSource, ReviewEngine engine,
+                         ReportBuilder reportBuilder, ReportStore reportStore) {
         this.catalog = catalog;
+        this.inputSource = inputSource;
         this.engine = engine;
         this.reportBuilder = reportBuilder;
         this.reportStore = reportStore;
@@ -49,7 +53,7 @@ public class ReviewService {
     public ReviewInput input(String index, String period) {
         var definition = catalog.index(index);
         var reviewPeriod = catalog.reviewPeriod(definition, period);
-        return new ReviewInput(definition, reviewPeriod, catalog.loadInput(definition, reviewPeriod));
+        return new ReviewInput(definition, reviewPeriod, inputSource.load(definition, reviewPeriod));
     }
 
     /** Runs a review and stores its report. */

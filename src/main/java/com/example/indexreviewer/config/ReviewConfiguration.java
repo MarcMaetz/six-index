@@ -1,5 +1,7 @@
 package com.example.indexreviewer.config;
 
+import com.example.indexreviewer.ingest.CsvFolderInputSource;
+import com.example.indexreviewer.ingest.InputSource;
 import com.example.indexreviewer.report.ReportBuilder;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.store.FileReportStore;
@@ -10,7 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Clock;
 
-/** Makes the framework-free review engine, report builder and report store available as beans. */
+/** Makes the framework-free input source, review engine, report builder and report store available as beans. */
 @Configuration
 public class ReviewConfiguration {
 
@@ -27,6 +29,12 @@ public class ReviewConfiguration {
     @Bean
     ReportBuilder reportBuilder(IndexReviewerProperties properties, Clock clock) {
         return new ReportBuilder(properties.report(), clock);
+    }
+
+    /** Input from the CSV folder per index and review period (D12, D28). */
+    @Bean
+    InputSource inputSource(IndexReviewerProperties properties) {
+        return new CsvFolderInputSource(properties.dataDir());
     }
 
     /** Uses the application's JSON mapper, so stored reports look exactly like the API's responses. */

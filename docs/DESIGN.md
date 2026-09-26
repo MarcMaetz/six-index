@@ -38,11 +38,11 @@ in `domain` (input model and index definitions), which is left out of the diagra
 | Package | Responsibility |
 |---|---|
 | `domain` | Input model (`InputData`, `SecurityData`, `DataQualityWarning`, `InputFile`) and index definitions (`IndexDefinition`, `ReviewPeriod`). The definitions validate themselves when constructed. |
-| `ingest` | Reads the three CSVs of one review into `InputData`, recording a warning for each problem row. |
+| `ingest` | `InputSource` provides a review's `InputData` (D28); `CsvFolderInputSource` reads the three CSVs of one review, recording a warning for each problem row. |
 | `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step; its review status is derived from it (`StatusAssessment`, D27). |
 | `report` | Renders a `ReviewResult` as the `ReviewReport`, rounding for display only. |
 | `store` | `ReportStore` keeps every report as written; `FileReportStore` writes one JSON file per run (D21). |
-| `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the engine, report builder and report store as beans. |
+| `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the input source, engine, report builder and report store as beans. |
 | `service` | `ReviewService`: the use cases (list indices, check input, run and store a review, read stored reports). Chains load → review → report → store (D24). |
 | `api` | `IndexController` and RFC 9457 error mapping. The controller only maps HTTP to `ReviewService`. |
 
@@ -148,6 +148,7 @@ ties are broken by id.
 | The rulebook's selection list (A4: 12-month average FFMCAP and turnover) | Three steps (D26): add turnover and history to the input files, `InputData` and the loader; give `RankingStrategy` the review's input, not just one `EligibleSecurity`; decide what happens to securities without enough history. `Eligibility` stays: it checks the data the weights need. |
 | New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
 | Store reports in a database | Implement `ReportStore` and expose it as the bean in `ReviewConfiguration`. Nothing else changes (D21). |
+| Read input from a market-data system or database | Implement `InputSource` and expose it as the bean in `ReviewConfiguration`. Nothing else changes (D28). |
 
 ## API
 

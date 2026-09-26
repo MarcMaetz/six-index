@@ -1,24 +1,17 @@
 package com.example.indexreviewer.config;
 
 import com.example.indexreviewer.domain.IndexDefinition;
-import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
-import com.example.indexreviewer.ingest.InputDataLoader;
 import com.example.indexreviewer.review.RankingStrategies;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Path;
 import java.util.List;
 
-/**
- * Looks up configured indices and review periods, and loads the input of a review from its folder
- * {@code <data-dir>/<index>/<period>} (D12).
- */
+/** Looks up configured indices and review periods. Loading their input is up to the {@code InputSource} (D28). */
 @Component
 public class IndexCatalog {
 
     private final IndexReviewerProperties properties;
-    private final InputDataLoader loader = new InputDataLoader();
 
     public IndexCatalog(IndexReviewerProperties properties) {
         this.properties = properties;
@@ -40,13 +33,5 @@ public class IndexCatalog {
     public ReviewPeriod reviewPeriod(IndexDefinition index, String periodId) {
         return index.reviewPeriod(periodId).orElseThrow(() -> new NotConfiguredException(
                 "Review period " + periodId + " is not configured for " + index.name()));
-    }
-
-    public Path inputDir(IndexDefinition index, ReviewPeriod period) {
-        return properties.dataDir().resolve(index.name()).resolve(period.id()).normalize();
-    }
-
-    public InputData loadInput(IndexDefinition index, ReviewPeriod period) {
-        return loader.load(inputDir(index, period), index.universe());
     }
 }
