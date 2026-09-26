@@ -1,4 +1,4 @@
-package com.example.indexreviewer.report;
+package com.example.indexreviewer.review;
 
 /** Overall outcome of a review, derived from its data-quality warnings (D10, D16). */
 public enum ReviewStatus {

@@ -20,7 +20,7 @@ public final class ReportBuilder {
     public ReviewReport build(ReviewResult result) {
         var index = result.index();
         var period = result.period();
-        var status = StatusAssessment.assess(result);
+        var status = result.assessment();
 
         var constituents = result.constituents().stream()
                 .map(c -> new ReviewReport.Constituent(c.ranked().rank(), c.securityId(), c.decision(), c.joiner(),

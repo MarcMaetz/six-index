@@ -1,4 +1,4 @@
-package com.example.indexreviewer.report;
+package com.example.indexreviewer.review;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;

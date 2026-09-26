@@ -1,14 +1,9 @@
-package com.example.indexreviewer.report;
+package com.example.indexreviewer.review;
 
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.SecurityData;
-import com.example.indexreviewer.report.StatusReason.Relevance;
-import com.example.indexreviewer.report.StatusReason.WarningRef;
-import com.example.indexreviewer.review.EligibleSecurity;
-import com.example.indexreviewer.review.RankedSecurity;
-import com.example.indexreviewer.review.RankingStrategies;
-import com.example.indexreviewer.review.ReviewResult;
-import com.example.indexreviewer.review.Selection;
+import com.example.indexreviewer.review.StatusReason.Relevance;
+import com.example.indexreviewer.review.StatusReason.WarningRef;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -26,13 +21,17 @@ import java.util.stream.Collectors;
  * security that could rank there. The last is estimated from whatever data the security has and must be well
  * below the buffer end to count as harmless (A13). An index with fewer constituents than needed always needs
  * attention (A12). The status is {@code REQUIRES_ATTENTION} if any reason needs attention.
+ * <p>
+ * Part of the review, not the report (D27): it judges the result using the index's buffer and ranking strategy.
+ * Read it through {@link ReviewResult#assessment()}.
  */
-final class StatusAssessment {
+public final class StatusAssessment {
 
     /** A13: share of the buffer-end ranking value below which an unranked security's estimate is harmless. */
     static final BigDecimal HARMLESS_SHARE_OF_BUFFER_END = new BigDecimal("0.5");
 
-    record Result(ReviewStatus status, List<StatusReason> reasons) {
+    /** The review status and every reason behind it, harmless ones included. */
+    public record Result(ReviewStatus status, List<StatusReason> reasons) {
     }
 
     private StatusAssessment() {

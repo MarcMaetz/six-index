@@ -35,6 +35,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Use cases moved from `IndexController` into `ReviewService`, tested without Spring (D24) |
 | 2026-09-26 | Capping takes a `CappingRule` (per-constituent caps); `SingleCap` for the SMI, tiered rule proven in a test; DESIGN.md no longer claims the SLI needs no code change (D25) |
 | 2026-09-26 | Ranking seam: claims that the selection list is "another implementation" corrected in code docs, README, DESIGN.md and A4; eligibility recognised as weighting data (D26) |
+| 2026-09-26 | Review status logic moved from `report` to `review`, read via `ReviewResult.assessment()` (D27) |
 
 ## Design decisions
 
@@ -217,7 +218,7 @@ decided, why, and what we rejected.
 - **Rejected:** a warning count threshold (says nothing about impact); treating every unranked security as
   relevant (would flag this quarter over a penny stock).
 - **Refined** in the second design review: the estimate is compared with a safety margin (A13), and reasons
-  become structured records (D22).
+  become structured records (D22). The status logic moved from `report` to `review` (D27).
 
 ### D17 — Review endpoint: POST, returns the report, stores nothing
 - `POST /api/indices/{index}/reviews/{period}` loads the input, runs `ReviewEngine`, builds the report and
@@ -350,6 +351,18 @@ decided, why, and what we rejected.
   true and the next steps are known.
 - **Rejected:** strategy declares its data needs and eligibility follows from it (the weights' data needs don't
   depend on the strategy, so eligibility can't move into it); passing `InputData` to the strategy now (speculative).
+
+### D27 — Review status is part of the review, not the report
+- `StatusAssessment`, `ReviewStatus` and `StatusReason` moved from `report` to `review`. The status is read as
+  `ReviewResult.assessment()`, derived from the result like `joiners()`. `ReportBuilder` only renders it.
+- **Why:** The assessment judges the result: it uses the buffer end, estimates ranking values through the ranking
+  strategy and reads the raw input. That is review logic; in `report` it made the report package depend on
+  review internals (`RankingStrategies`, `Selection`) and hid a business rule in the formatting layer. Any other
+  consumer of a `ReviewResult` (e.g. a scheduler deciding whether to publish) now gets the status without
+  building a report. The report already used review types such as `SelectionDecision` and `LeaveReason`, so
+  status types living in `review` follows the same pattern.
+- **Rejected:** a `status` field on `ReviewResult` set by the engine (the assessment needs the finished result, so
+  the record would need a nullable field or a second result type); keeping it in `report` with a note.
 
 ## Input data findings
 

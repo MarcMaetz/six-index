@@ -27,7 +27,7 @@ flowchart TB
     spring -- "one review run" --> plain
     subgraph plain [Plain Java]
         direction LR
-        csv[(input CSVs)] --> ingest["ingest<br/>CSV → InputData"] --> review["review<br/>rank, select, cap"] --> report["report<br/>ReviewReport, status"] --> store["store<br/>save as JSON"] --> json[(stored reports)]
+        csv[(input CSVs)] --> ingest["ingest<br/>CSV → InputData"] --> review["review<br/>rank, select, cap, status"] --> report["report<br/>ReviewReport"] --> store["store<br/>save as JSON"] --> json[(stored reports)]
     end
 ```
 
@@ -39,8 +39,8 @@ in `domain` (input model and index definitions), which is left out of the diagra
 |---|---|
 | `domain` | Input model (`InputData`, `SecurityData`, `DataQualityWarning`, `InputFile`) and index definitions (`IndexDefinition`, `ReviewPeriod`). The definitions validate themselves when constructed. |
 | `ingest` | Reads the three CSVs of one review into `InputData`, recording a warning for each problem row. |
-| `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step. |
-| `report` | Turns a `ReviewResult` into the `ReviewReport`: rounding for display, review status. |
+| `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step; its review status is derived from it (`StatusAssessment`, D27). |
+| `report` | Renders a `ReviewResult` as the `ReviewReport`, rounding for display only. |
 | `store` | `ReportStore` keeps every report as written; `FileReportStore` writes one JSON file per run (D21). |
 | `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the engine, report builder and report store as beans. |
 | `service` | `ReviewService`: the use cases (list indices, check input, run and store a review, read stored reports). Chains load → review → report → store (D24). |
@@ -91,7 +91,8 @@ Validation happens in two layers (D9):
 Each warning has an **impact**: `NONE` (nothing lost, e.g. an identical duplicate row was dropped) or
 `MISSING_DATA` (a row was ignored, conflicting rows were dropped, or a security was excluded).
 
-The **review status** tells a reviewer whether to look closer (D10, D16):
+The **review status** tells a reviewer whether to look closer (D10, D16). `StatusAssessment` in `review` derives
+it from the result, available as `ReviewResult.assessment()` (D27):
 
 | Status | When |
 |---|---|

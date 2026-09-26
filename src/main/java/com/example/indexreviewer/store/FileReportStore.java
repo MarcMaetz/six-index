@@ -1,7 +1,7 @@
 package com.example.indexreviewer.store;
 
 import com.example.indexreviewer.report.ReviewReport;
-import com.example.indexreviewer.report.ReviewStatus;
+import com.example.indexreviewer.review.ReviewStatus;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;

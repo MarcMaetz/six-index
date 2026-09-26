@@ -95,8 +95,8 @@ docs/                design doc, decision log
 src/main/java/com/example/indexreviewer/
   domain/            input model and index definitions (framework-free)
   ingest/            CSV loading and row validation
-  review/            eligibility, ranking, buffer selection, weight capping (framework-free)
-  report/            review report and review status (framework-free)
+  review/            eligibility, ranking, buffer selection, weight capping, review status (framework-free)
+  report/            review report, rounded for display (framework-free)
   store/             stored review reports, one JSON file per run
   config/            Spring wiring and configuration binding
   service/           use cases: check input, run and store a review, read reports

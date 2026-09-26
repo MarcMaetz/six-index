@@ -1,4 +1,4 @@
-package com.example.indexreviewer.report;
+package com.example.indexreviewer.review;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
@@ -6,8 +6,7 @@ import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.domain.SecurityData;
-import com.example.indexreviewer.report.StatusReason.Relevance;
-import com.example.indexreviewer.review.ReviewEngine;
+import com.example.indexreviewer.review.StatusReason.Relevance;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -148,7 +147,7 @@ class StatusAssessmentTest {
                                                   List<DataQualityWarning> inputWarnings) {
         var input = new InputData(Map.of(REVIEW, Set.of("A", "B", "C", "D", "E")), data, Set.of("A", "B"),
                 inputWarnings, List.of());
-        return StatusAssessment.assess(new ReviewEngine().run(index, PERIOD, input));
+        return new ReviewEngine().run(index, PERIOD, input).assessment();
     }
 
     /** Price 1 on the cut-off date; shares 500, 400, … on the review date, so FFMCAP 500, 400, … */

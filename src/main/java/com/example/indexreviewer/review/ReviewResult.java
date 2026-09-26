@@ -40,4 +40,9 @@ public record ReviewResult(
     public List<Constituent> joiners() {
         return constituents.stream().filter(Constituent::joiner).toList();
     }
+
+    /** The review status with its reasons, derived from the warnings and the result (D27). */
+    public StatusAssessment.Result assessment() {
+        return StatusAssessment.assess(this);
+    }
 }
