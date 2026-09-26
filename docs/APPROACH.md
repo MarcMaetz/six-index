@@ -33,6 +33,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | `DESIGN.md` architecture diagram redrawn as the flow of one review run (Spring on top, plain-Java pipeline below) instead of every package dependency |
 | 2026-09-26 | Extensibility review against the brief's non-functional list: methodology hard-coded (single cap, FFMCAP-only ranking seam, orchestration in the controller). Seams to add, and what to leave as talking points, listed in `docs/TODO.md` |
 | 2026-09-26 | Use cases moved from `IndexController` into `ReviewService`, tested without Spring (D24) |
+| 2026-09-26 | Capping takes a `CappingRule` (per-constituent caps); `SingleCap` for the SMI, tiered rule proven in a test; DESIGN.md no longer claims the SLI needs no code change (D25) |
 
 ## Design decisions
 
@@ -189,6 +190,7 @@ decided, why, and what we rejected.
   FFMCAP; repeat until none is above the cap. This is the brief's redistribution rule (proportional to current
   weight = proportional to FFMCAP) written without accumulating rounding. It ends in at most n rounds.
 - Invariants (D13) are checked inside `WeightCapping`; a violation throws, since it would be a bug.
+- **Refined by D25:** each constituent's cap comes from a `CappingRule`; the loop is the same.
 - **Why:** Every decision in the report can be traced to one step and one rule, and each rule can be changed
   or replaced (e.g. the selection list for A4) without touching the others.
 - **Rejected:** one method doing it all (hard to test and explain); weights as `double` (see D13).
@@ -313,6 +315,23 @@ decided, why, and what we rejected.
   refactoring" (brief). Found in the extensibility review (TODO item 1).
 - **Rejected:** building it in `ReviewConfiguration` as a plain bean (it needs `IndexCatalog`, so `config` and
   `service` would depend on each other); an interface plus implementation (one implementation, nothing to swap).
+
+### D25 — Capping rule decides each constituent's cap
+- `CappingRule.caps(ffmcapById)` returns a maximum weight per constituent. `WeightCapping.cap` takes a rule instead
+  of one `BigDecimal` and runs the same loop against per-constituent caps; the feasibility check becomes "caps add
+  up to at least 1" and the invariant "no weight above its own cap". `SingleCap` (all at 18%) is the only
+  implementation in `main`; `ReviewEngine.cappingRule` builds it from `weightCap`.
+- A tiered rule (SLI-style: largest n at one cap, the rest at another) lives only in `WeightCappingTest`, with a
+  two-round case where a constituent is capped at the lower tier. It proves the seam without shipping unused code.
+- Config is unchanged (`weight-cap: 0.18`). A tiered index would add its fields to `IndexDefinition` and pick its
+  rule in `ReviewEngine.cappingRule`.
+- **Why:** The extensibility review showed the SLI, three sections after the SMI in the same rulebook, couldn't
+  be added: a single scalar cap ran through `IndexDefinition`, `WeightCapping` and the engine. The loop itself
+  (water-filling against a cap) was already right; only "which cap applies to whom" varies between indices.
+- **Rejected:** a `capping:` block with a rule type in the YAML now (designing a config format for an index we
+  don't have, and Spring binding to polymorphic types is clumsy); `TieredCap` in `main` (no index uses it; the real
+  SLI also takes its top 4 from a half-year ranking we have no data for); a rule that returns final weights
+  (every rule would re-implement the loop and its invariants).
 
 ## Input data findings
 

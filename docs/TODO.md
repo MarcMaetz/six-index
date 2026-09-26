@@ -19,25 +19,21 @@ the brief rates "simplicity, clarity, maintainability, and sound design over fea
 Each item names the brief's point it serves. Q3 results must stay identical; `ReviewEngineTest` and the
 Postman collection are the regression check.
 
-1. **Capping as a rule** (new review rules, additional indices). Introduce a `CappingRule` interface; today's
-   `WeightCapping` becomes the single-cap implementation. `IndexDefinition` holds the rule's config instead of a
-   bare `weightCap`. Prove the seam with a unit test for a tiered rule (SLI-style: largest n at one cap, the
-   rest at another) — test only, not configured for any index.
-2. **Make the ranking seam honest** (new review rules). `RankingStrategy.rankingValue(EligibleSecurity)` can't
+1. **Make the ranking seam honest** (new review rules). `RankingStrategy.rankingValue(EligibleSecurity)` can't
    express the rulebook's selection list (A4 needs 12-month FFMCAP and turnover), yet its Javadoc says it
    could. Decide: either the strategy declares the data it needs and `Eligibility` follows from it, or narrow
    the claim in the Javadoc, A4 and DESIGN.md to what the seam really supports. Prefer the smaller change.
-3. **Move `StatusAssessment` into `review`** (clarity). It estimates ranking values and calls
+2. **Move `StatusAssessment` into `review`** (clarity). It estimates ranking values and calls
    `RankingStrategies`: that is review logic, not report formatting. `ReportBuilder` only renders its result.
-4. **Input behind a port** (extensibility, auditability). `IndexCatalog` does `new InputDataLoader()`. Add an
+3. **Input behind a port** (extensibility, auditability). `IndexCatalog` does `new InputDataLoader()`. Add an
    `InputSource` interface next to `ReportStore`, with the CSV folder as one implementation, injected by Spring.
-5. **Record the methodology version** (auditability). Add the rulebook version (v3.40) to the index definition
+4. **Record the methodology version** (auditability). Add the rulebook version (v3.40) to the index definition
    in `indices.yml` and to the report's parameters, so a stored report says which rules produced it.
-6. **Enforce the layering with a test** (automated testing). ArchUnit test: `domain`, `review`, `report`,
+5. **Enforce the layering with a test** (automated testing). ArchUnit test: `domain`, `review`, `report`,
    `ingest` and `store` don't depend on Spring or on `api`/`config`.
-7. **Update docs**: DESIGN.md extensibility section (what adding SLI would take after these changes), APPROACH.md
+6. **Update docs**: DESIGN.md extensibility section (what adding SLI would take after these changes), APPROACH.md
    decisions for each item, README if the config format changes, Postman if any response changes.
-8. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
+7. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
    links work).
 
 ## Deliberately not doing (interview talking points)

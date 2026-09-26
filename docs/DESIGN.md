@@ -57,7 +57,7 @@ Only `config`, `service` and `api` depend on Spring (D4, D14, D24); `service` on
 | 1. Eligibility | `Eligibility` | In the universe on the review date, with a price on the cut-off date and shares and free float on the review date. Others are excluded with a reason (A2). |
 | 2. Ranking | `Ranking` + `RankingStrategy` | Ranking value from the strategy configured by name (`FFMCAP`), highest first. Ties are broken by id (A8). |
 | 3. Selection | `Selection` | Ranks 1–18 are selected directly. From the buffer (ranks 19–22), current constituents are taken first, then new candidates, in rank order, until there are 20 (rulebook 5.12.3.2, A7). |
-| 4. Capping | `WeightCapping` | Constituents above 18% get exactly 18%. The rest share the remaining weight in proportion to FFMCAP. This repeats until none is above the cap (rulebook 5.12.4 and the brief's example). |
+| 4. Capping | `WeightCapping` + `CappingRule` | The rule sets each constituent's cap: `SingleCap`, 18% for all SMI constituents. Constituents above their cap get exactly the cap. The rest share the remaining weight in proportion to FFMCAP. This repeats until none is above its cap (rulebook 5.12.4 and the brief's example). |
 
 **Iterative capping (D20, A14):** a literal reading of rulebook 5.12.4 caps only constituents whose *raw* share
 is above 18%, in a single pass. That can leave a weight above the cap after redistribution. The loop caps such
@@ -141,7 +141,8 @@ ties are broken by id.
 | Change | What to do |
 |---|---|
 | New quarter | Add a review period to the YAML and a `data/<index>/<period>/` folder. No code change. |
-| New index (e.g. SLI) | Add an index block to the YAML and its data folder. No code change. |
+| New index with a single cap and a buffer (the SMI's rules, other numbers) | Add an index block to the YAML and its data folder. No code change. |
+| Tiered capping (e.g. SLI: largest 4 at 9%, rest at 4.5%, rulebook 5.17.4) | Implement `CappingRule`, add its parameters to `IndexDefinition` and the YAML, and pick it in `ReviewEngine.cappingRule`. The capping loop is unchanged; `WeightCappingTest` runs a tiered rule already (D25). |
 | New ranking criterion (e.g. the rulebook's selection list, A4) | Implement `RankingStrategy`, register it in `RankingStrategies`, and select it in the YAML. |
 | New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
 | Store reports in a database | Implement `ReportStore` and expose it as the bean in `ReviewConfiguration`. Nothing else changes (D21). |
@@ -165,7 +166,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 
 | Level | Tests |
 |---|---|
-| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `IndexDefinitionTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin) |
+| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a test-only tiered rule), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `IndexDefinitionTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin) |
 | Ingest | `InputDataLoaderTest`: BOM and CRLF, duplicates, invalid rows with line numbers, conflicts, checksums, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round (D20) |
 | Storage | `FileReportStoreTest`: file naming, no overwrite for runs in the same millisecond, chronological listing, unknown and unsafe ids |
