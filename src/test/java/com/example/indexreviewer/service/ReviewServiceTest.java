@@ -8,6 +8,7 @@ import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.CsvFolderInputSource;
 import com.example.indexreviewer.report.ReportBuilder;
 import com.example.indexreviewer.report.ReportFormat;
+import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.ReviewStatus;
 import com.example.indexreviewer.store.FileReportStore;
@@ -45,7 +46,7 @@ class ReviewServiceTest {
         var format = new ReportFormat(6, 10, 2);
         var catalog = new IndexCatalog(new IndexReviewerProperties(Path.of("data"), reportsDir, format, List.of(smi)));
         service = new ReviewService(catalog, new CsvFolderInputSource(Path.of("data")), new ReviewEngine(),
-                new ReportBuilder(format, Clock.fixed(NOW, ZoneOffset.UTC)),
+                new ReportBuilder(format, Clock.fixed(NOW, ZoneOffset.UTC), ReviewReport.Build.UNKNOWN),
                 new FileReportStore(reportsDir, JsonMapper.builder().build()));
     }
 

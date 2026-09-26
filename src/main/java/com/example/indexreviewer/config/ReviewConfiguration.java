@@ -3,9 +3,13 @@ package com.example.indexreviewer.config;
 import com.example.indexreviewer.ingest.CsvFolderInputSource;
 import com.example.indexreviewer.ingest.InputSource;
 import com.example.indexreviewer.report.ReportBuilder;
+import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.store.FileReportStore;
 import com.example.indexreviewer.store.ReportStore;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.json.JsonMapper;
@@ -27,8 +31,23 @@ public class ReviewConfiguration {
     }
 
     @Bean
-    ReportBuilder reportBuilder(IndexReviewerProperties properties, Clock clock) {
-        return new ReportBuilder(properties.report(), clock);
+    ReportBuilder reportBuilder(IndexReviewerProperties properties, Clock clock,
+                                ObjectProvider<BuildProperties> buildProperties,
+                                ObjectProvider<GitProperties> gitProperties) {
+        return new ReportBuilder(properties.report(), clock,
+                build(buildProperties.getIfAvailable(), gitProperties.getIfAvailable()));
+    }
+
+    /**
+     * Version from {@code build-info.properties}, revision from {@code git.properties}, both written by Gradle
+     * (D31). {@code -dirty} marks a build with uncommitted changes; a missing file gives {@code unknown}.
+     */
+    static ReviewReport.Build build(BuildProperties buildProperties, GitProperties gitProperties) {
+        String version = buildProperties == null ? "unknown" : buildProperties.getVersion();
+        String revision = gitProperties == null || gitProperties.getShortCommitId() == null
+                ? "unknown"
+                : gitProperties.getShortCommitId() + ("true".equals(gitProperties.get("dirty")) ? "-dirty" : "");
+        return new ReviewReport.Build(version, revision);
     }
 
     /** Input from the CSV folder per index and review period (D12, D28). */

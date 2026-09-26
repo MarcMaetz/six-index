@@ -83,6 +83,9 @@ class IndexControllerTest {
                     assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
                     assertThat(json).extractingPath("$.excluded[0].securityId").isEqualTo("166");
                     assertThat(json).extractingPath("$.parameters.methodology").asString().contains("v3.40");
+                    assertThat(json).extractingPath("$.build.version").isEqualTo("0.0.1-SNAPSHOT");
+                    assertThat(json).extractingPath("$.build.revision").asString().matches("[0-9a-f]{7,}(-dirty)?");
+                    assertThat(json).extractingPath("$.ranking[34].price").isEqualTo(165.7);
                 });
     }
 
@@ -108,6 +111,14 @@ class IndexControllerTest {
                 .hasStatus(HttpStatus.NOT_FOUND)
                 .bodyJson().extractingPath("$.title").isEqualTo("Report not found");
         assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q4/reports")).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void actuatorInfoShowsVersionAndRevision() {
+        assertThat(mvc.get().uri("/actuator/info")).hasStatusOk().bodyJson().satisfies(json -> {
+            assertThat(json).extractingPath("$.build.version").isEqualTo("0.0.1-SNAPSHOT");
+            assertThat(json).extractingPath("$.git.commit.id").asString().isNotBlank();
+        });
     }
 
     @Test

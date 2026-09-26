@@ -23,6 +23,7 @@ public record ReviewReport(
         LocalDate cutOffDate,
         LocalDate reviewDate,
         Instant generatedAt,
+        Build build,
         ReviewStatus status,
         List<StatusReason> statusReasons,
         Parameters parameters,
@@ -34,6 +35,17 @@ public record ReviewReport(
         List<List<String>> cappingRounds,
         List<InputFile> inputFiles,
         List<DataQualityWarning> warnings) {
+
+    /**
+     * The software that produced the report (D31).
+     *
+     * @param version  application version
+     * @param revision Git revision it was built from, {@code -dirty} if built with uncommitted changes
+     */
+    public record Build(String version, String revision) {
+
+        public static final Build UNKNOWN = new Build("unknown", "unknown");
+    }
 
     /** The index parameters the review ran with. */
     public record Parameters(String methodology, String universe, int constituentCount, int directSelectionRank,
@@ -54,8 +66,11 @@ public record ReviewReport(
     public record Exclusion(String securityId, String reason) {
     }
 
-    /** One line of the full ranking, with the selection decision taken for it. */
-    public record RankingEntry(int rank, String securityId, BigDecimal ffmcap, boolean incumbent,
-                               SelectionDecision selection) {
+    /**
+     * One line of the full ranking, with the values its FFMCAP was calculated from (price on the cut-off date,
+     * shares and free float on the review date, D31) and the selection decision taken for it.
+     */
+    public record RankingEntry(int rank, String securityId, BigDecimal price, long shares, BigDecimal freeFloat,
+                               BigDecimal ffmcap, boolean incumbent, SelectionDecision selection) {
     }
 }

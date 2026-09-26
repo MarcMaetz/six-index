@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.gorylenko.gradle-git-properties' version '4.0.1'
 }
 
 group = 'com.example'
@@ -41,6 +42,19 @@ tasks.named('processResources') {
 	from('config') {
 		include 'indices.yml'
 	}
+}
+
+// Application version (build-info.properties) and Git revision (git.properties), recorded in every report and
+// shown at /actuator/info (D31). Without a Git checkout (e.g. a ZIP download) the build still works and the
+// revision is "unknown".
+springBoot {
+	buildInfo()
+}
+
+gitProperties {
+	failOnNoGitDirectory = false
+	// Only what the report and /actuator/info use: no names, emails, hostname or remote URL in the jar
+	keys = ['git.branch', 'git.commit.id', 'git.commit.id.abbrev', 'git.commit.time', 'git.dirty']
 }
 
 tasks.named('test') {

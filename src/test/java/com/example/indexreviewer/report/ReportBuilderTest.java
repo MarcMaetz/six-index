@@ -30,15 +30,18 @@ class ReportBuilderTest {
             new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
                     "FFMCAP", List.of(Q3));
     private static final Instant NOW = Instant.parse("2026-09-25T12:00:00Z");
+    private static final ReviewReport.Build BUILD = new ReviewReport.Build("1.0", "abc1234-dirty");
 
     @Test
     void smiQ3Report() {
         var input = new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI");
         var result = new ReviewEngine().run(SMI, Q3, input);
 
-        var report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC)).build(result);
+        var report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC), BUILD)
+                .build(result);
 
         assertThat(report.generatedAt()).isEqualTo(NOW);
+        assertThat(report.build()).isEqualTo(BUILD);
         assertThat(report.parameters().weightCapPercent()).isEqualByComparingTo("18");
 
         // Duplicate universe rows lose nothing; 166 can't be ranked, but its estimate is far below the buffer.
@@ -65,6 +68,14 @@ class ReportBuilderTest {
         });
         assertThat(report.excluded()).extracting(ReviewReport.Exclusion::securityId).containsExactly("166");
         assertThat(report.ranking()).hasSize(204);
+        // Each FFMCAP can be recomputed from the entry: 165.7 × 45867891 × 1 for the leaver 103 (D31).
+        assertThat(report.ranking()).filteredOn(e -> e.securityId().equals("103")).singleElement().satisfies(e -> {
+            assertThat(e.rank()).isEqualTo(35);
+            assertThat(e.price()).isEqualByComparingTo("165.7");
+            assertThat(e.shares()).isEqualTo(45867891L);
+            assertThat(e.freeFloat()).isEqualByComparingTo("1");
+            assertThat(e.ffmcap()).isEqualByComparingTo("7600309538.70");
+        });
         assertThat(report.cappingRounds()).containsExactly(List.of("155", "205"));
         assertThat(report.inputFiles()).hasSize(3);
     }

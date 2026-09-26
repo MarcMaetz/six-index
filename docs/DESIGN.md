@@ -123,16 +123,19 @@ kept, harmless ones too. For Q3:
 A report answers "why is this security in or out, and with what weight?" without re-running anything:
 
 - the index parameters the review ran with, including the rulebook version and section they follow (D29);
-- the full ranking, with a selection decision for every security;
+- the full ranking, with a selection decision for every security and the price, shares and free float its
+  FFMCAP was calculated from, so every value can be recomputed by hand (D31);
 - exclusions and leavers with reasons;
 - each constituent's raw weight, final weight and capping factor, and the capping rounds;
 - the input files with SHA-256 checksums, which prove which data produced the report (D12);
-- all data-quality warnings, and the reasons behind the status.
+- all data-quality warnings, and the reasons behind the status;
+- the application version and Git revision that produced it (`build`, D31; `-dirty` if built with uncommitted
+  changes, `unknown` without a Git checkout).
 
 Every run is stored as written (D21), so "which report did we publish for Q3, and when?" has an answer even
 after the configuration or data changes. Stored files are created once and never changed.
 
-The same input always gives the same report, apart from `generatedAt`. Collections keep insertion order, and
+The same input and build always give the same report, apart from `generatedAt`. Collections keep insertion order, and
 ties are broken by id.
 
 ## Configuration and extensibility
@@ -164,6 +167,9 @@ ties are broken by id.
 | `POST /api/indices/{index}/reviews/{period}` | Runs the review, stores the report: **201 Created**, `ReviewReport` body, `Location` of the stored report |
 | `GET /api/indices/{index}/reviews/{period}/reports` | Stored runs of the review, oldest first: id, generation time, status |
 | `GET /api/indices/{index}/reviews/{period}/reports/{id}` | One stored report, byte for byte as written |
+
+`GET /actuator/health` and `GET /actuator/info` (application version, Git branch and commit, D31) are exposed as
+well.
 
 A review is a `POST`: it runs an action and creates a stored report (D17, D21). The store lives under
 `index-reviewer.reports-dir` (default `./reports/<index>/<period>/<run id>.json`, git-ignored). The run id is

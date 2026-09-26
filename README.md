@@ -49,6 +49,7 @@ The response is `201 Created` with the report as body and a `Location` header po
 | `GET /api/indices/{index}/reviews/{period}/reports/{id}` | Get a stored report exactly as it was written |
 
 - Swagger UI: http://localhost:8080/swagger-ui.html (OpenAPI spec at `/api-docs`)
+- Health and build info: `/actuator/health`, `/actuator/info` (version and Git commit)
 - Postman: import [`postman/six-index-reviewer.postman_collection.json`](postman/six-index-reviewer.postman_collection.json)
   and run the *Indices* folder. Each request has test scripts that check the expected Q3 results.
 - Errors are RFC 9457 problem responses: an unknown index, period or stored report returns 404, and missing or

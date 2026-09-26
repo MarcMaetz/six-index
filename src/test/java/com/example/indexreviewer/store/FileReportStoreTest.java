@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class FileReportStoreTest {
 
     private static final Instant NOW = Instant.parse("2026-09-25T20:10:52.184Z");
+    private static final ReviewReport.Build BUILD = new ReviewReport.Build("1.0", "abc1234");
     private static ReviewReport report;
 
     @TempDir
@@ -43,7 +44,7 @@ class FileReportStoreTest {
         var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
                 "FFMCAP", List.of(q3));
         var result = new ReviewEngine().run(smi, q3, new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI"));
-        report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC)).build(result);
+        report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC), BUILD).build(result);
     }
 
     @Test

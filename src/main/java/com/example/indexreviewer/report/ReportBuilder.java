@@ -11,10 +11,12 @@ public final class ReportBuilder {
 
     private final ReportFormat format;
     private final Clock clock;
+    private final ReviewReport.Build build;
 
-    public ReportBuilder(ReportFormat format, Clock clock) {
+    public ReportBuilder(ReportFormat format, Clock clock, ReviewReport.Build build) {
         this.format = format;
         this.clock = clock;
+        this.build = build;
     }
 
     public ReviewReport build(ReviewResult result) {
@@ -37,15 +39,19 @@ public final class ReportBuilder {
                 .map(e -> new ReviewReport.Exclusion(e.securityId(), e.reason()))
                 .toList();
         var ranking = result.selection().stream()
-                .map(o -> new ReviewReport.RankingEntry(o.security().rank(), o.security().securityId(),
-                        ffmcap(o.security().security().ffmcap()), o.security().incumbent(), o.decision()))
+                .map(o -> {
+                    var security = o.security().security();
+                    return new ReviewReport.RankingEntry(o.security().rank(), security.securityId(), security.price(),
+                            security.shares(), security.freeFloat(), ffmcap(security.ffmcap()),
+                            o.security().incumbent(), o.decision());
+                })
                 .toList();
         var parameters = new ReviewReport.Parameters(index.methodology(), index.universe(),
                 index.constituentCount(), index.directSelectionRank(), index.bufferEndRank(),
                 index.weightCap().movePointRight(2).stripTrailingZeros(), index.rankingStrategy());
 
         return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
-                clock.instant(), status.status(), status.reasons(), parameters, constituents, joiners, leavers,
+                clock.instant(), build, status.status(), status.reasons(), parameters, constituents, joiners, leavers,
                 excluded, ranking, result.cappingRounds(), result.input().files(), result.warnings());
     }
 
