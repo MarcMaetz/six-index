@@ -45,6 +45,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Final read-through of README and DESIGN.md: all links and anchors resolve, Mermaid diagram renders (checked with mermaid-cli); README no longer implies any index is config-only |
 | 2026-09-26 | Spring conventions pass: `catalog` package, `config` outermost, validation starter removed, SLF4J logging, `ProblemDetail` for every error; ArchUnit rules updated and checked with a probe (D32) |
 | 2026-09-26 | Ranking strategy looked up once per review and carried on `ReviewResult`; static registry kept on purpose (D33) |
+| 2026-09-26 | Stored-report endpoint documented with the `ReviewReport` schema in OpenAPI; slice tests, group id and package-by-layer kept, reasons recorded (D34) |
 
 ## Design decisions
 
@@ -288,7 +289,7 @@ decided, why, and what we rejected.
   (`20260925T201052184Z`), with `-2`, `-3`, … if runs share a millisecond; files are created with
   `CREATE_NEW`, so an existing run can't be overwritten. JSON is written with the application's `JsonMapper`,
   so a stored report looks exactly like the API response. `GET .../reports/{id}` returns the stored bytes
-  unchanged rather than re-serializing, so what you get is what was written. Ids and path segments are checked
+  unchanged rather than re-serializing, so what you get is what was written (its OpenAPI schema: D34). Ids and path segments are checked
   against a safe pattern, so a request can't read outside the store. The folder is
   `index-reviewer.reports-dir` (technical config).
 - **Why:** Without storage, "which report did we publish for Q3, and when?" has no answer, and re-running
@@ -476,6 +477,24 @@ decided, why, and what we rejected.
 - **Rejected:** `List<RankingStrategy>` injected from Spring beans now (wiring without a second implementation);
   an instance registry passed through the constructors (same ripple, same gain).
 
+### D34 — Stored report documented as `ReviewReport` in OpenAPI; other conventions left as they are
+- `GET .../reports/{id}` keeps returning the stored bytes (D21), but an `@ApiResponse` now points its schema at
+  `ReviewReport`, so Swagger UI and `/api-docs` show the report's structure instead of a string. A test checks
+  the `$ref` in `/api-docs` (checked that it fails without the annotation).
+- **Why bytes stay:** a report written by an older build may not even deserialize into today's `ReviewReport`;
+  returning it byte for byte is the audit property. The schema is the current one, which is what the
+  documentation can offer.
+- Left as they are, from the same Spring-conventions review (D32), each with its reason:
+  - **No `@WebMvcTest` slice:** `IndexControllerTest` runs the real config and Q3 data through HTTP, which
+    catches more than a slice with a mocked `ReviewService`; the controller only maps 201/`Location` and errors,
+    both covered. Slice tests would pay off with a bigger controller layer.
+  - **`com.example` group:** Spring Initializr placeholder; renaming touches every file for no reviewer gain. A
+    real project uses the organisation's domain.
+  - **Package by layer:** with one feature the layers are the natural seams, enforced by ArchUnit (D30). With a
+    second feature (e.g. index calculation next to reviews) the packages would go by feature, layers inside.
+- **Rejected:** deserializing the stored file into `ReviewReport` to get the schema for free (would break
+  "exactly as written" for older reports and re-format the JSON).
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -587,7 +606,8 @@ down, visible in the report, and can be changed in one place.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
 - Standard Spring shape (D32): framework-free core wired by `@Bean` in an outermost `config`, one RFC 9457 error
   format for every error without leaking internals, SLF4J logging of each stored run. Why ranking strategies are
-  a static registry, not beans, and when that changes (D33).
+  a static registry, not beans, and when that changes (D33). Why stored reports are returned as bytes but
+  documented as `ReviewReport`; why no `@WebMvcTest` slice, `com.example` and packages by layer (D34).
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
   choice is written down and can be explained.
 - Why the displayed weights add up to 99.999999% and that's correct (D13, D17).

@@ -135,4 +135,12 @@ class IndexControllerTest {
                 .hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .bodyJson().extractingPath("$.status").isEqualTo(405);
     }
+
+    @Test
+    void apiDocsDescribeStoredReportAsReviewReport() {
+        assertThat(mvc.get().uri("/api-docs")).hasStatusOk().bodyJson()
+                .extractingPath("$.paths['/api/indices/{index}/reviews/{period}/reports/{id}'].get.responses['200']"
+                        + ".content['application/json'].schema['$ref']")
+                .isEqualTo("#/components/schemas/ReviewReport");
+    }
 }

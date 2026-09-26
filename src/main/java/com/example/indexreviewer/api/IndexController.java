@@ -4,6 +4,9 @@ import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.service.ReviewService;
 import com.example.indexreviewer.store.StoredReport;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,7 +62,11 @@ public class IndexController {
         return service.reports(index, period);
     }
 
+    /** Returned as stored bytes (D21); the annotation documents their structure, the current report schema (D34). */
     @Operation(summary = "Get a stored report exactly as it was written")
+    @ApiResponse(responseCode = "200", description = "The stored report",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ReviewReport.class)))
     @GetMapping(value = "/{index}/reviews/{period}/reports/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public byte[] report(@PathVariable String index, @PathVariable String period, @PathVariable String id) {
         return service.report(index, period, id);
