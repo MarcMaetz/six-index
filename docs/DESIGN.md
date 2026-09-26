@@ -46,7 +46,10 @@ in `domain` (input model and index definitions), which is left out of the diagra
 | `service` | `ReviewService`: the use cases (list indices, check input, run and store a review, read stored reports). Chains load → review → report → store (D24). |
 | `api` | `IndexController` and RFC 9457 error mapping. The controller only maps HTTP to `ReviewService`. |
 
-Only `config`, `service` and `api` depend on Spring (D4, D14, D24); `service` only for its `@Service` annotation. `store` uses Jackson for the JSON format, nothing else.
+Only `config`, `service` and `api` depend on Spring (D4, D14, D24); `service` only for its `@Service` annotation.
+`domain`, `review` and `report` use only the JDK; `ingest` uses OpenCSV and `store` Jackson, nothing else.
+`ArchitectureTest` enforces this, the direction of the dependencies in the diagram, and that packages have no
+cycles, so a violation fails the build (D30).
 
 ## Review pipeline
 
@@ -175,6 +178,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Storage | `FileReportStoreTest`: file naming, no overwrite for runs in the same millisecond, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
 | API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, and 404s |
+| Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages, plain-Java review logic, no Spring in `ingest` and `store`, no package cycles (D30) |
 | Manual | Postman test scripts for the same expected results |
 
 Decimal assertions use tolerances where the last of 34 digits can round either way.

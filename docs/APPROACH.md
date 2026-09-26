@@ -38,6 +38,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Review status logic moved from `report` to `review`, read via `ReviewResult.assessment()` (D27) |
 | 2026-09-26 | Input loading behind an `InputSource` port, CSV folder as one implementation; `IndexCatalog` only looks up config (D28) |
 | 2026-09-26 | Rulebook version (`methodology`) required per index, shown in the index list and every report; Postman updated and passing with newman (D29) |
+| 2026-09-26 | `ArchitectureTest` (ArchUnit): layering, plain-Java review logic, no Spring in ingest/store, no cycles; checked with a deliberate violation (D30) |
 
 ## Design decisions
 
@@ -64,6 +65,7 @@ decided, why, and what we rejected.
   `service` (use cases, added in D24).
 - **Why:** Keeps the review logic independent of Spring and I/O, so it is unit-testable in isolation
   and new rules slot into `review` without touching ingest or API.
+- Enforced by `ArchitectureTest` since D30.
 
 ### D5 — Single Gradle project at repo root; Gradle-driven IDE setup
 - Unlike `kasse-ai` (with `backend/` + `frontend/`), the app lives at the repo root: there is no UI
@@ -389,6 +391,21 @@ decided, why, and what we rejected.
 - **Rejected:** a structured version (number, date, section as separate fields; nothing reads them separately); a
   default value (a new index must state its rules); versioning the whole configuration by effective date (a
   feature, kept as a talking point in TODO).
+
+### D30 — Package rules enforced by ArchUnit tests
+- `ArchitectureTest` (ArchUnit 1.5.1, test scope only) checks four rules on the main classes:
+  1. dependency direction, as layers: `api` → `service` → `config` → `store` → `report` → `review` → `domain`,
+     with `ingest` used only by `config`, `service` and `api` (`domain` may be used by all);
+  2. `domain`, `review` and `report` depend only on the JDK and the application's own classes;
+  3. `ingest` and `store` don't depend on Spring;
+  4. no cycles between packages.
+- The code already met all four; the test locks it in. Checked that it bites: a probe class in `review` with a
+  Spring annotation and a dependency on `report` failed three of the four rules.
+- **Why:** "Framework-free review logic" (D4) was a convention stated in docs; a convention erodes one import at a
+  time, especially with AI-assisted changes. As a test it holds without anyone remembering it, and the rules
+  double as executable documentation of the architecture.
+- **Rejected:** Spring Modulith (module model built around Spring beans, more than seven packages need); Java
+  modules (JPMS) per package (one Gradle module per layer, far too heavy for this size); a code review checklist.
 
 ## Input data findings
 
