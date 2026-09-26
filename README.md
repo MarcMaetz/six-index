@@ -98,6 +98,7 @@ src/main/java/com/example/indexreviewer/
   report/            review report and review status (framework-free)
   store/             stored review reports, one JSON file per run
   config/            Spring wiring and configuration binding
+  service/           use cases: check input, run and store a review, read reports
   api/               REST controllers and error handling
 ```
 

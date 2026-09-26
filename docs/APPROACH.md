@@ -32,6 +32,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Open questions resolved as deliberate assumptions instead of asking SIX (D23) |
 | 2026-09-26 | `DESIGN.md` architecture diagram redrawn as the flow of one review run (Spring on top, plain-Java pipeline below) instead of every package dependency |
 | 2026-09-26 | Extensibility review against the brief's non-functional list: methodology hard-coded (single cap, FFMCAP-only ranking seam, orchestration in the controller). Seams to add, and what to leave as talking points, listed in `docs/TODO.md` |
+| 2026-09-26 | Use cases moved from `IndexController` into `ReviewService`, tested without Spring (D24) |
 
 ## Design decisions
 
@@ -54,7 +55,8 @@ decided, why, and what we rejected.
 ### D4 — Package layout by responsibility
 - `domain` (framework-free model) · `ingest` (CSV + validation) · `review` (ranking, selection,
   capping as rules) · `report` (constituents, weights, joiners, leavers, status) · `api` (REST) ·
-  `config` (Spring wiring and config binding, added in D14) · `store` (stored reports, added in D21).
+  `config` (Spring wiring and config binding, added in D14) · `store` (stored reports, added in D21) ·
+  `service` (use cases, added in D24).
 - **Why:** Keeps the review logic independent of Spring and I/O, so it is unit-testable in isolation
   and new rules slot into `review` without touching ingest or API.
 
@@ -217,6 +219,7 @@ decided, why, and what we rejected.
 ### D17 — Review endpoint: POST, returns the report, stores nothing
 - `POST /api/indices/{index}/reviews/{period}` loads the input, runs `ReviewEngine`, builds the report and
   returns it (200). The controller only wires the three steps; the logic stays in the framework-free packages.
+  (Refined by D24: the wiring moved into `ReviewService`.)
 - Report display precision is technical config (`index-reviewer.report.*` in `application.properties`, D13),
   bound into `ReportFormat`. `ReviewEngine`, `ReportBuilder` and a UTC `Clock` are beans in `ReviewConfiguration`.
 - JSON keeps the fixed decimals (`18.000000`, capping factor `0.5653526015`). The rounded weights add up to
@@ -298,6 +301,18 @@ decided, why, and what we rejected.
   reasonable assumptions and document them clearly"); owning them is a stronger position than waiting on
   answers before the deadline.
 - **Rejected:** emailing the questions to SIX.
+
+### D24 — Use cases in a `ReviewService`, not in the controller
+- `ReviewService` (new `service` package) holds the use cases by index name and period id: list indices, load a
+  review's input, run and store a review, list and read stored reports. `IndexController` depends only on it and
+  maps HTTP (status codes, `Location`, response DTOs).
+- It is a Spring `@Service` with constructor injection, but has no other Spring dependency: `ReviewServiceTest`
+  builds it by hand and runs the Q3 review without a context.
+- **Why:** The controller chained catalog → engine → report builder → store itself, so any other entry point
+  (scheduled review, CLI, message) would have copied that sequence. "Future enhancements with minimal
+  refactoring" (brief). Found in the extensibility review (TODO item 1).
+- **Rejected:** building it in `ReviewConfiguration` as a plain bean (it needs `IndexCatalog`, so `config` and
+  `service` would depend on each other); an interface plus implementation (one implementation, nothing to swap).
 
 ## Input data findings
 

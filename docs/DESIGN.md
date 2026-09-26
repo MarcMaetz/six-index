@@ -21,7 +21,7 @@ It must be easy to extend to new indices, review dates and rules. The design fol
 flowchart TB
     subgraph spring [Spring]
         direction LR
-        api["api<br/>REST endpoints"] --> config["config<br/>index lookup, beans"]
+        api["api<br/>REST endpoints"] --> service["service<br/>use cases"] --> config["config<br/>index lookup, beans"]
         yml[(config/indices.yml)] --> config
     end
     spring -- "one review run" --> plain
@@ -31,7 +31,8 @@ flowchart TB
     end
 ```
 
-The controller looks up the index and review period, then chains the four steps. All of them share the types
+`ReviewService` looks up the index and review period, then chains the four steps; the controller only maps
+HTTP to it (D24), so a scheduler or CLI could run a review the same way. All of them share the types
 in `domain` (input model and index definitions), which is left out of the diagram.
 
 | Package | Responsibility |
@@ -42,9 +43,10 @@ in `domain` (input model and index definitions), which is left out of the diagra
 | `report` | Turns a `ReviewResult` into the `ReviewReport`: rounding for display, review status. |
 | `store` | `ReportStore` keeps every report as written; `FileReportStore` writes one JSON file per run (D21). |
 | `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the engine, report builder and report store as beans. |
-| `api` | `IndexController` and RFC 9457 error mapping. The controller only chains load → review → report → store. |
+| `service` | `ReviewService`: the use cases (list indices, check input, run and store a review, read stored reports). Chains load → review → report → store (D24). |
+| `api` | `IndexController` and RFC 9457 error mapping. The controller only maps HTTP to `ReviewService`. |
 
-Only `config` and `api` depend on Spring (D4, D14). `store` uses Jackson for the JSON format, nothing else.
+Only `config`, `service` and `api` depend on Spring (D4, D14, D24); `service` only for its `@Service` annotation. `store` uses Jackson for the JSON format, nothing else.
 
 ## Review pipeline
 
@@ -167,6 +169,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Ingest | `InputDataLoaderTest`: BOM and CRLF, duplicates, invalid rows with line numbers, conflicts, checksums, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round (D20) |
 | Storage | `FileReportStoreTest`: file naming, no overwrite for runs in the same millisecond, chronological listing, unknown and unsafe ids |
+| Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
 | API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, and 404s |
 | Manual | Postman test scripts for the same expected results |
 
