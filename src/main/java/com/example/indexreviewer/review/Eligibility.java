@@ -11,6 +11,9 @@ import java.util.List;
 /**
  * Decides which universe securities can be ranked: those in the universe on the review date with a price on
  * the cut-off date and shares and free float on the review date. Others are excluded with a reason (A2).
+ * <p>
+ * These are the data the weights need (FFMCAP, rulebook 5.12.4), whatever the ranking strategy, so the check
+ * holds for every strategy; a strategy needing more data would add its own exclusions (D26).
  */
 public final class Eligibility {
 

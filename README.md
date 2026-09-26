@@ -73,8 +73,9 @@ message.
 
 **Adding a quarter:** add a review period to `config/indices.yml` and put its three CSVs in
 `data/SMI/<period>/`. **Adding an index:** add an index block and a `data/<index>/<period>/` folder.
-**Adding a ranking rule** (such as the rulebook's full selection list): implement `RankingStrategy`, register
-it, and select it by name in the YAML.
+**Adding a ranking rule** computed from price, shares and free float: implement `RankingStrategy`, register it,
+and select it by name in the YAML. The rulebook's full selection list needs more than that: turnover and
+12-month history in the input first (D26).
 
 ## Documentation
 

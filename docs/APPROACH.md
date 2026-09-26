@@ -34,6 +34,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Extensibility review against the brief's non-functional list: methodology hard-coded (single cap, FFMCAP-only ranking seam, orchestration in the controller). Seams to add, and what to leave as talking points, listed in `docs/TODO.md` |
 | 2026-09-26 | Use cases moved from `IndexController` into `ReviewService`, tested without Spring (D24) |
 | 2026-09-26 | Capping takes a `CappingRule` (per-constituent caps); `SingleCap` for the SMI, tiered rule proven in a test; DESIGN.md no longer claims the SLI needs no code change (D25) |
+| 2026-09-26 | Ranking seam: claims that the selection list is "another implementation" corrected in code docs, README, DESIGN.md and A4; eligibility recognised as weighting data (D26) |
 
 ## Design decisions
 
@@ -132,8 +133,8 @@ decided, why, and what we rejected.
 - Inconsistent config (e.g. buffer end below constituent count, cap outside (0, 1]) fails at startup.
   How the file is imported, bound and validated is in D14.
 - The status relevance band (D10) is derived from the buffer end rank, not configured separately.
-- Ranking formulas stay in code as named strategies (`FFMCAP` now, the rulebook selection list later, A4);
-  the YAML only picks one by name.
+- Ranking formulas stay in code as named strategies (`FFMCAP` now); the YAML only picks one by name. The
+  rulebook selection list needs more than a new strategy (D26).
 - **Why:** In practice these values are owned by the index business, not engineering; changing the cap or
   adding a quarter should not need a rebuild.
 - **Rejected:** database or admin UI (out of scope: no UI or user management); rules engine (far too heavy
@@ -192,7 +193,7 @@ decided, why, and what we rejected.
 - Invariants (D13) are checked inside `WeightCapping`; a violation throws, since it would be a bug.
 - **Refined by D25:** each constituent's cap comes from a `CappingRule`; the loop is the same.
 - **Why:** Every decision in the report can be traced to one step and one rule, and each rule can be changed
-  or replaced (e.g. the selection list for A4) without touching the others.
+  or replaced without touching the others. (The selection list for A4 needs more than that, see D26.)
 - **Rejected:** one method doing it all (hard to test and explain); weights as `double` (see D13).
 
 ### D16 — Report with audit trail; status from warning impact and relevance
@@ -333,6 +334,23 @@ decided, why, and what we rejected.
   SLI also takes its top 4 from a half-year ranking we have no data for); a rule that returns final weights
   (every rule would re-implement the loop and its invariants).
 
+### D26 — Ranking seam described as it is, not widened
+- The extensibility review found `RankingStrategy`'s Javadoc, A4 and DESIGN.md claiming the rulebook's selection
+  list "would be another implementation". It can't: `rankingValue(EligibleSecurity)` sees one security's price,
+  shares and free float, and the selection list needs 12-month average FFMCAP and turnover.
+- Kept the code; corrected the claims (Javadoc, README, DESIGN.md, A4). What the selection list would take:
+  1. turnover and history in the input files, `InputData` and `InputDataLoader`;
+  2. `RankingStrategy` receives the review's input (e.g. `InputData` and period), not one `EligibleSecurity`;
+  3. a rule for securities without enough history (a rulebook question).
+- `Eligibility` is **not** FFMCAP-ranking logic, as the review suspected: it checks the data the weights need
+  (weights always use FFMCAP, rulebook 5.12.4), so it holds for every strategy. A strategy needing more data would
+  add its own exclusions on top.
+- **Why:** Widening the signature now would add a parameter `FfmcapRanking` doesn't use, for data `InputData`
+  doesn't have; the brief rates simplicity over features. What matters for the interview is that the claim is
+  true and the next steps are known.
+- **Rejected:** strategy declares its data needs and eligibility follows from it (the weights' data needs don't
+  depend on the strategy, so eligibility can't move into it); passing `InputData` to the strategy now (speculative).
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -389,7 +407,7 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A1 | Exact duplicate rows in `spi_universe.csv` are de-duplicated, with a data-quality warning in the report, not rejected. | They are identical (same date and id), so no information conflicts. |
 | A2 | A universe security with no review-date security data (`166`) is excluded from ranking, with a warning in the report. | FFMCAP needs shares(t) and free float(t); falling back to cut-off values would break the brief's date rule. |
 | A3 | The empty review-date price column is expected: prices are only taken at cut-off (t'). | Matches the FFMCAP formula in the brief. |
-| A4 | Ranking uses FFMCAP only, as the brief specifies, not the rulebook's selection list (4.3: 50% average 12-month FFMCAP share + 50% 12-month turnover share). | No turnover or history data is provided; the brief defines FFMCAP ranking explicitly. The ranking criterion is a pluggable rule so the full formula could be added. |
+| A4 | Ranking uses FFMCAP only, as the brief specifies, not the rulebook's selection list (4.3: 50% average 12-month FFMCAP share + 50% 12-month turnover share). | No turnover or history data is provided; the brief defines FFMCAP ranking explicitly. Adding the full formula needs new input data and a wider `RankingStrategy` signature (D26). |
 | A5 | The extra liquidity rule for instruments with primary listings on several exchanges (5.12.3.2) is not applied. | The data has no listing or turnover fields. |
 | A6 | Each id is treated as a separate issuer, so issuer-level cumulative capping (5.12.4) is not applied. | The data has no issuer field. |
 | A7 | Buffer candidates of the same kind (incumbent or new) are taken in rank order. | Rulebook says incumbents come first but not how to order within a group; rank order is the natural reading. |
@@ -407,8 +425,8 @@ Points the brief and rulebook leave open. I decided them myself instead of askin
 down, visible in the report, and can be changed in one place.
 
 - **Ranking by point-in-time FFMCAP only (A4).** The brief defines the FFMCAP formula; the rulebook's
-  selection list needs 12-month FFMCAP and turnover history, which the data doesn't have. The ranking
-  strategy is pluggable, so the full rule can be added.
+  selection list needs 12-month FFMCAP and turnover history, which the data doesn't have. Adding it means new
+  input data plus a wider ranking strategy signature; the steps are named in D26.
 - **Duplicate rows in `spi_universe.csv` are de-duplicated (A1).** The rows are identical, so nothing is lost
   either way; a warning with impact `NONE` keeps them visible.
 - **Id `166`, with no review-date data, is excluded (A2).** Falling back to cut-off values would break the
@@ -442,5 +460,5 @@ down, visible in the report, and can be changed in one place.
   pass publishing `63` at 15.60%. Live demo: set `weight-cap: 0.15` in `config/indices.yml`, restart, run.
 - Weights vs capping factors: the weight is the review's result and drifts with prices; the factor is what
   index calculation carries until the next review (D20, A11).
-- What I'd do next with more time: the rulebook selection list as a second ranking strategy (A4), issuer-level
+- What I'd do next with more time: the rulebook selection list, once turnover and history data exist (A4, D26), issuer-level
   capping (A6), a database behind `ReportStore` (D21).
