@@ -72,15 +72,16 @@ overrides it, so it can be changed without a rebuild. Inconsistent values stop t
 message.
 
 **Adding a quarter:** add a review period to `config/indices.yml` and put its three CSVs in
-`data/SMI/<period>/`. **Adding an index:** add an index block and a `data/<index>/<period>/` folder.
-**Adding a ranking rule** computed from price, shares and free float: implement `RankingStrategy`, register it,
-and select it by name in the YAML. The rulebook's full selection list needs more than that: turnover and
-12-month history in the input first (D26).
+`data/SMI/<period>/`. **Adding an index** that follows the SMI's kind of rules (buffer selection, one cap for all):
+add an index block and a `data/<index>/<period>/` folder. **Adding a ranking rule** computed from price, shares and
+free float: implement `RankingStrategy`, register it, and select it by name in the YAML. Other rules, such as the
+SLI's tiered capping or the rulebook's full selection list, need code; what each takes, and what the design
+deliberately doesn't cover, is in [docs/DESIGN.md](docs/DESIGN.md#configuration-and-extensibility).
 
 ## Documentation
 
-- [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing.
-- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D23), assumptions (A1–A14) with a summary of the
+- [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing, limits.
+- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D30), assumptions (A1–A14) with a summary of the
   deliberate ones, input data findings and the rulebook rules applied.
 - [data/README.md](data/README.md): input file formats.
 
@@ -94,7 +95,7 @@ postman/             Postman collection with test scripts
 docs/                design doc, decision log
 src/main/java/com/example/indexreviewer/
   domain/            input model and index definitions (framework-free)
-  ingest/            CSV loading and row validation
+  ingest/            input source: CSV loading and row validation
   review/            eligibility, ranking, buffer selection, weight capping, review status (framework-free)
   report/            review report, rounded for display (framework-free)
   store/             stored review reports, one JSON file per run

@@ -40,6 +40,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Rulebook version (`methodology`) required per index, shown in the index list and every report; Postman updated and passing with newman (D29) |
 | 2026-09-26 | `ArchitectureTest` (ArchUnit): layering, plain-Java review logic, no Spring in ingest/store, no cycles; checked with a deliberate violation (D30) |
 | 2026-09-26 | Docs caught up with the extensibility work: *Limits of the design* in `DESIGN.md`, talking points for D24–D30 |
+| 2026-09-26 | Final read-through of README and DESIGN.md: all links and anchors resolve, Mermaid diagram renders (checked with mermaid-cli); README no longer implies any index is config-only |
 
 ## Design decisions
 

@@ -15,5 +15,4 @@ enforced by ArchUnit. What is deliberately not built is in `docs/DESIGN.md` unde
 
 ## Next, in order
 
-1. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
-   links work).
+Nothing open. Prepare for the interview with the talking points in [APPROACH.md](APPROACH.md#interview-talking-points).
