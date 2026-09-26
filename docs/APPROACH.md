@@ -39,6 +39,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Input loading behind an `InputSource` port, CSV folder as one implementation; `IndexCatalog` only looks up config (D28) |
 | 2026-09-26 | Rulebook version (`methodology`) required per index, shown in the index list and every report; Postman updated and passing with newman (D29) |
 | 2026-09-26 | `ArchitectureTest` (ArchUnit): layering, plain-Java review logic, no Spring in ingest/store, no cycles; checked with a deliberate violation (D30) |
+| 2026-09-26 | Docs caught up with the extensibility work: *Limits of the design* in `DESIGN.md`, talking points for D24–D30 |
 
 ## Design decisions
 
@@ -495,7 +496,14 @@ down, visible in the report, and can be changed in one place.
 
 ## Interview talking points
 
-- How the design accommodates new indices, dates and rules (D3, D4).
+- How the design accommodates new indices, dates and rules (D3, D4), and where it stops (DESIGN.md, *Limits of
+  the design*).
+- The extensibility review: measured against the SLI, three sections after the SMI in the same rulebook, the
+  first version was configurable across SMI quarters but hard-coded the methodology. What changed: use cases out
+  of the controller (D24), capping rule per constituent (D25), ranking seam described honestly (D26), status
+  logic into `review` (D27), input behind a port (D28), rulebook version in every report (D29), layering enforced
+  by ArchUnit (D30). One part of the critique was wrong: eligibility checks the weights' data, which every
+  ranking strategy needs (D26).
 - Where the brief simplifies the rulebook (A4–A6) and how the design leaves room for the full rules.
 - The five points left open were decided, not asked (D23): each is documented, visible in the report and
   changeable in one place, and none changes the Q3 result.
@@ -516,5 +524,8 @@ down, visible in the report, and can be changed in one place.
   pass publishing `63` at 15.60%. Live demo: set `weight-cap: 0.15` in `config/indices.yml`, restart, run.
 - Weights vs capping factors: the weight is the review's result and drifts with prices; the factor is what
   index calculation carries until the next review (D20, A11).
-- What I'd do next with more time: the rulebook selection list, once turnover and history data exist (A4, D26), issuer-level
-  capping (A6), a database behind `ReportStore` (D21).
+- What I'd do next with more time: the rulebook selection list, once turnover and history data exist (A4, D26),
+  issuer-level capping (A6), chaining reviews (next composition from the official stored run), a database behind
+  `ReportStore` (D21).
+- Why the status estimate (A13) stays despite "simplicity first": it is what keeps a penny stock with missing
+  data (`166`) from flagging the review, and it only judges, never selects or weights.

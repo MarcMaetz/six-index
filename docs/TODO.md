@@ -9,32 +9,11 @@ All requirements from the brief are implemented. The review works end to end (Q3
 `155` and `205` capped at 18%, status `COMPLETED_WITH_WARNINGS`), every run is stored as JSON, and README,
 `docs/DESIGN.md` and the exported Postman collection match the code. See the Timeline in [APPROACH.md](APPROACH.md).
 
-An extensibility review against the brief's non-functional list found that the design is configurable across
-SMI reviews but hard-codes the methodology: a sibling index from the same rulebook (SLI, 5.17: 9%/4.5% tiered
-capping) would need changes in five classes. The items below add the missing seams without adding features:
-the brief rates "simplicity, clarity, maintainability, and sound design over feature quantity".
+The extensibility review against the brief's non-functional list is done (D24–D30): use cases in a service,
+capping and input behind interfaces, status logic in `review`, rulebook version in every report, layering
+enforced by ArchUnit. What is deliberately not built is in `docs/DESIGN.md` under *Limits of the design*.
 
 ## Next, in order
 
-Each item names the brief's point it serves. Q3 results must stay identical; `ReviewEngineTest` and the
-Postman collection are the regression check.
-
-1. **Update docs**: DESIGN.md extensibility section (what adding SLI would take after these changes), APPROACH.md
-   decisions for each item, README if the config format changes, Postman if any response changes.
-2. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
+1. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
    links work).
-
-## Deliberately not doing (interview talking points)
-
-Named here so the answer is ready, not built, since each adds features rather than design:
-
-- **Full SLI or SMIM support.** SLI's top 4 at 9% come from a half-year ranking we have no data for; SMIM's
-  universe is "SMI Expanded minus the SMI", i.e. one index depends on another's result.
-- **Review schedule rules** (e.g. "third Friday in September", ordinary vs. extraordinary reviews). Periods stay
-  a configured list of dates.
-- **Chaining reviews**: taking the next review's current composition from the last official stored run, and
-  marking one run as official.
-- **Versioned, effective-dated configuration** and archiving input files with the report (checksums prove which
-  input was used, but don't let you reproduce it if the folder is overwritten).
-- **Simplifying the status estimate** (A13) — keep it, but be ready to defend it against "simplicity first":
-  it is what stops a penny stock with missing data from flagging the review.

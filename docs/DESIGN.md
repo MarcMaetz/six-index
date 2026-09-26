@@ -10,7 +10,9 @@ It must be easy to extend to new indices, review dates and rules. The design fol
 
 - **Correct and explainable:** every number and every decision in the report can be traced to a rule and to
   the input it came from.
-- **Configurable, not hard-coded:** index parameters and review dates are business configuration.
+- **Configurable, not hard-coded:** index parameters and review dates are business configuration. Rules that
+  differ between indices (ranking, capping) and the edges of the system (input, report storage) sit behind
+  small interfaces, so replacing one doesn't touch the others.
 - **Testable:** the review logic is plain Java without Spring or I/O, so each rule is unit-tested in isolation.
 - **Simple:** no database, one module (D2, D5). Reports are stored as plain JSON files (D21). Anything more
   waits until a requirement needs it.
@@ -137,8 +139,8 @@ ties are broken by id.
 
 - **Business parameters** live in `config/indices.yml` (D11). A default copy is packaged in the jar, and a file
   in the working directory overrides it. Inconsistent values stop the app at startup. The records it binds to
-  reject a buffer end below the constituent count, a cap outside (0, 1], or a cap too small for the weights to
-  reach 100%. `IndexCatalog` rejects an unknown ranking strategy.
+  reject a missing rulebook version, a buffer end below the constituent count, a cap outside (0, 1], or a cap
+  too small for the weights to reach 100%. `IndexCatalog` rejects an unknown ranking strategy.
 - **Input** lives in one folder per index and review period, so past reviews can be re-run (D12).
 - **Technical settings** (data folder, display precision) stay in `application.properties`.
 
@@ -196,3 +198,21 @@ Where the brief simplifies the rulebook, this is recorded and the design leaves 
 
 The assumptions made where the brief and rulebook leave room are listed in
 [APPROACH.md](APPROACH.md#deliberate-assumptions).
+
+## Limits of the design
+
+Extensions that are known but deliberately not built. Each adds features rather than design, and the brief rates
+simplicity over feature quantity:
+
+- **Indices that depend on other indices.** The SMIM's universe is "SMI Expanded minus the SMI" (rulebook 5.16.4),
+  so its review needs another index's result. Here each index has its own universe file.
+- **The SLI in full.** Tiered capping fits (see the table above), but its four 9% constituents come from a
+  half-year ranking, for which there is no data.
+- **Review schedule rules.** The SMI's ordinary review is annual, on the third Friday of September (5.12.3.1).
+  Review periods are a configured list of dates, not generated from a rule, and there are no extraordinary
+  reviews.
+- **Chained reviews.** The current composition comes from `composition.csv`, not from the last stored run, and
+  no run is marked as the official one.
+- **Versioned configuration and archived input.** Re-running a period after changing `indices.yml` gives a new
+  report under the same period id; the stored report records the parameters and rulebook version it used (D29).
+  Input checksums prove which data produced a report, but the files themselves aren't archived with it.
