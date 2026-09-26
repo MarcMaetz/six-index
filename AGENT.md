@@ -7,7 +7,7 @@ Take-home assignment: SIX Index Reviewer for the SMI Q3 2026 review. Java 25 / S
 - `docs/ASSIGNMENT.md`: the assignment brief (source of truth for requirements). Local only, excluded in
   `.git/info/exclude`: never commit it.
 - `docs/TODO.md`: current status and next steps. Start here to pick up work; keep it current.
-- `docs/APPROACH.md`: decision log, assumptions, open questions and interview talking points.
+- `docs/APPROACH.md`: decision log, assumptions and interview talking points.
 - `docs/six-methodology-smi-equity-and-re-en.pdf`: SIX methodology rulebook v3.40, local only like the brief.
   SMI rules are in section 5.12; its summary is in `docs/APPROACH.md` under **Rulebook rules applied**.
 
@@ -16,7 +16,8 @@ Take-home assignment: SIX Index Reviewer for the SMI Q3 2026 review. Java 25 / S
 This file is what the author will use to explain the work in the interview. Whenever a session:
 - makes a design or technology decision → add a `D<n>` entry (what, why, what was rejected),
 - makes an assumption about ambiguous requirements or rulebook details → add it to **Assumptions**,
-- hits something that should be clarified with SIX → add it to **Open questions**,
+- hits something the brief or rulebook leaves open → decide it, add it to **Assumptions**, and list it under
+  **Deliberate assumptions** if it would otherwise be a question for SIX (D23),
 - completes a meaningful step → add a row to **Timeline**,
 - changes or refines an earlier decision → also update that earlier entry (e.g. "Refined by D16"), so no
   entry describes behaviour the code no longer has.

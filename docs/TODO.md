@@ -11,7 +11,5 @@ All requirements from the brief are implemented. The review works end to end (Q3
 
 ## Next, in order
 
-1. Decide whether to send the open questions in [APPROACH.md](APPROACH.md#open-questions) to SIX before the
-   deadline.
-2. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
+1. Final read-through of README and DESIGN.md as a reviewer would see them on GitHub (Mermaid diagram renders,
    links work).

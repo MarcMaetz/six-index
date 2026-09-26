@@ -29,6 +29,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Structured status reasons with a `relevance` enum; index incompleteness detected from the result (D22, A12) |
 | 2026-09-25 | Report storage: every run saved as JSON, `POST` returns 201 + `Location`, list and get endpoints (D21) |
 | 2026-09-26 | Docs and Postman caught up with D20–D22: `DESIGN.md` (storage, capping reading, weights vs factors, API, tests), `README.md`, stored-report requests in Postman and re-exported; whole collection passes with newman against the running app (D19) |
+| 2026-09-26 | Open questions resolved as deliberate assumptions instead of asking SIX (D23) |
 
 ## Design decisions
 
@@ -74,7 +75,7 @@ decided, why, and what we rejected.
 - `AGENT.md` (loaded by the AI assistant via `CLAUDE.md`): lasting guidance only: what to read, conventions,
   build, rules for keeping the docs current.
 - `docs/TODO.md`: current status and ordered next steps; finished items are removed.
-- `docs/APPROACH.md` (this file): history and reasoning: timeline, decisions, assumptions, open questions.
+- `docs/APPROACH.md` (this file): history and reasoning: timeline, decisions, assumptions.
 - **Why:** Work happens across several AI sessions with fresh context. Each session starts from `AGENT.md`,
   picks up work from `TODO.md`, and records reasoning here, so nothing lives only in a chat transcript.
   Keeping volatile status out of `AGENT.md` stops it going stale.
@@ -288,6 +289,14 @@ decided, why, and what we rejected.
 - **Why:** Sentences can't be filtered or acted on, tests had to match substrings, and stored reports (D21)
   are a long-lived record where free text ages badly.
 
+### D23 — Open questions decided, not sent to SIX
+- The five questions collected for SIX are answered by my own assumptions and listed under **Deliberate
+  assumptions**. None of them changes the Q3 result, and each is visible in the report and easy to change.
+- **Why:** An assumption that is written down, justified and configurable is what the brief asks for ("make
+  reasonable assumptions and document them clearly"); owning them is a stronger position than waiting on
+  answers before the deadline.
+- **Rejected:** emailing the questions to SIX.
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -356,23 +365,30 @@ Where the brief or rulebook is ambiguous, record the assumption here (and refere
 | A13 | For the review status, an unranked security's rank is estimated with its price from the cut-off date (else the review date) and shares and free float from the review date (else the cut-off date). | Only used to judge whether missing data could matter; never used for selection or weights, which keep the strict date rule. The estimate counts as harmless only if its value is below **half** the ranking value at the buffer end, a margin for the data it borrows from the other date (17 ids change shares and 41 change free float between the dates). |
 | A14 | Capping is iterative: a security pushed above the cap by redistribution is capped too, even if its raw share was below the cap (D20). | Guarantees no published weight above the cap; the rulebook's wording only names components above 18% of the total. |
 
-## Open questions
+## Deliberate assumptions
 
-Candidates to send to the SIX contacts from the original brief.
+Points the brief and rulebook leave open. I decided them myself instead of asking SIX (D23). Each is written
+down, visible in the report, and can be changed in one place.
 
-- ~~Exact SMI selection buffer rule~~ — resolved from rulebook 5.12.3.2 (see **Rulebook rules applied**).
-- Confirm that ranking on point-in-time FFMCAP (A4), without turnover, is intended.
-- Are the duplicate rows in `spi_universe.csv` intentional (a data-validation test) or an export artifact?
-- Id `166` has no review-date data: exclude it, or is there a missing row?
-- Is there a required precision for published weights and capping factors that the calculation itself must
-  use (D13)? And are capping factors normalised so the largest is 1 (A11)?
-- Is the 18% cap applied iteratively, i.e. is a component that exceeds 18% only after redistribution capped
-  too (A14, D20)?
+- **Ranking by point-in-time FFMCAP only (A4).** The brief defines the FFMCAP formula; the rulebook's
+  selection list needs 12-month FFMCAP and turnover history, which the data doesn't have. The ranking
+  strategy is pluggable, so the full rule can be added.
+- **Duplicate rows in `spi_universe.csv` are de-duplicated (A1).** The rows are identical, so nothing is lost
+  either way; a warning with impact `NONE` keeps them visible.
+- **Id `166`, with no review-date data, is excluded (A2).** Falling back to cut-off values would break the
+  brief's date rule. Its estimated FFMCAP (12.9M) is far below rank 22 (15.4bn), so it can't change the
+  result, and the status stays `COMPLETED_WITH_WARNINGS` (A13).
+- **Full precision in the calculation, rounding only for display; capping factors scaled so the largest is 1
+  (D13, A11).** Display precision is technical config in `application.properties`.
+- **The 18% cap is applied iteratively (A14, D20).** No published weight exceeds the cap, as in the brief's
+  example. For Q3 a single pass gives the same result.
 
 ## Interview talking points
 
 - How the design accommodates new indices, dates and rules (D3, D4).
 - Where the brief simplifies the rulebook (A4–A6) and how the design leaves room for the full rules.
+- The five points left open were decided, not asked (D23): each is documented, visible in the report and
+  changeable in one place, and none changes the Q3 result.
 - The buffer is what changes the result: plain top 20 gives 3 joiners and 3 leavers, the buffer gives 1 and 1.
 - Traceability/auditability: how a reviewer can see why a security joined, left or was capped.
 - Separating business-owned parameters (`config/indices.yml`) from technical config and from formulas (D11).

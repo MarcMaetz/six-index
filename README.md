@@ -79,8 +79,8 @@ it, and select it by name in the YAML.
 ## Documentation
 
 - [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing.
-- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D22), assumptions (A1–A14), open questions for SIX,
-  input data findings and the rulebook rules applied.
+- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D23), assumptions (A1–A14) with a summary of the
+  deliberate ones, input data findings and the rulebook rules applied.
 - [data/README.md](data/README.md): input file formats.
 
 ## Layout

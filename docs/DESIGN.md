@@ -197,4 +197,5 @@ Where the brief simplifies the rulebook, this is recorded and the design leaves 
 - Each id is its own issuer, so issuer-level capping isn't applied (A6).
 - Reports are stored as files, not in a database (D2, D21). `ReportStore` is the seam for one.
 
-Open questions for SIX are listed in [APPROACH.md](APPROACH.md#open-questions).
+The assumptions made where the brief and rulebook leave room are listed in
+[APPROACH.md](APPROACH.md#deliberate-assumptions).
