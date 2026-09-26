@@ -31,6 +31,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Docs and Postman caught up with D20–D22: `DESIGN.md` (storage, capping reading, weights vs factors, API, tests), `README.md`, stored-report requests in Postman and re-exported; whole collection passes with newman against the running app (D19) |
 | 2026-09-26 | Open questions resolved as deliberate assumptions instead of asking SIX (D23) |
 | 2026-09-26 | `DESIGN.md` architecture diagram redrawn as the flow of one review run (Spring on top, plain-Java pipeline below) instead of every package dependency |
+| 2026-09-26 | Extensibility review against the brief's non-functional list: methodology hard-coded (single cap, FFMCAP-only ranking seam, orchestration in the controller). Seams to add, and what to leave as talking points, listed in `docs/TODO.md` |
 
 ## Design decisions
 
