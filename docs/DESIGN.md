@@ -23,12 +23,14 @@ It must be easy to extend to new indices, review dates and rules. The design fol
 flowchart TB
     subgraph spring [Spring]
         direction LR
-        api["api<br/>REST endpoints"] --> service["service<br/>use cases"] --> config["config<br/>index lookup, beans"]
+        config["config<br/>wiring, beans"] -. builds .-> service
+        api["api<br/>REST endpoints"] --> service["service<br/>use cases"]
         yml[(config/indices.yml)] --> config
     end
     spring -- "one review run" --> plain
     subgraph plain [Plain Java]
         direction LR
+        catalog["catalog<br/>index lookup"]
         csv[(input CSVs)] --> ingest["ingest<br/>CSV → InputData"] --> review["review<br/>rank, select, cap, status"] --> report["report<br/>ReviewReport"] --> store["store<br/>save as JSON"] --> json[(stored reports)]
     end
 ```
@@ -44,12 +46,15 @@ in `domain` (input model and index definitions), which is left out of the diagra
 | `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step; its review status is derived from it (`StatusAssessment`, D27). |
 | `report` | Renders a `ReviewResult` as the `ReviewReport`, rounding for display only. |
 | `store` | `ReportStore` keeps every report as written; `FileReportStore` writes one JSON file per run (D21). |
-| `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the input source, engine, report builder and report store as beans. |
+| `catalog` | `IndexCatalog` looks up configured indices and review periods; unknown ones raise `NotConfiguredException` (404). Framework-free (D32). |
+| `config` | Spring wiring, outermost: binds `config/indices.yml` and `application.properties`, and exposes the catalog, input source, engine, report builder and report store as beans. Nothing depends on it (D32). |
 | `service` | `ReviewService`: the use cases (list indices, check input, run and store a review, read stored reports). Chains load → review → report → store (D24). |
-| `api` | `IndexController` and RFC 9457 error mapping. The controller only maps HTTP to `ReviewService`. |
+| `api` | `IndexController` and RFC 9457 error mapping for every error, including Spring MVC's own and a generic 500 (D32). The controller only maps HTTP to `ReviewService`. |
 
-Only `config`, `service` and `api` depend on Spring (D4, D14, D24); `service` only for its `@Service` annotation.
-`domain`, `review` and `report` use only the JDK; `ingest` uses OpenCSV and `store` Jackson, nothing else.
+Only `config`, `service` and `api` depend on Spring (D4, D14, D24, D32); `service` only for its `@Service` annotation.
+`domain`, `review`, `report` and `catalog` use only the JDK; `ingest` uses OpenCSV and `store` Jackson, nothing
+else. Logging (SLF4J) sits in `service` and `api`: every stored run is logged at INFO, unexpected errors at ERROR
+(D32).
 `ArchitectureTest` enforces this, the direction of the dependencies in the diagram, and that packages have no
 cycles, so a violation fails the build (D30).
 
@@ -185,8 +190,8 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round (D20) |
 | Storage | `FileReportStoreTest`: file naming, no overwrite for runs in the same millisecond, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
-| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, and 404s |
-| Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages, plain-Java review logic, no Spring in `ingest` and `store`, no package cycles (D30) |
+| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, 404s, and problem responses for Spring's own 404/405. `ApiExceptionHandlerTest`: unexpected errors give a 500 without internals |
+| Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages with `config` outermost, plain-Java review logic, Spring only in `config`, `service` and `api`, no package cycles (D30, D32) |
 | Manual | Postman test scripts for the same expected results |
 
 Decimal assertions use tolerances where the last of 34 digits can round either way.

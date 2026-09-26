@@ -82,7 +82,7 @@ deliberately doesn't cover, is in [docs/DESIGN.md](docs/DESIGN.md#configuration-
 ## Documentation
 
 - [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing, limits.
-- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D30), assumptions (A1–A14) with a summary of the
+- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D32), assumptions (A1–A14) with a summary of the
   deliberate ones, input data findings and the rulebook rules applied.
 - [data/README.md](data/README.md): input file formats.
 
@@ -100,6 +100,7 @@ src/main/java/com/example/indexreviewer/
   review/            eligibility, ranking, buffer selection, weight capping, review status (framework-free)
   report/            review report, rounded for display (framework-free)
   store/             stored review reports, one JSON file per run
+  catalog/           lookup of configured indices and review periods
   config/            Spring wiring and configuration binding
   service/           use cases: check input, run and store a review, read reports
   api/               REST controllers and error handling

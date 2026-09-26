@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
@@ -124,5 +125,14 @@ class IndexControllerTest {
     @Test
     void reviewOfUnknownPeriodIsNotFound() {
         assertThat(mvc.post().uri("/api/indices/SMI/reviews/2026-Q4")).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void springErrorsAreProblemResponsesToo() {
+        assertThat(mvc.get().uri("/api/unknown")).hasStatus(HttpStatus.NOT_FOUND)
+                .hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(mvc.delete().uri("/api/indices")).hasStatus(HttpStatus.METHOD_NOT_ALLOWED)
+                .hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .bodyJson().extractingPath("$.status").isEqualTo(405);
     }
 }

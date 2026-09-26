@@ -1,5 +1,6 @@
 package com.example.indexreviewer.config;
 
+import com.example.indexreviewer.catalog.IndexCatalog;
 import com.example.indexreviewer.ingest.CsvFolderInputSource;
 import com.example.indexreviewer.ingest.InputSource;
 import com.example.indexreviewer.report.ReportBuilder;
@@ -16,13 +17,22 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Clock;
 
-/** Makes the framework-free input source, review engine, report builder and report store available as beans. */
+/**
+ * Makes the framework-free catalog, input source, review engine, report builder and report store available as
+ * beans (D32).
+ */
 @Configuration
 public class ReviewConfiguration {
 
     @Bean
     Clock clock() {
         return Clock.systemUTC();
+    }
+
+    /** The indices of {@code config/indices.yml}; fails startup on an unknown ranking strategy. */
+    @Bean
+    IndexCatalog indexCatalog(IndexReviewerProperties properties) {
+        return new IndexCatalog(properties.indices());
     }
 
     @Bean

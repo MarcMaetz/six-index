@@ -43,6 +43,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Ranking entries show price, shares and free float; reports record app version and Git revision; Postman passing with newman, 35 assertions (D31) |
 | 2026-09-26 | Git revision via the `gradle-git-properties` plugin (keys limited, no personal data in the jar); `/actuator/info` exposed, Postman "Info" request (D31) |
 | 2026-09-26 | Final read-through of README and DESIGN.md: all links and anchors resolve, Mermaid diagram renders (checked with mermaid-cli); README no longer implies any index is config-only |
+| 2026-09-26 | Spring conventions pass: `catalog` package, `config` outermost, validation starter removed, SLF4J logging, `ProblemDetail` for every error; ArchUnit rules updated and checked with a probe (D32) |
 
 ## Design decisions
 
@@ -66,10 +67,10 @@ decided, why, and what we rejected.
 - `domain` (framework-free model) · `ingest` (CSV + validation) · `review` (ranking, selection,
   capping as rules) · `report` (constituents, weights, joiners, leavers, status) · `api` (REST) ·
   `config` (Spring wiring and config binding, added in D14) · `store` (stored reports, added in D21) ·
-  `service` (use cases, added in D24).
+  `service` (use cases, added in D24) · `catalog` (index and period lookup, split out of `config` in D32).
 - **Why:** Keeps the review logic independent of Spring and I/O, so it is unit-testable in isolation
   and new rules slot into `review` without touching ingest or API.
-- Enforced by `ArchitectureTest` since D30.
+- Enforced by `ArchitectureTest` since D30. Refined by D32: `config` is pure wiring and outermost.
 
 ### D5 — Single Gradle project at repo root; Gradle-driven IDE setup
 - Unlike `kasse-ai` (with `backend/` + `frontend/`), the app lives at the repo root: there is no UI
@@ -173,7 +174,8 @@ decided, why, and what we rejected.
 - The domain records `IndexDefinition` and `ReviewPeriod` validate themselves in their constructors; Spring binds
   `config/indices.yml` straight into them (`IndexReviewerProperties`), so the rules live in one framework-free
   place and a bad file stops startup with a clear reason. A new `config` package holds the Spring side
-  (properties, `IndexCatalog` for lookups and loading a review's input; loading moved to `InputSource` in D28).
+  (properties, `IndexCatalog` for lookups and loading a review's input; loading moved to `InputSource` in D28,
+  `IndexCatalog` to its own `catalog` package in D32).
 - Indices and review periods are YAML **lists** with `name`/`id`, not maps: Spring's relaxed binding mangles map
   keys such as `2026-Q3` unless bracketed.
 - `config/indices.yml` is the single source: Gradle packages it into the jar as the default copy, and
@@ -186,7 +188,7 @@ decided, why, and what we rejected.
 - **Why:** Something to try before the review logic exists, and a real use afterwards: operations can check a
   quarter's files before running the review.
 - **Rejected:** separate Jakarta Bean Validation annotations on a properties class (would duplicate the domain
-  checks); a 500 for unusable input (it isn't a bug in the app).
+  checks; the unused validation starter was removed in D32); a 500 for unusable input (it isn't a bug in the app).
 
 ### D15 — Review engine as a pipeline of small, pure steps
 - `ReviewEngine.run(index, period, input)` chains `Eligibility` → `Ranking` → `Selection` → `WeightCapping`,
@@ -324,7 +326,8 @@ decided, why, and what we rejected.
   (scheduled review, CLI, message) would have copied that sequence. "Future enhancements with minimal
   refactoring" (brief). Found in the extensibility review (TODO item 1).
 - **Rejected:** building it in `ReviewConfiguration` as a plain bean (it needs `IndexCatalog`, so `config` and
-  `service` would depend on each other); an interface plus implementation (one implementation, nothing to swap).
+  `service` would depend on each other; resolved in D32 by moving `IndexCatalog` out of `config`); an interface
+  plus implementation (one implementation, nothing to swap).
 
 ### D25 — Capping rule decides each constituent's cap
 - `CappingRule.caps(ffmcapById)` returns a maximum weight per constituent. `WeightCapping.cap` takes a rule instead
@@ -403,6 +406,8 @@ decided, why, and what we rejected.
   2. `domain`, `review` and `report` depend only on the JDK and the application's own classes;
   3. `ingest` and `store` don't depend on Spring;
   4. no cycles between packages.
+  (Refined by D32: `config` is outermost and used by nothing, `catalog` sits between `service` and the pipeline,
+  and rule 3 became "only `config`, `service` and `api` depend on Spring".)
 - The code already met all four; the test locks it in. Checked that it bites: a probe class in `review` with a
   Spring annotation and a dependency on `report` failed three of the four rules.
 - **Why:** "Framework-free review logic" (D4) was a convention stated in docs; a convention erodes one import at a
@@ -429,6 +434,29 @@ decided, why, and what we rejected.
   the plugin is what Spring developers expect and gives `/actuator/info` for free); the revision without the
   dirty flag (a report from uncommitted code would claim a commit it doesn't match); actuator's `full` git mode
   (would expose more than the report needs).
+
+### D32 — Spring conventions pass: wiring outermost, one error format, logging
+- Found in an architecture review against standard Spring Boot practice; four fixes:
+  1. **`config` is pure wiring.** `IndexCatalog` and `NotConfiguredException` moved to a new framework-free
+     `catalog` package; `ReviewConfiguration` builds the catalog as a bean from the bound indices. `config` is now
+     the outermost layer and nothing depends on it, as a Spring developer expects. ArchUnit: `config` may not be
+     accessed by any layer; the no-Spring rule now reads "only `config`, `service` and `api` use Spring", so a new
+     package is covered without editing the test. Checked that it bites: a `@Component` on `IndexCatalog` plus a
+     reference to `IndexReviewerProperties` failed the layer, Spring and cycle rules.
+  2. **Unused `spring-boot-starter-validation` removed.** Validation stays in the records' compact constructors
+     (D14); keeping the starter suggested Bean Validation that isn't there.
+  3. **Logging (SLF4J, Boot's default Logback).** `ReviewService` logs every stored run at INFO (index, period,
+     report id, status, warning count) and each input load at DEBUG; `ApiExceptionHandler` logs unusable input at
+     WARN and unexpected errors at ERROR with the stack trace. 404s are not logged (client errors).
+  4. **Every error is a `ProblemDetail`.** `ApiExceptionHandler` extends `ResponseEntityExceptionHandler`, so Spring
+     MVC's own errors (unknown path 404, wrong method 405, …) use the same RFC 9457 format, and a catch-all turns
+     anything unexpected (e.g. an `UncheckedIOException` from the store) into a 500 with a generic detail: the
+     cause goes to the log, not to the client (no file paths in responses).
+- **Why:** Each was a place where a Spring reviewer would stop and ask; none changes the review result.
+- **Rejected:** `spring.mvc.problemdetails.enabled=true` instead of extending `ResponseEntityExceptionHandler`
+  (Boot's handler would sit next to ours, with ordering to reason about, and still leave the catch-all); Bean
+  Validation annotations instead of removing the starter (D14); logging inside `review`/`ingest` (would add a
+  library to plain-Java packages; the service logs the outcome and the report holds the detail).
 
 ## Input data findings
 
@@ -539,6 +567,8 @@ down, visible in the report, and can be changed in one place.
   API level; Postman test scripts for manual runs. Tests compare decimals with tolerances where the last of
   34 digits can round either way.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
+- Standard Spring shape (D32): framework-free core wired by `@Bean` in an outermost `config`, one RFC 9457 error
+  format for every error without leaking internals, SLF4J logging of each stored run.
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
   choice is written down and can be explained.
 - Why the displayed weights add up to 99.999999% and that's correct (D13, D17).

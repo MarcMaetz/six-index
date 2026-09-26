@@ -1,8 +1,7 @@
 package com.example.indexreviewer.service;
 
-import com.example.indexreviewer.config.IndexCatalog;
-import com.example.indexreviewer.config.IndexReviewerProperties;
-import com.example.indexreviewer.config.NotConfiguredException;
+import com.example.indexreviewer.catalog.IndexCatalog;
+import com.example.indexreviewer.catalog.NotConfiguredException;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.CsvFolderInputSource;
@@ -14,7 +13,10 @@ import com.example.indexreviewer.review.ReviewStatus;
 import com.example.indexreviewer.store.FileReportStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Runs the use cases without Spring, as a scheduler or CLI would, on the provided Q3 data. */
+@ExtendWith(OutputCaptureExtension.class)
 class ReviewServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-09-25T20:10:52.184Z");
@@ -44,14 +47,14 @@ class ReviewServiceTest {
         var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
                 "FFMCAP", List.of(q3));
         var format = new ReportFormat(6, 10, 2);
-        var catalog = new IndexCatalog(new IndexReviewerProperties(Path.of("data"), reportsDir, format, List.of(smi)));
+        var catalog = new IndexCatalog(List.of(smi));
         service = new ReviewService(catalog, new CsvFolderInputSource(Path.of("data")), new ReviewEngine(),
                 new ReportBuilder(format, Clock.fixed(NOW, ZoneOffset.UTC), ReviewReport.Build.UNKNOWN),
                 new FileReportStore(reportsDir, JsonMapper.builder().build()));
     }
 
     @Test
-    void runsAndStoresReview() {
+    void runsAndStoresReview(CapturedOutput output) {
         var run = service.run("SMI", "2026-Q3");
 
         assertThat(run.report().status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
@@ -60,6 +63,7 @@ class ReviewServiceTest {
         assertThat(run.stored().id()).isEqualTo("20260925T201052184Z");
         assertThat(service.reports("SMI", "2026-Q3")).containsExactly(run.stored());
         assertThat(service.report("SMI", "2026-Q3", run.stored().id())).isNotEmpty();
+        assertThat(output).contains("Review SMI 2026-Q3 stored as report 20260925T201052184Z: COMPLETED_WITH_WARNINGS");
     }
 
     @Test

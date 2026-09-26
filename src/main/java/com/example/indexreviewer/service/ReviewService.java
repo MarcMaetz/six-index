@@ -1,6 +1,6 @@
 package com.example.indexreviewer.service;
 
-import com.example.indexreviewer.config.IndexCatalog;
+import com.example.indexreviewer.catalog.IndexCatalog;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
@@ -10,6 +10,8 @@ import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.store.ReportStore;
 import com.example.indexreviewer.store.StoredReport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,6 +31,8 @@ public class ReviewService {
     /** A review that was run and stored. */
     public record ReviewRun(StoredReport stored, ReviewReport report) {
     }
+
+    private static final Logger LOG = LoggerFactory.getLogger(ReviewService.class);
 
     private final IndexCatalog catalog;
     private final InputSource inputSource;
@@ -53,14 +57,20 @@ public class ReviewService {
     public ReviewInput input(String index, String period) {
         var definition = catalog.index(index);
         var reviewPeriod = catalog.reviewPeriod(definition, period);
-        return new ReviewInput(definition, reviewPeriod, inputSource.load(definition, reviewPeriod));
+        var data = inputSource.load(definition, reviewPeriod);
+        LOG.debug("Loaded input of {} {}: {} file(s), {} warning(s)", definition.name(), reviewPeriod.id(),
+                data.files().size(), data.warnings().size());
+        return new ReviewInput(definition, reviewPeriod, data);
     }
 
     /** Runs a review and stores its report. */
     public ReviewRun run(String index, String period) {
         var input = input(index, period);
         var report = reportBuilder.build(engine.run(input.index(), input.period(), input.data()));
-        return new ReviewRun(reportStore.save(report), report);
+        var stored = reportStore.save(report);
+        LOG.info("Review {} {} stored as report {}: {}, {} warning(s)", stored.index(), stored.reviewPeriod(),
+                stored.id(), stored.status(), report.warnings().size());
+        return new ReviewRun(stored, report);
     }
 
     /** Stored runs of a review, oldest first. */

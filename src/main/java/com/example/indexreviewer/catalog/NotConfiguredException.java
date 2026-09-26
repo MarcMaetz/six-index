@@ -1,4 +1,4 @@
-package com.example.indexreviewer.config;
+package com.example.indexreviewer.catalog;
 
 /** A requested index or review period is not in the configuration. */
 public class NotConfiguredException extends RuntimeException {
