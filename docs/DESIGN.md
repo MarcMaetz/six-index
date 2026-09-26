@@ -157,7 +157,7 @@ ties are broken by id.
 | New quarter | Add a review period to the YAML and a `data/<index>/<period>/` folder. No code change. |
 | New index with a single cap and a buffer (the SMI's rules, other numbers) | Add an index block to the YAML and its data folder. No code change. |
 | Tiered capping (e.g. SLI: largest 4 at 9%, rest at 4.5%, rulebook 5.17.4) | Implement `CappingRule`, add its parameters to `IndexDefinition` and the YAML, and pick it in `ReviewEngine.cappingRule`. The capping loop is unchanged; `WeightCappingTest` runs a tiered rule already (D25). |
-| New ranking criterion computed from price, shares and free float | Implement `RankingStrategy`, register it in `RankingStrategies`, and select it in the YAML. |
+| New ranking criterion computed from price, shares and free float | Implement `RankingStrategy`, register it in `RankingStrategies` (a static registry on purpose, D33), and select it in the YAML. |
 | The rulebook's selection list (A4: 12-month average FFMCAP and turnover) | Three steps (D26): add turnover and history to the input files, `InputData` and the loader; give `RankingStrategy` the review's input, not just one `EligibleSecurity`; decide what happens to securities without enough history. `Eligibility` stays: it checks the data the weights need. |
 | New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
 | Store reports in a database | Implement `ReportStore` and expose it as the bean in `ReviewConfiguration`. Nothing else changes (D21). |

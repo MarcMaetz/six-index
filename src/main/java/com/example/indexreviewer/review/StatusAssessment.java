@@ -153,8 +153,7 @@ public final class StatusAssessment {
             if (price == null || shares == null || freeFloat == null) {
                 return Optional.empty();
             }
-            return Optional.of(RankingStrategies.byName(result.index().rankingStrategy())
-                    .rankingValue(EligibleSecurity.of(id, price, shares, freeFloat)));
+            return Optional.of(result.rankingStrategy().rankingValue(EligibleSecurity.of(id, price, shares, freeFloat)));
         }
 
         private static <T> T first(Optional<T> preferred, Optional<T> fallback) {

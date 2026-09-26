@@ -5,7 +5,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/** The ranking strategies the application knows, looked up by the name used in the configuration. */
+/**
+ * The ranking strategies the application knows, looked up by the name used in the configuration. A static
+ * registry, not Spring beans (D33): {@code IndexCatalog} checks the names at startup, {@code ReviewEngine} looks
+ * up the strategy once per review. Strategies become beans wired in {@code config} once one needs outside
+ * dependencies.
+ */
 public final class RankingStrategies {
 
     private static final Map<String, RankingStrategy> BY_NAME = Stream.<RankingStrategy>of(new FfmcapRanking())

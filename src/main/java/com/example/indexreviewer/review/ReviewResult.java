@@ -10,6 +10,7 @@ import java.util.List;
 /**
  * Everything a review decided, with the intermediate steps kept for traceability.
  *
+ * @param rankingStrategy the index's ranking strategy, looked up once per review (D33)
  * @param excluded       universe securities that could not be ranked
  * @param selection      decision for every ranked security, in rank order
  * @param constituents   the new composition, in rank order
@@ -20,6 +21,7 @@ import java.util.List;
 public record ReviewResult(
         IndexDefinition index,
         ReviewPeriod period,
+        RankingStrategy rankingStrategy,
         InputData input,
         List<Exclusion> excluded,
         List<Selection.Outcome> selection,

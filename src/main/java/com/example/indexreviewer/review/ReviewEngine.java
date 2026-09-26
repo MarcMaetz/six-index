@@ -32,8 +32,8 @@ public final class ReviewEngine {
                     "Excluded from ranking: " + exclusion.reason(), List.of(exclusion.securityId())));
         }
 
-        var ranked = Ranking.rank(eligibility.eligible(), RankingStrategies.byName(index.rankingStrategy()),
-                input.currentComposition());
+        var strategy = RankingStrategies.byName(index.rankingStrategy());
+        var ranked = Ranking.rank(eligibility.eligible(), strategy, input.currentComposition());
         var selection = Selection.select(ranked, index);
         var selected = selection.stream().filter(o -> o.decision().selected()).toList();
 
@@ -48,7 +48,7 @@ public final class ReviewEngine {
                         weightById.get(o.security().securityId())))
                 .toList();
 
-        return new ReviewResult(index, period, input, eligibility.excluded(), selection, constituents,
+        return new ReviewResult(index, period, strategy, input, eligibility.excluded(), selection, constituents,
                 leavers(input, period, eligibility, selection), capping.rounds(), warnings);
     }
 

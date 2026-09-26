@@ -44,6 +44,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Git revision via the `gradle-git-properties` plugin (keys limited, no personal data in the jar); `/actuator/info` exposed, Postman "Info" request (D31) |
 | 2026-09-26 | Final read-through of README and DESIGN.md: all links and anchors resolve, Mermaid diagram renders (checked with mermaid-cli); README no longer implies any index is config-only |
 | 2026-09-26 | Spring conventions pass: `catalog` package, `config` outermost, validation starter removed, SLF4J logging, `ProblemDetail` for every error; ArchUnit rules updated and checked with a probe (D32) |
+| 2026-09-26 | Ranking strategy looked up once per review and carried on `ReviewResult`; static registry kept on purpose (D33) |
 
 ## Design decisions
 
@@ -362,6 +363,7 @@ decided, why, and what we rejected.
   true and the next steps are known.
 - **Rejected:** strategy declares its data needs and eligibility follows from it (the weights' data needs don't
   depend on the strategy, so eligibility can't move into it); passing `InputData` to the strategy now (speculative).
+- How strategies are supplied (static registry, not Spring beans): D33.
 
 ### D27 — Review status is part of the review, not the report
 - `StatusAssessment`, `ReviewStatus` and `StatusReason` moved from `report` to `review`. The status is read as
@@ -457,6 +459,22 @@ decided, why, and what we rejected.
   (Boot's handler would sit next to ours, with ordering to reason about, and still leave the catch-all); Bean
   Validation annotations instead of removing the starter (D14); logging inside `review`/`ingest` (would add a
   library to plain-Java packages; the service logs the outcome and the report holds the detail).
+
+### D33 — Ranking strategies stay a static registry, looked up once per review
+- `RankingStrategies` stays a static name → strategy map in `review`. `ReviewEngine` now looks the strategy up once
+  and records it on `ReviewResult.rankingStrategy()`; `StatusAssessment` uses that instead of a second lookup by
+  name. The registry is used in two places only: `IndexCatalog` at startup (unknown names fail startup) and the
+  engine.
+- **Why:** Found in the Spring-conventions review (D32), where injected strategy beans are the usual pattern. With
+  one strategy they add wiring through `ReviewEngine`, `IndexCatalog` and `ReviewResult` and change nothing: a
+  new strategy is a class plus one line either way. The real second strategy (the rulebook's selection list)
+  needs a wider `RankingStrategy` signature and new input first (D26); how strategies are supplied is decided
+  with that redesign. The double lookup was the actual smell: two places resolving the same name could drift.
+- **When to switch:** once a strategy needs outside dependencies (market data, a database for turnover history)
+  or strategies must be added without changing `review`. Then they become `@Bean`s in `config` (not
+  `@Component`, so `review` stays free of Spring) passed to `ReviewEngine` through its constructor.
+- **Rejected:** `List<RankingStrategy>` injected from Spring beans now (wiring without a second implementation);
+  an instance registry passed through the constructors (same ripple, same gain).
 
 ## Input data findings
 
@@ -568,7 +586,8 @@ down, visible in the report, and can be changed in one place.
   34 digits can round either way.
 - Tooling: one-command build/run (D5), API contract + Postman collection (D6).
 - Standard Spring shape (D32): framework-free core wired by `@Bean` in an outermost `config`, one RFC 9457 error
-  format for every error without leaking internals, SLF4J logging of each stored run.
+  format for every error without leaking internals, SLF4J logging of each stored run. Why ranking strategies are
+  a static registry, not beans, and when that changes (D33).
 - Use of AI assistance (allowed by the brief): Claude Code with this decision log kept alongside, so every
   choice is written down and can be explained.
 - Why the displayed weights add up to 99.999999% and that's correct (D13, D17).
