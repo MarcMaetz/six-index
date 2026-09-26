@@ -18,35 +18,21 @@ It must be easy to extend to new indices, review dates and rules. The design fol
 ## Architecture
 
 ```mermaid
-flowchart LR
-    subgraph Spring
-        api[api<br/>REST, errors]
-        config[config<br/>wiring, config binding]
+flowchart TB
+    subgraph spring [Spring]
+        direction LR
+        api["api<br/>REST endpoints"] --> config["config<br/>index lookup, beans"]
+        yml[(config/indices.yml)] --> config
     end
-    subgraph "Plain Java"
-        ingest[ingest<br/>CSV → InputData]
-        review[review<br/>eligibility → ranking → selection → capping]
-        report[report<br/>ReviewReport, status]
-        store[store<br/>stored reports]
-        domain[domain<br/>InputData, IndexDefinition, ...]
+    spring -- "one review run" --> plain
+    subgraph plain [Plain Java]
+        direction LR
+        csv[(input CSVs)] --> ingest["ingest<br/>CSV → InputData"] --> review["review<br/>rank, select, cap"] --> report["report<br/>ReviewReport, status"] --> store["store<br/>save as JSON"] --> json[(stored reports)]
     end
-    yml[(config/indices.yml)] --> config
-    csv[(data/index/period/*.csv)] --> ingest
-    store --> json[(reports/index/period/*.json)]
-    api --> config
-    api --> review
-    api --> report
-    api --> store
-    config --> ingest
-    config --> review
-    config --> report
-    config --> store
-    store --> report
-    report --> review
-    ingest --> domain
-    review --> domain
-    report --> domain
 ```
+
+The controller looks up the index and review period, then chains the four steps. All of them share the types
+in `domain` (input model and index definitions), which is left out of the diagram.
 
 | Package | Responsibility |
 |---|---|
