@@ -9,6 +9,7 @@ import java.util.List;
 /** A configured index and its review periods. */
 public record IndexResponse(
         String name,
+        String methodology,
         String universe,
         int constituentCount,
         int directSelectionRank,
@@ -18,7 +19,7 @@ public record IndexResponse(
         List<ReviewPeriod> reviewPeriods) {
 
     static IndexResponse of(IndexDefinition index) {
-        return new IndexResponse(index.name(), index.universe(), index.constituentCount(),
+        return new IndexResponse(index.name(), index.methodology(), index.universe(), index.constituentCount(),
                 index.directSelectionRank(), index.bufferEndRank(), index.weightCap(), index.rankingStrategy(),
                 index.reviewPeriods());
     }

@@ -37,6 +37,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Ranking seam: claims that the selection list is "another implementation" corrected in code docs, README, DESIGN.md and A4; eligibility recognised as weighting data (D26) |
 | 2026-09-26 | Review status logic moved from `report` to `review`, read via `ReviewResult.assessment()` (D27) |
 | 2026-09-26 | Input loading behind an `InputSource` port, CSV folder as one implementation; `IndexCatalog` only looks up config (D28) |
+| 2026-09-26 | Rulebook version (`methodology`) required per index, shown in the index list and every report; Postman updated and passing with newman (D29) |
 
 ## Design decisions
 
@@ -128,7 +129,7 @@ decided, why, and what we rejected.
   rank.
 
 ### D11 — Business parameters in a separate `config/indices.yml`, formulas in code
-- Index definitions (universe, constituent count, direct-selection rank, buffer end rank, weight cap, ranking
+- Index definitions (methodology, added in D29; universe, constituent count, direct-selection rank, buffer end rank, weight cap, ranking
   strategy name, review periods with cut-off and review dates) move from `application.properties` to
   `config/indices.yml`. A default copy is packaged so the app runs out of the box, and `./config/indices.yml`
   overrides it. `application.properties` keeps only technical settings.
@@ -376,6 +377,18 @@ decided, why, and what we rejected.
 - **Rejected:** the interface in `config` (it would tie a data concern to Spring wiring); passing a `Path` through
   the interface (every non-file source would have to fake one); an in-memory test implementation (the CSV one is
   already covered on real data, and `InputData` is built by hand in `StatusAssessmentTest`).
+
+### D29 — Rulebook version recorded per index and in every report
+- `IndexDefinition` has a required `methodology`: the rulebook version and section the index follows. For the SMI:
+  "SIX Index Methodology Rulebook Equity and Real Estate v3.40 (2026-06-08), section 5.12". A blank value stops
+  startup. It is listed by `GET /api/indices` and written into each report's `parameters`.
+- Postman checks it in "List indices" and "Run review"; the whole collection passes with newman (33 assertions).
+- **Why:** A stored report (D21) already recorded the parameters and input checksums, but not which rules produced
+  them. SIX revises the rulebook; a report from v3.40 must stay explainable after v3.41. Auditability is on the
+  brief's list.
+- **Rejected:** a structured version (number, date, section as separate fields; nothing reads them separately); a
+  default value (a new index must state its rules); versioning the whole configuration by effective date (a
+  feature, kept as a talking point in TODO).
 
 ## Input data findings
 

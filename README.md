@@ -63,7 +63,7 @@ and **All tests** from `.run/`. Any Gradle JVM ≥ 17 works.
 
 | What | Where | Owner |
 |---|---|---|
-| Index definitions: universe, constituent count, direct-selection and buffer ranks, weight cap, ranking strategy, review periods with cut-off and review dates | [`config/indices.yml`](config/indices.yml) | Index business |
+| Index definitions: rulebook version (methodology), universe, constituent count, direct-selection and buffer ranks, weight cap, ranking strategy, review periods with cut-off and review dates | [`config/indices.yml`](config/indices.yml) | Index business |
 | Data folder, report folder, report display precision, API docs paths | [`application.properties`](src/main/resources/application.properties) | Engineering |
 | Input CSVs | `data/<index>/<review period>/`, e.g. [`data/SMI/2026-Q3/`](data/SMI/2026-Q3) | Operations |
 

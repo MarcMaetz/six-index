@@ -25,7 +25,8 @@ class ReviewEngineTest {
     private static final LocalDate REVIEW = LocalDate.parse("2026-09-21");
     private static final ReviewPeriod Q3 = new ReviewPeriod("2026-Q3", CUT_OFF, REVIEW);
     private static final IndexDefinition SMI =
-            new IndexDefinition("SMI", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of(Q3));
+            new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
+                    "FFMCAP", List.of(Q3));
 
     private final ReviewEngine engine = new ReviewEngine();
 
@@ -75,7 +76,7 @@ class ReviewEngineTest {
     @Test
     void capsIterativelyWhenRedistributionPushesOthersOverTheCap() {
         var cap = new BigDecimal("0.15");
-        var index = new IndexDefinition("SMI", "SPI", 20, 18, 22, cap, "FFMCAP", List.of(Q3));
+        var index = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, cap, "FFMCAP", List.of(Q3));
         InputData input = new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI");
 
         ReviewResult result = engine.run(index, Q3, input);
@@ -100,7 +101,8 @@ class ReviewEngineTest {
                                 REVIEW, data("A", REVIEW, null, "1", 100L)),
                         "B", Map.of(CUT_OFF, data("B", CUT_OFF, "10", null, null))),
                 Set.of("A", "B", "C"), List.of(), List.of());
-        var index = new IndexDefinition("TEST", "SPI", 1, 1, 1, BigDecimal.ONE, "FFMCAP", List.of(Q3));
+        var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 1, 1, 1, BigDecimal.ONE,
+                "FFMCAP", List.of(Q3));
 
         var result = engine.run(index, Q3, input);
 

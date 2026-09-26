@@ -40,7 +40,8 @@ class ReviewServiceTest {
     @BeforeEach
     void setUp() {
         var q3 = new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
-        var smi = new IndexDefinition("SMI", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of(q3));
+        var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
+                "FFMCAP", List.of(q3));
         var format = new ReportFormat(6, 10, 2);
         var catalog = new IndexCatalog(new IndexReviewerProperties(Path.of("data"), reportsDir, format, List.of(smi)));
         service = new ReviewService(catalog, new CsvFolderInputSource(Path.of("data")), new ReviewEngine(),

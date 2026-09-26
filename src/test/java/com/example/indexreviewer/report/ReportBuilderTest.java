@@ -27,7 +27,8 @@ class ReportBuilderTest {
     private static final ReviewPeriod Q3 =
             new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
     private static final IndexDefinition SMI =
-            new IndexDefinition("SMI", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of(Q3));
+            new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
+                    "FFMCAP", List.of(Q3));
     private static final Instant NOW = Instant.parse("2026-09-25T12:00:00Z");
 
     @Test

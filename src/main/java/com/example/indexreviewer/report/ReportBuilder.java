@@ -40,8 +40,8 @@ public final class ReportBuilder {
                 .map(o -> new ReviewReport.RankingEntry(o.security().rank(), o.security().securityId(),
                         ffmcap(o.security().security().ffmcap()), o.security().incumbent(), o.decision()))
                 .toList();
-        var parameters = new ReviewReport.Parameters(index.universe(), index.constituentCount(),
-                index.directSelectionRank(), index.bufferEndRank(),
+        var parameters = new ReviewReport.Parameters(index.methodology(), index.universe(),
+                index.constituentCount(), index.directSelectionRank(), index.bufferEndRank(),
                 index.weightCap().movePointRight(2).stripTrailingZeros(), index.rankingStrategy());
 
         return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),

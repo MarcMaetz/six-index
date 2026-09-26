@@ -57,6 +57,7 @@
                   "const smi = pm.response.json().find(i => i.name === 'SMI');",
                   "pm.test('SMI is configured', () => pm.expect(smi).to.exist);",
                   "pm.test('SMI parameters', () => {",
+                  "  pm.expect(smi.methodology).to.include('v3.40');",
                   "  pm.expect(smi.universe).to.eql('SPI');",
                   "  pm.expect(smi.constituentCount).to.eql(20);",
                   "  pm.expect(smi.directSelectionRank).to.eql(18);",
@@ -199,7 +200,8 @@
                   "  const sum = r.constituents.reduce((s, c) => s + c.weightPercent, 0);",
                   "  pm.expect(sum).to.be.closeTo(100, 0.00001);",
                   "});",
-                  "pm.test('166 excluded (no review-date data)', () => pm.expect(r.excluded.map(e => e.securityId)).to.eql(['166']));"
+                  "pm.test('166 excluded (no review-date data)', () => pm.expect(r.excluded.map(e => e.securityId)).to.eql(['166']));",
+                  "pm.test('rulebook version recorded in the parameters', () => pm.expect(r.parameters.methodology).to.include('v3.40'));"
                 ]
               }
             }

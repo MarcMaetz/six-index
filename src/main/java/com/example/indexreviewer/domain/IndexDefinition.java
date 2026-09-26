@@ -11,6 +11,7 @@ import java.util.Optional;
  * inconsistent values, so a bad configuration fails at startup rather than during a review.
  *
  * @param name                 index name, also the name of its input folder, e.g. {@code SMI}
+ * @param methodology          rulebook version and section the index follows, recorded in every report (D29)
  * @param universe             universe the constituents are selected from, e.g. {@code SPI}
  * @param constituentCount     number of constituents
  * @param directSelectionRank  securities ranked up to here are selected directly
@@ -21,6 +22,7 @@ import java.util.Optional;
  */
 public record IndexDefinition(
         String name,
+        String methodology,
         String universe,
         int constituentCount,
         int directSelectionRank,
@@ -31,6 +33,7 @@ public record IndexDefinition(
 
     public IndexDefinition {
         Validation.requireText(name, "index name");
+        Validation.requireText(methodology, "methodology of " + name);
         Validation.requireText(universe, "universe of " + name);
         Validation.requireText(rankingStrategy, "ranking strategy of " + name);
         Validation.require(constituentCount > 0, "%s: constituent count %d must be positive", name, constituentCount);

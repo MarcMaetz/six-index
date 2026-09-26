@@ -9,6 +9,7 @@
 index-reviewer:
   indices:
     - name: SMI
+      methodology: SIX Index Methodology Rulebook Equity and Real Estate v3.40 (2026-06-08), section 5.12
       universe: SPI                  # reads <universe>_universe.csv, i.e. spi_universe.csv
       constituent-count: 20
       direct-selection-rank: 18      # ranks 1-18 are selected directly (rulebook 5.12.3.2)

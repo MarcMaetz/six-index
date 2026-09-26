@@ -39,6 +39,7 @@ class IndexControllerTest {
                 .satisfies(json -> {
                     assertThat(json).extractingPath("$[0].name").isEqualTo("SMI");
                     assertThat(json).extractingPath("$[0].weightCap").isEqualTo(0.18);
+                    assertThat(json).extractingPath("$[0].methodology").asString().contains("v3.40");
                     assertThat(json).extractingPath("$[0].reviewPeriods[0].cutOffDate").isEqualTo("2026-09-10");
                 });
     }
@@ -81,6 +82,7 @@ class IndexControllerTest {
                     assertThat(json).extractingPath("$.constituents[0].weightPercent").isEqualTo(18.0);
                     assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
                     assertThat(json).extractingPath("$.excluded[0].securityId").isEqualTo("166");
+                    assertThat(json).extractingPath("$.parameters.methodology").asString().contains("v3.40");
                 });
     }
 

@@ -40,7 +40,8 @@ class FileReportStoreTest {
     @BeforeAll
     static void runQ3Review() {
         var q3 = new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
-        var smi = new IndexDefinition("SMI", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of(q3));
+        var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
+                "FFMCAP", List.of(q3));
         var result = new ReviewEngine().run(smi, q3, new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI"));
         report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC)).build(result);
     }

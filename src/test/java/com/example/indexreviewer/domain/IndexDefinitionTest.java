@@ -39,6 +39,13 @@ class IndexDefinitionTest {
     }
 
     @Test
+    void requiresMethodology() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                        new IndexDefinition("SMI", " ", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of()))
+                .withMessageContaining("methodology of SMI must not be blank");
+    }
+
+    @Test
     void rejectsDuplicateReviewPeriods() {
         assertThatIllegalArgumentException().isThrownBy(() -> smi(20, 18, 22, "0.18", List.of(Q3, Q3)))
                 .withMessageContaining("duplicate review period 2026-Q3");
@@ -52,6 +59,7 @@ class IndexDefinitionTest {
     }
 
     private static IndexDefinition smi(int count, int direct, int bufferEnd, String cap, List<ReviewPeriod> periods) {
-        return new IndexDefinition("SMI", "SPI", count, direct, bufferEnd, new BigDecimal(cap), "FFMCAP", periods);
+        return new IndexDefinition("SMI", "Rulebook v3.40", "SPI", count, direct, bufferEnd, new BigDecimal(cap),
+                "FFMCAP", periods);
     }
 }

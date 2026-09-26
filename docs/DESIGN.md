@@ -117,7 +117,7 @@ kept, harmless ones too. For Q3:
 
 A report answers "why is this security in or out, and with what weight?" without re-running anything:
 
-- the index parameters the review ran with;
+- the index parameters the review ran with, including the rulebook version and section they follow (D29);
 - the full ranking, with a selection decision for every security;
 - exclusions and leavers with reasons;
 - each constituent's raw weight, final weight and capping factor, and the capping rounds;

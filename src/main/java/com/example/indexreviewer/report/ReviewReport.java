@@ -36,8 +36,8 @@ public record ReviewReport(
         List<DataQualityWarning> warnings) {
 
     /** The index parameters the review ran with. */
-    public record Parameters(String universe, int constituentCount, int directSelectionRank, int bufferEndRank,
-                             BigDecimal weightCapPercent, String rankingStrategy) {
+    public record Parameters(String methodology, String universe, int constituentCount, int directSelectionRank,
+                             int bufferEndRank, BigDecimal weightCapPercent, String rankingStrategy) {
     }
 
     public record Constituent(int rank, String securityId, SelectionDecision selection, boolean joiner,
