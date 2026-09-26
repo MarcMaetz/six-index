@@ -7,7 +7,8 @@ The review follows SIX rulebook section 5.12. Securities in the SPI universe are
 capitalization (FFMCAP = price at cut-off × shares × free float at the review date). Ranks 1–18 are selected
 directly, and ranks 19–22 form a buffer where current constituents have priority. Weights are then capped at
 18%. The report lists the new composition with weights and capping factors, joiners, leavers and a review
-status, plus an audit trail showing why each security was selected or not.
+status, plus an audit trail showing why each security was selected or not. Every run is stored as JSON, so
+each published report can be looked up later.
 
 ## Result for SMI Q3 2026
 
@@ -33,20 +34,25 @@ compiles with, so no JDK 25 install is needed.
 Run the review:
 
 ```bash
-curl -X POST http://localhost:8080/api/indices/SMI/reviews/2026-Q3
+curl -i -X POST http://localhost:8080/api/indices/SMI/reviews/2026-Q3
 ```
+
+The response is `201 Created` with the report as body and a `Location` header pointing to the stored copy in
+`reports/SMI/2026-Q3/<run id>.json`.
 
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/indices` | Configured indices and review periods |
 | `GET /api/indices/{index}/reviews/{period}/input` | Load and validate a review's input without running it: files with SHA-256 checksums, counts, warnings |
-| `POST /api/indices/{index}/reviews/{period}` | Run the review and return the report |
+| `POST /api/indices/{index}/reviews/{period}` | Run the review, store the report and return it (201, `Location` header) |
+| `GET /api/indices/{index}/reviews/{period}/reports` | List the stored runs of a review, oldest first |
+| `GET /api/indices/{index}/reviews/{period}/reports/{id}` | Get a stored report exactly as it was written |
 
 - Swagger UI: http://localhost:8080/swagger-ui.html (OpenAPI spec at `/api-docs`)
 - Postman: import [`postman/six-index-reviewer.postman_collection.json`](postman/six-index-reviewer.postman_collection.json)
   and run the *Indices* folder. Each request has test scripts that check the expected Q3 results.
-- Errors are RFC 9457 problem responses: an unknown index or period returns 404, and missing or unusable input
-  files return 422.
+- Errors are RFC 9457 problem responses: an unknown index, period or stored report returns 404, and missing or
+  unusable input files return 422.
 
 ### IntelliJ IDEA
 
@@ -58,7 +64,7 @@ and **All tests** from `.run/`. Any Gradle JVM ≥ 17 works.
 | What | Where | Owner |
 |---|---|---|
 | Index definitions: universe, constituent count, direct-selection and buffer ranks, weight cap, ranking strategy, review periods with cut-off and review dates | [`config/indices.yml`](config/indices.yml) | Index business |
-| Data folder, report display precision, API docs paths | [`application.properties`](src/main/resources/application.properties) | Engineering |
+| Data folder, report folder, report display precision, API docs paths | [`application.properties`](src/main/resources/application.properties) | Engineering |
 | Input CSVs | `data/<index>/<review period>/`, e.g. [`data/SMI/2026-Q3/`](data/SMI/2026-Q3) | Operations |
 
 A copy of `config/indices.yml` is packaged in the jar. A `config/indices.yml` in the working directory
@@ -73,7 +79,7 @@ it, and select it by name in the YAML.
 ## Documentation
 
 - [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing.
-- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D19), assumptions (A1–A13), open questions for SIX,
+- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D22), assumptions (A1–A14), open questions for SIX,
   input data findings and the rulebook rules applied.
 - [data/README.md](data/README.md): input file formats.
 
@@ -82,6 +88,7 @@ it, and select it by name in the YAML.
 ```
 config/indices.yml   index definitions and review periods (business configuration)
 data/SMI/2026-Q3/    input CSVs of the Q3 2026 SMI review
+reports/             stored review runs, created at runtime (git-ignored)
 postman/             Postman collection with test scripts
 docs/                design doc, decision log
 src/main/java/com/example/indexreviewer/
@@ -89,6 +96,7 @@ src/main/java/com/example/indexreviewer/
   ingest/            CSV loading and row validation
   review/            eligibility, ranking, buffer selection, weight capping (framework-free)
   report/            review report and review status (framework-free)
+  store/             stored review reports, one JSON file per run
   config/            Spring wiring and configuration binding
   api/               REST controllers and error handling
 ```

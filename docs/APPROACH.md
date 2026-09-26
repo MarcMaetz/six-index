@@ -28,6 +28,7 @@ decided, why, and what we rejected.
 | 2026-09-25 | Status margin: an unranked security is harmless only if its estimate is below half the buffer-end value (A13) |
 | 2026-09-25 | Structured status reasons with a `relevance` enum; index incompleteness detected from the result (D22, A12) |
 | 2026-09-25 | Report storage: every run saved as JSON, `POST` returns 201 + `Location`, list and get endpoints (D21) |
+| 2026-09-26 | Docs and Postman caught up with D20–D22: `DESIGN.md` (storage, capping reading, weights vs factors, API, tests), `README.md`, stored-report requests in Postman and re-exported; whole collection passes with newman against the running app (D19) |
 
 ## Design decisions
 
@@ -237,6 +238,9 @@ decided, why, and what we rejected.
 - The Postman collection is exported to `postman/six-index-reviewer.postman_collection.json` (without
   workspace metadata). The MCP-managed workspace copy stays the working copy; `AGENT.md` says to re-export after
   changes.
+- Requests that depend on an earlier one are chained through collection variables: "Run review" saves the
+  stored report's id from the `Location` header as `reportId`, which the get-report request uses. So the
+  *Indices* folder runs top to bottom in the Postman runner or newman without manual edits.
 - **Why:** Reviewers only get the repo (D18), and the workspace collection is private. This log is ordered by
   time and full of alternatives, which makes it a poor first read; the design doc gives the structured view.
 - **Rejected:** turning this log into the design doc (it would lose the history the interview needs).

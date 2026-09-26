@@ -12,7 +12,8 @@ It must be easy to extend to new indices, review dates and rules. The design fol
   the input it came from.
 - **Configurable, not hard-coded:** index parameters and review dates are business configuration.
 - **Testable:** the review logic is plain Java without Spring or I/O, so each rule is unit-tested in isolation.
-- **Simple:** no database, no persistence, one module (D2, D5). Anything more waits until a requirement needs it.
+- **Simple:** no database, one module (D2, D5). Reports are stored as plain JSON files (D21). Anything more
+  waits until a requirement needs it.
 
 ## Architecture
 
@@ -26,16 +27,21 @@ flowchart LR
         ingest[ingest<br/>CSV → InputData]
         review[review<br/>eligibility → ranking → selection → capping]
         report[report<br/>ReviewReport, status]
+        store[store<br/>stored reports]
         domain[domain<br/>InputData, IndexDefinition, ...]
     end
     yml[(config/indices.yml)] --> config
     csv[(data/index/period/*.csv)] --> ingest
+    store --> json[(reports/index/period/*.json)]
     api --> config
     api --> review
     api --> report
+    api --> store
     config --> ingest
     config --> review
     config --> report
+    config --> store
+    store --> report
     report --> review
     ingest --> domain
     review --> domain
@@ -48,10 +54,11 @@ flowchart LR
 | `ingest` | Reads the three CSVs of one review into `InputData`, recording a warning for each problem row. |
 | `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step. |
 | `report` | Turns a `ReviewResult` into the `ReviewReport`: rounding for display, review status. |
-| `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the engine and report builder as beans. |
-| `api` | `IndexController` and RFC 9457 error mapping. The controller only chains load → review → report. |
+| `store` | `ReportStore` keeps every report as written; `FileReportStore` writes one JSON file per run (D21). |
+| `config` | Binds `config/indices.yml`, looks up indices and periods, and exposes the engine, report builder and report store as beans. |
+| `api` | `IndexController` and RFC 9457 error mapping. The controller only chains load → review → report → store. |
 
-Only `config` and `api` depend on Spring (D4, D14).
+Only `config` and `api` depend on Spring (D4, D14). `store` uses Jackson for the JSON format, nothing else.
 
 ## Review pipeline
 
@@ -64,11 +71,19 @@ Only `config` and `api` depend on Spring (D4, D14).
 | 3. Selection | `Selection` | Ranks 1–18 are selected directly. From the buffer (ranks 19–22), current constituents are taken first, then new candidates, in rank order, until there are 20 (rulebook 5.12.3.2, A7). |
 | 4. Capping | `WeightCapping` | Constituents above 18% get exactly 18%. The rest share the remaining weight in proportion to FFMCAP. This repeats until none is above the cap (rulebook 5.12.4 and the brief's example). |
 
+**Iterative capping (D20, A14):** a literal reading of rulebook 5.12.4 caps only constituents whose *raw* share
+is above 18%, in a single pass. That can leave a weight above the cap after redistribution. The loop caps such
+a constituent too, so no published weight exceeds the cap. For Q3 both readings give the same result (one
+round); at a 15% cap the real data shows the difference (`63` would end at 15.60% in a single pass).
+
 Joiners and leavers come from comparing the selection with the current composition. Each leaver has a reason:
 not in the universe, not eligible, buffer full, or below the buffer.
 
-**Capping factors** are derived from the final weights: factor ∝ weight / FFMCAP, scaled so uncapped
-constituents have factor 1 (A11). FFMCAP × factor, normalised, gives back the final weights.
+**Weights and capping factors** are both reported, since they answer different questions (D20). The final
+**weight** is the review's result, checkable against the cap and the brief's example. The **capping factor** is
+what index calculation carries forward until the next review. It is derived from the final weights:
+factor ∝ weight / FFMCAP, scaled so uncapped constituents have factor 1 (A11). FFMCAP × factor, normalised,
+gives back the final weights. The brief's "weighting factors" is read as the capping factors.
 
 **Precision (D13):** all arithmetic uses `BigDecimal` with 34 significant digits and no intermediate rounding.
 `WeightCapping` checks two invariants on every run: weights add up to 1 within 1e-20, and none exceeds the
@@ -120,6 +135,9 @@ A report answers "why is this security in or out, and with what weight?" without
 - the input files with SHA-256 checksums, which prove which data produced the report (D12);
 - all data-quality warnings, and the reasons behind the status.
 
+Every run is stored as written (D21), so "which report did we publish for Q3, and when?" has an answer even
+after the configuration or data changes. Stored files are created once and never changed.
+
 The same input always gives the same report, apart from `generatedAt`. Collections keep insertion order, and
 ties are broken by id.
 
@@ -138,7 +156,7 @@ ties are broken by id.
 | New index (e.g. SLI) | Add an index block to the YAML and its data folder. No code change. |
 | New ranking criterion (e.g. the rulebook's selection list, A4) | Implement `RankingStrategy`, register it in `RankingStrategies`, and select it in the YAML. |
 | New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
-| Store reports for an audit history | Add a store after `ReportBuilder`. The report is already a self-contained value (D17). |
+| Store reports in a database | Implement `ReportStore` and expose it as the bean in `ReviewConfiguration`. Nothing else changes (D21). |
 
 ## API
 
@@ -146,9 +164,13 @@ ties are broken by id.
 |---|---|
 | `GET /api/indices` | Configured indices and review periods |
 | `GET /api/indices/{index}/reviews/{period}/input` | Loaded input: files with checksums, counts per date, composition, warnings |
-| `POST /api/indices/{index}/reviews/{period}` | `ReviewReport` |
+| `POST /api/indices/{index}/reviews/{period}` | Runs the review, stores the report: **201 Created**, `ReviewReport` body, `Location` of the stored report |
+| `GET /api/indices/{index}/reviews/{period}/reports` | Stored runs of the review, oldest first: id, generation time, status |
+| `GET /api/indices/{index}/reviews/{period}/reports/{id}` | One stored report, byte for byte as written |
 
-A review is a `POST`: it's an action, and nothing is stored (D17). The contract is the springdoc OpenAPI spec
+A review is a `POST`: it runs an action and creates a stored report (D17, D21). The store lives under
+`index-reviewer.reports-dir` (default `./reports/<index>/<period>/<run id>.json`, git-ignored). The run id is
+the UTC generation time, e.g. `20260925T201052184Z`. Unknown ids return 404. The contract is the springdoc OpenAPI spec
 at `/api-docs`. The Postman collection in `postman/` holds example calls with test scripts (D6).
 
 ## Testing
@@ -157,8 +179,9 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 |---|---|
 | Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `IndexDefinitionTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin) |
 | Ingest | `InputDataLoaderTest`: BOM and CRLF, duplicates, invalid rows with line numbers, conflicts, checksums, missing files and columns |
-| Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs |
-| API | `IndexControllerTest`: all endpoints on the real config and data, including 404s |
+| Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round (D20) |
+| Storage | `FileReportStoreTest`: file naming, no overwrite for runs in the same millisecond, chronological listing, unknown and unsafe ids |
+| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, and 404s |
 | Manual | Postman test scripts for the same expected results |
 
 Decimal assertions use tolerances where the last of 34 digits can round either way.
@@ -172,6 +195,6 @@ Where the brief simplifies the rulebook, this is recorded and the design leaves 
 - The liquidity rule for instruments listed on several exchanges isn't applied (A5): the data has no listing
   or turnover fields.
 - Each id is its own issuer, so issuer-level capping isn't applied (A6).
-- Reports aren't stored (D17).
+- Reports are stored as files, not in a database (D2, D21). `ReportStore` is the seam for one.
 
 Open questions for SIX are listed in [APPROACH.md](APPROACH.md#open-questions).

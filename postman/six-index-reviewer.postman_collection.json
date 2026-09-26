@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "fed703bb-9ae7-4baf-a21c-f42ec10f15ba",
     "name": "SIX Index Reviewer",
-    "description": "Requests for the SIX Index Reviewer (SMI Q3 2026 review) take-home. Repo: github.com/MarcMaetz/six-index. Start the app with `./gradlew bootRun`, then run the Indices folder in order: list the configured indices, check a review's input, run the review. Each request has test scripts with the expected Q3 results. The OpenAPI spec at /api-docs is the source of truth.",
+    "description": "Requests for the SIX Index Reviewer (SMI Q3 2026 review) take-home. Repo: github.com/MarcMaetz/six-index. Start the app with `./gradlew bootRun`, then run the Indices folder in order: list the configured indices, check a review's input, run the review (201, stored as JSON), then list and fetch the stored reports. \"Run review\" saves the new report's id in the `reportId` collection variable for the requests after it. Each request has test scripts with the expected Q3 results. The OpenAPI spec at /api-docs is the source of truth.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -163,11 +163,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Location points to the stored report', () => {",
+                  "  const location = pm.response.headers.get('Location');",
+                  "  pm.expect(location).to.match(/\\/api\\/indices\\/SMI\\/reviews\\/2026-Q3\\/reports\\/\\d{8}T\\d{9}Z(-\\d+)?$/);",
+                  "  pm.collectionVariables.set('reportUrl', location);",
+                  "  pm.collectionVariables.set('reportId', location.substring(location.lastIndexOf('/') + 1));",
+                  "});",
                   "const r = pm.response.json();",
                   "pm.test('review status: completed with warnings (duplicates, 166 excluded)', () => {",
                   "  pm.expect(r.status).to.eql('COMPLETED_WITH_WARNINGS');",
-                  "  pm.expect(r.statusReasons).to.have.lengthOf(2);",
+                  "  pm.expect(r.statusReasons.map(s => s.relevance)).to.eql(['NO_DATA_LOST', 'ESTIMATED_FAR_BELOW_BUFFER']);",
+                  "  pm.expect(r.statusReasons[1].securityId).to.eql('166');",
                   "});",
                   "pm.test('20 constituents', () => pm.expect(r.constituents).to.have.lengthOf(20));",
                   "pm.test('joiner 177', () => pm.expect(r.joiners.map(j => j.securityId)).to.eql(['177']));",
@@ -181,10 +188,11 @@
                   "    ['249', 'NOT_SELECTED_BUFFER_FULL'], ['28', 'NOT_SELECTED_BUFFER_FULL'],",
                   "    ['160', 'SELECTED_BUFFER_INCUMBENT'], ['81', 'SELECTED_BUFFER_INCUMBENT']]);",
                   "});",
-                  "pm.test('155 and 205 capped at 18%', () => {",
+                  "pm.test('155 and 205 capped at 18% in one round', () => {",
                   "  const capped = r.constituents.filter(c => c.capped);",
                   "  pm.expect(capped.map(c => c.securityId)).to.eql(['155', '205']);",
                   "  capped.forEach(c => pm.expect(c.weightPercent).to.eql(18));",
+                  "  pm.expect(r.cappingRounds).to.eql([['155', '205']]);",
                   "});",
                   "pm.test('no weight above the cap, weights add up to 100%', () => {",
                   "  r.constituents.forEach(c => pm.expect(c.weightPercent).to.be.at.most(18));",
@@ -204,7 +212,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "indices", "SMI", "reviews", "2026-Q3"]
             },
-            "description": "Runs the SMI Q3 2026 review and returns the report: status with reasons, constituents with weights and capping factors, joiners, leavers, and the audit trail (parameters, full ranking with a decision per security, capping rounds, input files with SHA-256, warnings). Nothing is stored. Weights are in percent, rounded for display only (D13)."
+            "description": "Runs the SMI Q3 2026 review, stores the report and returns it: status with structured reasons, constituents with weights and capping factors, joiners, leavers, and the audit trail (parameters, full ranking with a decision per security, capping rounds, input files with SHA-256, warnings). Returns 201 Created; the Location header points to the stored copy (D21), and the test script saves it as the collection variables `reportUrl` and `reportId` for the stored-report requests below. Weights are in percent, rounded for display only (D13)."
           },
           "response": []
         },
@@ -233,6 +241,96 @@
             "description": "An index that isn't in config/indices.yml returns a 404 problem response (RFC 9457)."
           },
           "response": []
+        },
+        {
+          "name": "List stored reports (SMI 2026-Q3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const runs = pm.response.json();",
+                  "pm.test('contains the run just made', () => pm.expect(runs.map(r => r.id)).to.include(pm.collectionVariables.get('reportId')));",
+                  "pm.test('oldest first', () => {",
+                  "  const times = runs.map(r => r.generatedAt);",
+                  "  pm.expect(times).to.eql([...times].sort());",
+                  "});",
+                  "pm.test('every run completed with warnings', () => runs.forEach(r => pm.expect(r.status).to.eql('COMPLETED_WITH_WARNINGS')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/indices/SMI/reviews/2026-Q3/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "indices", "SMI", "reviews", "2026-Q3", "reports"]
+            },
+            "description": "Lists the stored runs of the SMI Q3 2026 review, oldest first: id (UTC generation time), index, review period, generation time and status (D21). Run \"Run review (SMI 2026-Q3)\" first."
+          },
+          "response": []
+        },
+        {
+          "name": "Get stored report (SMI 2026-Q3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('same Q3 result as the run', () => {",
+                  "  pm.expect(r.status).to.eql('COMPLETED_WITH_WARNINGS');",
+                  "  pm.expect(r.joiners.map(j => j.securityId)).to.eql(['177']);",
+                  "  pm.expect(r.leavers.map(l => l.securityId)).to.eql(['103']);",
+                  "  pm.expect(r.constituents).to.have.lengthOf(20);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/indices/SMI/reviews/2026-Q3/reports/{{reportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "indices", "SMI", "reviews", "2026-Q3", "reports", "{{reportId}}"]
+            },
+            "description": "Returns one stored report exactly as it was written (D21). `reportId` is set by \"Run review (SMI 2026-Q3)\" from its Location header."
+          },
+          "response": []
+        },
+        {
+          "name": "Get stored report: unknown id (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('problem title', () => pm.expect(pm.response.json().title).to.eql('Report not found'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/indices/SMI/reviews/2026-Q3/reports/20000101T000000000Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "indices", "SMI", "reviews", "2026-Q3", "reports", "20000101T000000000Z"]
+            },
+            "description": "A report id that was never stored returns a 404 problem response (RFC 9457)."
+          },
+          "response": []
         }
       ]
     }
@@ -242,6 +340,14 @@
       "key": "baseUrl",
       "value": "http://localhost:8080",
       "description": "Local bootRun instance"
+    },
+    {
+      "key": "reportId",
+      "value": ""
+    },
+    {
+      "key": "reportUrl",
+      "value": ""
     }
   ]
 }
