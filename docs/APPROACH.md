@@ -247,7 +247,7 @@ The brief allows AI assistance; this project was built with Claude Code.
 - **A hook keeps this file current.** A commit by the assistant is blocked while this file is unchanged; the
   written rule alone was skipped twice.
 - **Code comments stand on their own.** Where a comment defends a choice a reader might otherwise undo, it
-  gives the reason itself instead of pointing into this file. Assumption numbers (A1–A14) stay in the code:
+  gives the reason itself instead of pointing into this file. Assumption numbers (A1–A15) stay in the code:
   they mark where it applies an interpretation of the rulebook, like citing a clause.
 
 ## Assumptions
@@ -270,6 +270,7 @@ Where the brief or rulebook is ambiguous, the assumption is recorded here and re
 | A12 | If fewer securities can be ranked than the index needs, all are selected and the status is `REQUIRES_ATTENTION` (`INDEX_INCOMPLETE`). | The rulebook doesn't cover it; a smaller index with a visible warning beats inventing a fill rule. |
 | A13 | For the review status, an unranked security's ranking value is estimated with data from either date (price preferably from the cut-off, shares and free float preferably from the review date). It counts as harmless only below **half** the value at the buffer end. | Only judges whether missing data could matter, never selects or weights. The margin covers the borrowed data (17 ids change shares, 41 free float between the dates). |
 | A14 | Capping is iterative: a security pushed above the cap by redistribution is capped too. | No published weight exceeds the cap; the rulebook's wording only names components above 18% of the total. |
+| A15 | Market data is looked up for the exact cut-off or review date. There is no fallback to the latest earlier value; a security without a row for the date is ineligible, with a warning. | The brief ties each value to one date; an older value would silently mix in stale data. Both dates are delivered for every id except `166` (A2). |
 
 ## Deliberate assumptions
 
@@ -285,6 +286,7 @@ can be changed in one place.
   (15.4bn), so the status stays `COMPLETED_WITH_WARNINGS` (A13).
 - **Full precision, rounding only for display; capping factors scaled so the largest is 1 (A11).**
 - **The 18% cap is applied iteratively (A14).** For Q3 a single pass gives the same result.
+- **Market data only for the exact date (A15).** No fallback to an earlier day; for Q3 only `166` lacks a row.
 
 ## Interview talking points
 

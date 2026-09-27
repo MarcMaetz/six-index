@@ -85,7 +85,7 @@ deliberately doesn't cover, is in [docs/DESIGN.md](docs/DESIGN.md#configuration-
 
 - [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing, limits.
 - [docs/APPROACH.md](docs/APPROACH.md): why it is built this way, by topic; the input data findings, the
-  rulebook rules applied, and the assumptions (A1–A14).
+  rulebook rules applied, and the assumptions (A1–A15).
 - [data/README.md](data/README.md): input file formats.
 
 ## Layout

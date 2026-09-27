@@ -42,7 +42,7 @@ public record InputData(
         return universeByDate.getOrDefault(date, Set.of());
     }
 
-    /** Market data of a security on a date, if delivered. */
+    /** Market data of a security on exactly this date, if delivered; no fallback to an earlier date (A15). */
     public Optional<SecurityData> securityData(String securityId, LocalDate date) {
         return Optional.ofNullable(securityDataById.getOrDefault(securityId, Map.of()).get(date));
     }
