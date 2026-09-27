@@ -109,7 +109,7 @@ it from the result, available as `ReviewResult.assessment()`:
 | `COMPLETED_WITH_WARNINGS` | Only warnings that can't change the result. |
 | `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated ranking value is not below half the value at the buffer end rank (A13), or on an unknown security; or fewer constituents than needed (A12). |
 
-The estimate fills the gaps from the other date, so it gets a safety margin: 17 ids change shares and 41 change
+The estimate (`UnrankedEstimate`) fills the gaps from the other date, so it gets a safety margin: 17 ids change shares and 41 change
 free float between the two dates.
 
 Every status comes with structured reasons: one per warning and affected security, plus one if the index
