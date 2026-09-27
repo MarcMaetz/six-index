@@ -16,6 +16,8 @@ It is written in hindsight and ordered by topic; the commit history has the orde
   found real gaps in the tests, all closed. The requirements were rechecked end to end on the packaged jar. A
   last full scan recomputed the Q3 result separately (same answer) and found that an index with too few
   rankable securities crashed in capping instead of being flagged; such a review now stops with a 422 (A12).
+  A simplification pass then removed what served no current need: input file checksums and the capping
+  interface, whose only second implementation was in a test.
 
 ## Starting point: the data and the rulebook
 
@@ -155,10 +157,11 @@ section 5.12, with definitions in 2 and 4.3.
   securities whose raw share exceeds 18%. On the real data at a 15% cap, that single pass would publish `63` at
   15.60%; the loop caps `63` and `64` in a second round. At 18% both agree. The cap exists to limit
   concentration, and the brief's example ends with "all constituents are now below the cap".
-- **Each constituent's cap comes from a capping rule.** The SMI uses one cap for all; the SLI caps its largest
-  constituents at 9% and the rest at 4.5%. A tiered rule exists only in a test, proving the seam without shipping
-  unused code. Rejected: a configuration format for an index we don't have, and rules that return final weights
-  (each would re-implement the loop).
+- **One cap for all constituents, no capping interface.** The SMI caps every constituent at 18%, so
+  `WeightCapping` takes that one number. An earlier `CappingRule` interface let each constituent have its own cap,
+  for the SLI (largest constituents at 9%, the rest at 4.5%), but its only second implementation lived in a test.
+  It was removed as a seam for an index that isn't in scope. Adding tiered caps later is a small, local change:
+  the loop would read each constituent's cap from a map instead of one value.
 - **Weights and capping factors are both reported.** The weight is the review's result and can be checked
   against the cap; the capping factor is what index calculation carries until the next review (A11).
 - **Full precision, rounding only for display.** `BigDecimal` with 34 significant digits and no intermediate
@@ -335,8 +338,8 @@ can be changed in one place.
 
 ## Interview talking points
 
-- **Designed for change:** new indices and quarters are configuration; new rules go into `review` behind the
-  capping rule and ranking strategy; where the design stops is in `DESIGN.md`, *Limits of the design*.
+- **Designed for change:** new indices and quarters are configuration; new ranking rules go behind the ranking
+  strategy, other rules into `review` as new steps; why there is no capping interface (removed as speculative); where the design stops is in `DESIGN.md`, *Limits of the design*.
 - **The extensibility review** against the SLI, including the finding I rejected: moving eligibility behind the
   ranking strategy. Eligibility checks the FFMCAP inputs (price, shares, free float), and the weights need
   FFMCAP however securities are ranked, so the check holds for every index and stays the pipeline's first step.

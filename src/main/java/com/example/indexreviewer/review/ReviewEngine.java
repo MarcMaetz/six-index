@@ -37,7 +37,7 @@ public final class ReviewEngine {
 
         var ffmcapById = new LinkedHashMap<String, BigDecimal>();
         selected.forEach(o -> ffmcapById.put(o.securityId(), o.ranked().eligible().ffmcap()));
-        var capping = WeightCapping.cap(ffmcapById, cappingRule(index));
+        var capping = WeightCapping.cap(ffmcapById, index.weightCap());
         Map<String, CappedWeight> weightById = capping.weights().stream()
                 .collect(Collectors.toMap(CappedWeight::securityId, Function.identity()));
 
@@ -59,14 +59,6 @@ public final class ReviewEngine {
                     + "%d universe securities were excluded for missing data")
                     .formatted(index.name(), index.constituentCount(), ranked, excluded));
         }
-    }
-
-    /**
-     * Every configured index has one cap for all constituents. A tiered index (e.g. the SLI) would get its rule
-     * here, from new fields in its definition.
-     */
-    private static CappingRule cappingRule(IndexDefinition index) {
-        return new SingleCap(index.weightCap());
     }
 
     /** Current constituents not selected, in the order of the current composition. */

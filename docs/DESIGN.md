@@ -67,7 +67,7 @@ cycles, so a violation fails the build.
 | 1. Eligibility | `Eligibility` | In the universe on the review date, with a price on the cut-off date and shares and free float on the review date. Others are excluded with a reason (A2). |
 | 2. Ranking | `Ranking` + `RankingStrategy` | Ranking value from the strategy configured by name (`FFMCAP`), highest first. Ties are broken by id (A8). |
 | 3. Selection | `Selection` | Ranks 1–18 are selected directly. From the buffer (ranks 19–22), current constituents are taken first, then new candidates, in rank order, until there are 20 (rulebook 5.12.3.2, A7). |
-| 4. Capping | `WeightCapping` + `CappingRule` | The rule sets each constituent's cap: `SingleCap`, 18% for all SMI constituents. Constituents above their cap get exactly the cap. The rest share the remaining weight in proportion to FFMCAP. This repeats until none is above its cap (rulebook 5.12.4 and the brief's example). |
+| 4. Capping | `WeightCapping` | One cap for all constituents, 18% for the SMI. Constituents above the cap get exactly the cap. The rest share the remaining weight in proportion to FFMCAP. This repeats until none is above its cap (rulebook 5.12.4 and the brief's example). |
 
 **Iterative capping (A14):** a literal reading of rulebook 5.12.4 caps only constituents whose *raw* share
 is above 18%, in a single pass. That can leave a weight above the cap after redistribution. The loop caps such
@@ -156,7 +156,7 @@ ties are broken by id.
 |---|---|
 | New quarter | Add a review period to the YAML and a `data/<index>/<period>/` folder. No code change. |
 | New index with a single cap and a buffer (the SMI's rules, other numbers) | Add an index block to the YAML and its data folder. No code change. |
-| Tiered capping (e.g. SLI: largest 4 at 9%, rest at 4.5%, rulebook 5.17.4) | Implement `CappingRule`, add its parameters to `IndexDefinition` and the YAML, and pick it in `ReviewEngine.cappingRule`. The capping loop is unchanged; `WeightCappingTest` runs a tiered rule already. |
+| Tiered capping (e.g. SLI: largest 4 at 9%, rest at 4.5%, rulebook 5.17.4) | Let `WeightCapping` take a cap per constituent instead of one value (the loop stays the same), add the tier parameters to `IndexDefinition` and the YAML, and compute the caps in `ReviewEngine`. |
 | New ranking criterion computed from price, shares and free float | Implement `RankingStrategy` (or, for a single value of the security, add a `ByValue` line) and register it in `RankingStrategies` (a static registry on purpose), and select it in the YAML. |
 | The rulebook's selection list (A4: 12-month average FFMCAP and turnover) | Three steps: add turnover and history to the input files, `InputData` and the loader; give `RankingStrategy` the review's input, not just one `EligibleSecurity`; decide what happens to securities without enough history. `Eligibility` stays: it checks the data the weights need. |
 | New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
@@ -185,10 +185,10 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 
 | Level | Tests |
 |---|---|
-| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a test-only tiered rule, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `RankingTest` (tie-break by id, A8), `RankingStrategiesTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
+| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a weight exactly at the cap, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, incumbents outnumbering slots), `RankingTest` (tie-break by id, A8), `RankingStrategiesTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
 | Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`, `ReportFormatTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
 | Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, invalid UTF-8, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, files read, empty files, missing files and columns |
-| Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round |
+| Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round, and fails a review with too few rankable securities (A12) |
 | Storage | `FileReportStoreTest`: file naming, no overwrite of an existing report, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
 | API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with a summary and `Location`, full stored reports returned as written, 404s, problem responses for Spring's own 404/405, and the stored report's OpenAPI schema. `ApiExceptionHandlerTest`: unusable input gives a 422 with the reason, unexpected errors a 500 without internals |
@@ -226,8 +226,8 @@ simplicity over feature quantity:
 
 - **Indices that depend on other indices.** The SMIM's universe is "SMI Expanded minus the SMI" (rulebook 5.16.4),
   so its review needs another index's result. Here each index has its own universe file.
-- **The SLI in full.** Tiered capping fits (see the table above), but its four 9% constituents come from a
-  half-year ranking, for which there is no data.
+- **The SLI in full.** Tiered capping is a small change (see the table above), but its four 9% constituents
+  come from a half-year ranking, for which there is no data.
 - **Review schedule rules.** The SMI's ordinary review is annual, on the third Friday of September (5.12.3.1).
   Review periods are a configured list of dates, not generated from a rule, and there are no extraordinary
   reviews.
