@@ -75,6 +75,7 @@ class IndexControllerTest {
 
         assertThat(run).bodyJson().satisfies(json -> {
             assertThat(json).extractingPath("$.reportId").isEqualTo(location.substring(location.lastIndexOf('/') + 1));
+            assertThat(json).extractingPath("$.reportUrl").isEqualTo(location);
             assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
             assertThat(json).extractingPath("$.statusReasons[*].relevance")
                     .isEqualTo(List.of("NO_DATA_LOST", "ESTIMATED_FAR_BELOW_BUFFER"));

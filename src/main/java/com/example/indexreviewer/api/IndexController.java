@@ -47,13 +47,13 @@ public class IndexController {
     @Operation(summary = "Run a review, store its report and return a summary",
             description = "Loads the review's input, ranks, selects and caps, and returns the review status, "
                     + "the new composition with weights, joiners and leavers. The full report with the audit "
-                    + "trail is stored as written; the Location header points to it.")
+                    + "trail is stored as written; reportUrl in the body and the Location header point to it.")
     @PostMapping("/{index}/reviews/{period}")
     public ResponseEntity<ReviewSummaryResponse> review(@PathVariable String index, @PathVariable String period) {
         var run = service.run(index, period);
         var location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/reports/{id}").buildAndExpand(run.stored().id()).toUri();
-        return ResponseEntity.created(location).body(ReviewSummaryResponse.of(run.stored(), run.report()));
+        return ResponseEntity.created(location).body(ReviewSummaryResponse.of(run.stored(), location, run.report()));
     }
 
     @Operation(summary = "List the stored runs of a review, oldest first")

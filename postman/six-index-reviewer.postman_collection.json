@@ -200,7 +200,10 @@
                   "  pm.collectionVariables.set('reportId', location.substring(location.lastIndexOf('/') + 1));",
                   "});",
                   "const r = pm.response.json();",
-                  "pm.test('summary carries the report id', () => pm.expect(r.reportId).to.eql(pm.collectionVariables.get('reportId')));",
+                  "pm.test('summary carries the report id and its URL (same as Location)', () => {",
+                  "  pm.expect(r.reportId).to.eql(pm.collectionVariables.get('reportId'));",
+                  "  pm.expect(r.reportUrl).to.eql(pm.collectionVariables.get('reportUrl'));",
+                  "});",
                   "pm.test('review status: completed with warnings (duplicates, 166 excluded)', () => {",
                   "  pm.expect(r.status).to.eql('COMPLETED_WITH_WARNINGS');",
                   "  pm.expect(r.statusReasons.map(s => s.relevance)).to.eql(['NO_DATA_LOST', 'ESTIMATED_FAR_BELOW_BUFFER']);",
@@ -235,7 +238,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "indices", "SMI", "reviews", "2026-Q3"]
             },
-            "description": "Runs the SMI Q3 2026 review, stores the full report and returns a summary: report id, status with structured reasons, the 20 constituents with weights (joiner, capped), joiners and leavers. Returns 201 Created; the Location header points to the stored report with the audit trail, and the test script saves it as the collection variables `reportUrl` and `reportId` for the stored-report requests below. Weights are in percent, rounded for display only."
+            "description": "Runs the SMI Q3 2026 review, stores the full report and returns a summary: report id and `reportUrl`, status with structured reasons, the 20 constituents with weights (joiner, capped), joiners and leavers. Returns 201 Created; `reportUrl` in the body and the Location header both point to the stored report with the audit trail, and the test script saves them as the collection variables `reportUrl` and `reportId` for the stored-report requests below. Weights are in percent, rounded for display only."
           },
           "response": []
         },

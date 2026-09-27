@@ -169,7 +169,7 @@ ties are broken by id.
 |---|---|
 | `GET /api/indices` | Configured indices and review periods |
 | `GET /api/indices/{index}/reviews/{period}/input` | Loaded input: files with checksums, counts per date, composition, warnings |
-| `POST /api/indices/{index}/reviews/{period}` | Runs the review, stores the full `ReviewReport`: **201 Created**, summary body (status, constituents with weights, joiners, leavers), `Location` of the stored report |
+| `POST /api/indices/{index}/reviews/{period}` | Runs the review, stores the full `ReviewReport`: **201 Created**, summary body (status, constituents with weights, joiners, leavers) with `reportUrl`, the same URI as the `Location` header of the stored report |
 | `GET /api/indices/{index}/reviews/{period}/reports` | Stored runs of the review, oldest first: id, generation time, status |
 | `GET /api/indices/{index}/reviews/{period}/reports/{id}` | One stored report, byte for byte as written |
 

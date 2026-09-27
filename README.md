@@ -39,14 +39,21 @@ Run the review:
 curl -i -X POST http://localhost:8080/api/indices/SMI/reviews/2026-Q3
 ```
 
-The response is `201 Created` with a summary (report id, status, the 20 constituents with weights, joiners,
-leavers) and a `Location` header pointing to the full stored report in `reports/SMI/2026-Q3/<run id>.json`.
+The response is `201 Created` with a summary: status, the 20 constituents with weights, joiners and leavers.
+The full report with the audit trail (ranking, capping rounds, input checksums, warnings) is stored, and there
+are two ways to reach it:
+
+- **Over the API:** `reportUrl` in the response body (also in the `Location` header), e.g.
+  `http://localhost:8080/api/indices/SMI/reviews/2026-Q3/reports/20260927T203246781715411Z`.
+- **On disk:** `reports/<index>/<review period>/<run id>.json` in the working directory, e.g.
+  `reports/SMI/2026-Q3/20260927T203246781715411Z.json`. The folder is gitignored and set by
+  `index-reviewer.reports-dir`. Files are never overwritten; each run adds one.
 
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/indices` | Configured indices and review periods |
 | `GET /api/indices/{index}/reviews/{period}/input` | Load and validate a review's input without running it: files with SHA-256 checksums, counts, warnings |
-| `POST /api/indices/{index}/reviews/{period}` | Run the review, store the full report and return a summary (201, `Location` header) |
+| `POST /api/indices/{index}/reviews/{period}` | Run the review, store the full report and return a summary with `reportUrl` (201, `Location` header) |
 | `GET /api/indices/{index}/reviews/{period}/reports` | List the stored runs of a review, oldest first |
 | `GET /api/indices/{index}/reviews/{period}/reports/{id}` | Get a stored report exactly as it was written |
 
