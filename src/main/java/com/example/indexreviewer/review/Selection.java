@@ -57,13 +57,14 @@ public final class Selection {
     /** Fills the free slots from the buffer: incumbents first, then new securities, each in rank order (A7). */
     private static void fillBuffer(List<RankedSecurity> buffer, int slots,
                                    Map<RankedSecurity, SelectionDecision> decisions) {
+        int free = slots;
         for (boolean incumbents : new boolean[]{true, false}) {
             for (var security : buffer) {
-                if (slots > 0 && security.incumbent() == incumbents) {
+                if (free > 0 && security.incumbent() == incumbents) {
                     decisions.put(security, incumbents
                             ? SelectionDecision.SELECTED_BUFFER_INCUMBENT
                             : SelectionDecision.SELECTED_BUFFER_NEW);
-                    slots--;
+                    free--;
                 }
             }
         }

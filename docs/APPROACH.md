@@ -228,6 +228,16 @@ tests written for the number, and the value is in reading what they find.
   422 response, configuration rules. Left uncovered: one-line I/O rethrows, the impossible SHA-256 error, `main`,
   and a missing commit id.
 
+A one-off smell scan checked for anything these three miss: OpenRewrite's Java 25 migration and
+static-analysis recipes (dry run), and PMD 7 with its design, best-practice and code-style rules. Neither is part
+of the build. PMD's defaults assume shared mutable state and pre-SLF4J logging, so most of its findings are
+noise here, and a permanent gate would mostly collect suppressions. OpenRewrite found no missed modern idiom:
+the code already uses records, `var`, `Stream.toList()`, `formatted()` and sequenced collections. Taken: import order, a parameter
+that was reassigned as a counter, and two lambdas that could be method references. Left as they are: exceptions that become
+row warnings or 404s without their cause (the message is the whole story), `serialVersionUID` on exceptions
+that are never serialized, and the lazy `() -> reportsDir.toString()` supplier, which must not read the
+`@TempDir` field when it is registered.
+
 ## Working with AI assistance
 
 The brief allows AI assistance; this project was built with Claude Code.

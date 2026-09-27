@@ -58,8 +58,8 @@ class ReviewServiceTest {
         var run = service.run("SMI", "2026-Q3");
 
         assertThat(run.report().status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
-        assertThat(run.report().joiners()).extracting(j -> j.securityId()).containsExactly("177");
-        assertThat(run.report().leavers()).extracting(l -> l.securityId()).containsExactly("103");
+        assertThat(run.report().joiners()).extracting(ReviewReport.Joiner::securityId).containsExactly("177");
+        assertThat(run.report().leavers()).extracting(ReviewReport.Leaver::securityId).containsExactly("103");
         assertThat(run.stored().id()).isEqualTo("20260925T201052184Z");
         assertThat(service.reports("SMI", "2026-Q3")).containsExactly(run.stored());
         assertThat(service.report("SMI", "2026-Q3", run.stored().id())).isNotEmpty();
