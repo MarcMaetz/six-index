@@ -79,15 +79,17 @@ public final class StatusAssessment {
         if (result.input().currentComposition().contains(id)) {
             return new StatusReason(id, Relevance.CURRENT_CONSTITUENT, "Current constituent", warning);
         }
-        var rankedSecurity = rankedById.get(id);
-        if (rankedSecurity == null) {
-            return unranked.judge(id, warning);
-        }
-        int rank = rankedSecurity.rank();
+        var ranked = rankedById.get(id);
+        return ranked == null ? unranked.judge(id, warning) : ranked(ranked, warning);
+    }
+
+    /** A ranked security matters if it is within the buffer end. */
+    private StatusReason ranked(RankedSecurity security, WarningRef warning) {
+        int rank = security.rank();
         return rank <= bufferEnd
-                ? new StatusReason(id, Relevance.RANKED_WITHIN_BUFFER,
+                ? new StatusReason(security.securityId(), Relevance.RANKED_WITHIN_BUFFER,
                         "Ranked %d, within buffer end %d".formatted(rank, bufferEnd), warning)
-                : new StatusReason(id, Relevance.RANKED_BELOW_BUFFER,
+                : new StatusReason(security.securityId(), Relevance.RANKED_BELOW_BUFFER,
                         "Ranked %d, below buffer end %d".formatted(rank, bufferEnd), warning);
     }
 }

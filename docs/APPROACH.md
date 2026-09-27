@@ -180,6 +180,8 @@ section 5.12, with definitions in 2 and 4.3.
 - **Split by rule.** `StatusAssessment.assess(result)` builds a private instance holding the result and its rank
   lookup, and reads top to bottom: warnings → where each security stands → status. The A13 estimate, the largest
   and most assumption-laden part, is its own class (`UnrankedEstimate`) with the buffer-end value computed once.
+  The ranked case is one comparison with the buffer end, so it stays a method (`ranked`) next to
+  `unranked.judge`; a class for it would be mostly constructor.
   The rule from reasons to status is `ReviewStatus.of`. Rejected: a nested state-holder inside a static-only
   class (two classes for one job) and one class for all three rules (160 lines, the A13 details drowned out
   the overview).
