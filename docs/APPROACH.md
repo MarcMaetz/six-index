@@ -292,8 +292,9 @@ can be changed in one place.
 
 - **Designed for change:** new indices and quarters are configuration; new rules go into `review` behind the
   capping rule and ranking strategy; where the design stops is in `DESIGN.md`, *Limits of the design*.
-- **The extensibility review** against the SLI, and the part of that critique that was wrong: eligibility checks
-  the data every strategy needs.
+- **The extensibility review** against the SLI, including the finding I rejected: moving eligibility behind the
+  ranking strategy. Eligibility checks the FFMCAP inputs (price, shares, free float), and the weights need
+  FFMCAP however securities are ranked, so the check holds for every index and stays the pipeline's first step.
 - **The buffer decides the result:** a plain top 20 gives 3 joiners and 3 leavers, the buffer 1 and 1.
 - **Capping:** iterative vs. single pass, with a live demo at `weight-cap: 0.15`; weights vs. capping factors;
   why the displayed weights add up to 99.999999%.
