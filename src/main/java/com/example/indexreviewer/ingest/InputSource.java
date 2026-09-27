@@ -5,7 +5,7 @@ import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
 
 /**
- * Where a review's input comes from (D28). {@link CsvFolderInputSource} reads the CSV folder of the review; a
+ * Where a review's input comes from. {@link CsvFolderInputSource} reads the CSV folder of the review; a
  * market-data system or database could replace it without touching the review.
  */
 public interface InputSource {

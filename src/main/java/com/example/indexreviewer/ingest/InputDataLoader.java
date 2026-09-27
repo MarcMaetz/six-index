@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Loads and validates the input of one review from its folder ({@code <data-dir>/<index>/<period>}, D12), which
+ * Loads and validates the input of one review from its folder ({@code <data-dir>/<index>/<period>}), which
  * holds {@code <universe>_universe.csv} (e.g. {@code spi_universe.csv}), {@code sec_data.csv} and
  * {@code composition.csv}.
  * <p>

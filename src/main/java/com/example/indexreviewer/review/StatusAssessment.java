@@ -15,14 +15,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Derives the review status from the warnings (D10, D16, D22). Every warning yields a {@link StatusReason} per
+ * Derives the review status from the warnings. Every warning yields a {@link StatusReason} per
  * affected security, with a {@link Relevance}: missing data matters when it names no security, or a security
  * that could change the result: a current constituent, a security ranked within the buffer end, or an unranked
  * security that could rank there. The last is estimated from whatever data the security has and must be well
  * below the buffer end to count as harmless (A13). An index with fewer constituents than needed always needs
  * attention (A12). The status is {@code REQUIRES_ATTENTION} if any reason needs attention.
  * <p>
- * Part of the review, not the report (D27): it judges the result using the index's buffer and ranking strategy.
+ * Part of the review, not the report: it judges the result using the index's buffer and ranking strategy.
  * Read it through {@link ReviewResult#assessment()}.
  */
 public final class StatusAssessment {
@@ -153,7 +153,8 @@ public final class StatusAssessment {
             if (price == null || shares == null || freeFloat == null) {
                 return Optional.empty();
             }
-            return Optional.of(result.rankingStrategy().rankingValue(EligibleSecurity.of(id, price, shares, freeFloat)));
+            return Optional.of(result.rankingStrategy()
+                    .rankingValue(EligibleSecurity.of(id, price, shares, freeFloat)));
         }
 
         private static <T> T first(Optional<T> preferred, Optional<T> fallback) {

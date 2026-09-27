@@ -6,7 +6,7 @@ import com.example.indexreviewer.domain.ReviewPeriod;
 
 import java.nio.file.Path;
 
-/** Reads a review's CSVs from {@code <data-dir>/<index>/<period>}, e.g. {@code data/SMI/2026-Q3} (D12). */
+/** Reads a review's CSVs from {@code <data-dir>/<index>/<period>}, e.g. {@code data/SMI/2026-Q3}. */
 public final class CsvFolderInputSource implements InputSource {
 
     private final Path dataDir;

@@ -1,6 +1,6 @@
 package com.example.indexreviewer.review;
 
-/** Overall outcome of a review, derived from its data-quality warnings (D10, D16). */
+/** Overall outcome of a review, derived from its data-quality warnings. */
 public enum ReviewStatus {
     /** No warnings. */
     COMPLETED,

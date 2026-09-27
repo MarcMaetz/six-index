@@ -3,7 +3,7 @@ package com.example.indexreviewer.review;
 import java.math.BigDecimal;
 
 /**
- * The weight of one constituent, before and after capping, at full precision (D13).
+ * The weight of one constituent, before and after capping, at full precision.
  *
  * @param rawWeight     FFMCAP share of the total, before capping
  * @param weight        final weight, at most the cap

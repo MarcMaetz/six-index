@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Maps every error to an RFC 9457 problem response (D32): domain errors here, Spring MVC's own (unknown path,
+ * Maps every error to an RFC 9457 problem response: domain errors here, Spring MVC's own (unknown path,
  * wrong method, …) through {@link ResponseEntityExceptionHandler}, and anything unexpected to a 500.
  */
 @RestControllerAdvice

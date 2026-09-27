@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Everything a review decided, with the intermediate steps kept for traceability.
  *
- * @param rankingStrategy the index's ranking strategy, looked up once per review (D33)
+ * @param rankingStrategy the index's ranking strategy, looked up once per review
  * @param excluded       universe securities that could not be ranked
  * @param selection      decision for every ranked security, in rank order
  * @param constituents   the new composition, in rank order
@@ -43,7 +43,7 @@ public record ReviewResult(
         return constituents.stream().filter(Constituent::joiner).toList();
     }
 
-    /** The review status with its reasons, derived from the warnings and the result (D27). */
+    /** The review status with its reasons, derived from the warnings and the result. */
     public StatusAssessment.Result assessment() {
         return StatusAssessment.assess(this);
     }

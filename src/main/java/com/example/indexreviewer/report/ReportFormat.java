@@ -1,7 +1,7 @@
 package com.example.indexreviewer.report;
 
 /**
- * Display precision of the report (D13). Calculations run at full precision; only the report rounds.
+ * Display precision of the report. Calculations run at full precision; only the report rounds.
  *
  * @param weightDecimals        decimals of weights, in percent
  * @param cappingFactorDecimals decimals of capping factors

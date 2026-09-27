@@ -85,7 +85,7 @@ class WeightCappingTest {
 
     @Test
     void capsEachConstituentAtItsOwnCap() {
-        // Tiered rule (SLI-style, D25): the 2 largest at 30%, the rest at 15%. Round 1 caps A (40% > 30%); sharing
+        // Tiered rule (SLI-style): the 2 largest at 30%, the rest at 15%. Round 1 caps A (40% > 30%); sharing
         // its excess lifts C from 15% to 17.5%, above its lower cap, so round 2 caps C. B ends at 24.4%, above the
         // lower cap but within its own.
         var result = WeightCapping.cap(ffmcaps("A", 40, "B", 20, "C", 15, "D", 10, "E", 10, "F", 5),

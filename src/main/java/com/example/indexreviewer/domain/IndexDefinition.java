@@ -7,11 +7,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Business parameters of an index, as configured in {@code config/indices.yml} (D11). The constructor rejects
+ * Business parameters of an index, as configured in {@code config/indices.yml}. The constructor rejects
  * inconsistent values, so a bad configuration fails at startup rather than during a review.
  *
  * @param name                 index name, also the name of its input folder, e.g. {@code SMI}
- * @param methodology          rulebook version and section the index follows, recorded in every report (D29)
+ * @param methodology          rulebook version and section the index follows, recorded in every report
  * @param universe             universe the constituents are selected from, e.g. {@code SPI}
  * @param constituentCount     number of constituents
  * @param directSelectionRank  securities ranked up to here are selected directly

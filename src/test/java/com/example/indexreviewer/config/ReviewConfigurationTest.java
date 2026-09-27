@@ -9,7 +9,7 @@ import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** How the build recorded in each report is read from Gradle's generated files (D31). */
+/** How the build recorded in each report is read from Gradle's generated files. */
 class ReviewConfigurationTest {
 
     private static final BuildProperties BUILD = new BuildProperties(properties("version", "1.4.2"));

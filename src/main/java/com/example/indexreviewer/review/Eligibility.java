@@ -13,7 +13,7 @@ import java.util.List;
  * the cut-off date and shares and free float on the review date. Others are excluded with a reason (A2).
  * <p>
  * These are the data the weights need (FFMCAP, rulebook 5.12.4), whatever the ranking strategy, so the check
- * holds for every strategy; a strategy needing more data would add its own exclusions (D26).
+ * holds for every strategy; a strategy needing more data would add its own exclusions.
  */
 public final class Eligibility {
 

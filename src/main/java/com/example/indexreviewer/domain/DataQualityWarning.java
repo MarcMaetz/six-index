@@ -16,7 +16,7 @@ import java.util.Objects;
 public record DataQualityWarning(String source, Integer line, Impact impact, String message,
                                  List<String> securityIds) {
 
-    /** Whether a warning can affect the review result; drives the review status (D10, D16). */
+    /** Whether a warning can affect the review result; drives the review status. */
     public enum Impact {
         /** Nothing was lost, e.g. an identical duplicate row was dropped. */
         NONE,

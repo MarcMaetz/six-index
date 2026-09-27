@@ -3,7 +3,7 @@ package com.example.indexreviewer.domain;
 import java.util.Objects;
 
 /**
- * An input file a review read, with the SHA-256 checksum of its content (D12), so the report can prove which
+ * An input file a review read, with the SHA-256 checksum of its content, so the report can prove which
  * input produced its result.
  *
  * @param path   path of the file as it was read

@@ -19,7 +19,7 @@ import java.time.Clock;
 
 /**
  * Makes the framework-free catalog, input source, review engine, report builder and report store available as
- * beans (D32).
+ * beans.
  */
 @Configuration
 public class ReviewConfiguration {
@@ -49,8 +49,8 @@ public class ReviewConfiguration {
     }
 
     /**
-     * Version from {@code build-info.properties}, revision from {@code git.properties}, both written by Gradle
-     * (D31). {@code -dirty} marks a build with uncommitted changes; a missing file gives {@code unknown}.
+     * Version from {@code build-info.properties}, revision from {@code git.properties}, both written by Gradle.
+     * {@code -dirty} marks a build with uncommitted changes; a missing file gives {@code unknown}.
      */
     static ReviewReport.Build build(BuildProperties buildProperties, GitProperties gitProperties) {
         String version = buildProperties == null ? "unknown" : buildProperties.getVersion();
@@ -60,7 +60,7 @@ public class ReviewConfiguration {
         return new ReviewReport.Build(version, revision);
     }
 
-    /** Input from the CSV folder per index and review period (D12, D28). */
+    /** Input from the CSV folder per index and review period. */
     @Bean
     InputSource inputSource(IndexReviewerProperties properties) {
         return new CsvFolderInputSource(properties.dataDir());

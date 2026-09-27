@@ -11,7 +11,7 @@ import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 /**
- * The package structure of DESIGN.md as tests (D4, D30): a change that breaks it fails the build instead of
+ * The package structure of DESIGN.md as tests: a change that breaks it fails the build instead of
  * relying on review.
  */
 @AnalyzeClasses(packages = "com.example.indexreviewer", importOptions = ImportOption.DoNotIncludeTests.class)
@@ -21,7 +21,7 @@ class ArchitectureTest {
 
     /**
      * Dependencies point inwards: HTTP → use cases → catalog and pipeline → domain. {@code config} is the Spring
-     * wiring, outermost, and nothing depends on it (D32).
+     * wiring, outermost, and nothing depends on it.
      */
     @ArchTest
     static final ArchRule layers = layeredArchitecture().consideringOnlyDependenciesInLayers()

@@ -4,7 +4,7 @@ import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 
 /**
- * Why the review has its status (D22): one entry per warning and affected security, or for an incomplete index.
+ * Why the review has its status: one entry per warning and affected security, or for an incomplete index.
  *
  * @param securityId  affected security, or {@code null} if the reason names none
  * @param relevance   whether and why it can change the result; decides the status

@@ -54,7 +54,7 @@ public final class ReviewEngine {
 
     /**
      * Every configured index has one cap for all constituents. A tiered index (e.g. the SLI) would get its rule
-     * here, from new fields in its definition (D25).
+     * here, from new fields in its definition.
      */
     private static CappingRule cappingRule(IndexDefinition index) {
         return new SingleCap(index.weightCap());

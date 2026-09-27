@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 
-/** Turns a {@link ReviewResult} into a {@link ReviewReport}, rounding values for display only (D13). */
+/** Turns a {@link ReviewResult} into a {@link ReviewReport}, rounding values for display only. */
 public final class ReportBuilder {
 
     private final ReportFormat format;

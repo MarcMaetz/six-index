@@ -69,7 +69,7 @@ class ReviewEngineTest {
     }
 
     /**
-     * D20: at 18% the Q3 data needs one capping round, so a lower cap shows why capping must repeat. After
+     * At 18% the Q3 data needs one capping round, so a lower cap shows why capping must repeat. After
      * capping 155 and 205 at 15%, sharing their excess lifts 63 to 15.60% and 64 above 15% too. A single pass
      * would publish 63 above the cap; the loop caps 63 and 64 in round 2.
      */

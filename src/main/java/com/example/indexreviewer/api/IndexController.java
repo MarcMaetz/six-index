@@ -18,7 +18,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
 
-/** Maps HTTP to the {@link ReviewService} use cases (D24); holds no review logic of its own. */
+/** Maps HTTP to the {@link ReviewService} use cases; holds no review logic of its own. */
 @RestController
 @RequestMapping("/api/indices")
 public class IndexController {
@@ -62,7 +62,10 @@ public class IndexController {
         return service.reports(index, period);
     }
 
-    /** Returned as stored bytes (D21); the annotation documents their structure, the current report schema (D34). */
+    /**
+     * Returned as stored bytes, not re-serialized, so older reports stay exactly as written (D21). The annotation
+     * documents them with the current report schema.
+     */
     @Operation(summary = "Get a stored report exactly as it was written")
     @ApiResponse(responseCode = "200", description = "The stored report",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,

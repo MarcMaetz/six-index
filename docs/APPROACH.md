@@ -46,6 +46,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Spring conventions pass: `catalog` package, `config` outermost, validation starter removed, SLF4J logging, `ProblemDetail` for every error; ArchUnit rules updated and checked with a probe (D32) |
 | 2026-09-26 | Ranking strategy looked up once per review and carried on `ReviewResult`; static registry kept on purpose (D33) |
 | 2026-09-26 | Stored-report endpoint documented with the `ReviewReport` schema in OpenAPI; slice tests, group id and package-by-layer kept, reasons recorded (D34) |
+| 2026-09-26 | Decision numbers removed from code comments (70 of 73), convention added to `AGENT.md` (D35) |
 
 ## Design decisions
 
@@ -494,6 +495,20 @@ decided, why, and what we rejected.
     second feature (e.g. index calculation next to reviews) the packages would go by feature, layers inside.
 - **Rejected:** deserializing the stored file into `ReviewReport` to get the schema for free (would break
   "exactly as written" for older reports and re-format the JSON).
+
+### D35 — Decision numbers belong in the docs, not in code comments
+- Removed 70 of 73 `D<n>` references from Java comments, tests, `application.properties`, `indices.yml` and
+  `build.gradle`; each comment still says what it said without the number. Three stay, each defending a choice a
+  reader might otherwise "fix": the static strategy registry (`RankingStrategies`, D33), the narrow
+  `RankingStrategy` signature (D26), and the stored report returned as bytes (`IndexController`, D21).
+  Assumption references (`A<n>`) stay: they mark where code applies an interpretation of the rulebook, like
+  citing a spec clause. `AGENT.md` states the convention so later changes don't reintroduce them.
+- **Why:** A number means nothing without the log; many references recorded history ("added in D32") that Git
+  and this log already hold; they go stale as entries are refined (D17 → D21, D30 → D32); and at one per file
+  they read as the workflow leaking into the code. Same practice as ADR references: rare, and only where they
+  stop a deliberate decision from being undone.
+- **Rejected:** keeping all (noise for a reviewer); removing all (loses the pointer where a comment can't carry
+  the full reasoning); also dropping assumption references (they are the audit link from code to rulebook).
 
 ## Input data findings
 

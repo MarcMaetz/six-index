@@ -68,7 +68,7 @@ class ReportBuilderTest {
         });
         assertThat(report.excluded()).extracting(ReviewReport.Exclusion::securityId).containsExactly("166");
         assertThat(report.ranking()).hasSize(204);
-        // Each FFMCAP can be recomputed from the entry: 165.7 × 45867891 × 1 for the leaver 103 (D31).
+        // Each FFMCAP can be recomputed from the entry: 165.7 × 45867891 × 1 for the leaver 103.
         assertThat(report.ranking()).filteredOn(e -> e.securityId().equals("103")).singleElement().satisfies(e -> {
             assertThat(e.rank()).isEqualTo(35);
             assertThat(e.price()).isEqualByComparingTo("165.7");

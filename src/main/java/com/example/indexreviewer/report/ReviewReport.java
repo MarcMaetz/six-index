@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * The result of an index review as delivered to its users: the new composition with weights, joiners, leavers
  * and status, plus the audit trail behind them (parameters, input files, full ranking, capping rounds,
- * warnings). Values are rounded for display (D13); weights are in percent.
+ * warnings). Values are rounded for display; weights are in percent.
  */
 public record ReviewReport(
         String index,
@@ -37,7 +37,7 @@ public record ReviewReport(
         List<DataQualityWarning> warnings) {
 
     /**
-     * The software that produced the report (D31).
+     * The software that produced the report.
      *
      * @param version  application version
      * @param revision Git revision it was built from, {@code -dirty} if built with uncommitted changes
@@ -68,7 +68,7 @@ public record ReviewReport(
 
     /**
      * One line of the full ranking, with the values its FFMCAP was calculated from (price on the cut-off date,
-     * shares and free float on the review date, D31) and the selection decision taken for it.
+     * shares and free float on the review date) and the selection decision taken for it.
      */
     public record RankingEntry(int rank, String securityId, BigDecimal price, long shares, BigDecimal freeFloat,
                                BigDecimal ffmcap, boolean incumbent, SelectionDecision selection) {

@@ -1,10 +1,10 @@
-# Index definitions and review schedule (D11).
+# Index definitions and review schedule.
 #
 # Business-owned parameters: changing a value or adding a review period needs no code change or rebuild.
 # The app reads this file from ./config/indices.yml; a copy packaged in the jar is the default.
 # Inconsistent values (e.g. a buffer ending before the constituent count) stop the app at startup.
 #
-# Input files for a review are expected in <data-dir>/<index name>/<review period id>/ (D12).
+# Input files for a review are expected in <data-dir>/<index name>/<review period id>/.
 
 index-reviewer:
   indices:

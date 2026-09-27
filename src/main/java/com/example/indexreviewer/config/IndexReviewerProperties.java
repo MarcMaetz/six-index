@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Application configuration under {@code index-reviewer}. Index definitions come from {@code config/indices.yml}
- * (D11); {@link IndexDefinition} validates each one, so a bad definition fails at startup.
+ * Application configuration under {@code index-reviewer}. Index definitions come from
+ * {@code config/indices.yml}; {@link IndexDefinition} validates each one, so a bad definition fails at startup.
  *
- * @param dataDir root folder of the input files, holding one folder per index and review period (D12)
- * @param reportsDir root folder of stored review reports (D21)
- * @param report  display precision of review reports (D13)
+ * @param dataDir root folder of the input files, holding one folder per index and review period
+ * @param reportsDir root folder of stored review reports
+ * @param report  display precision of review reports
  * @param indices configured indices, with unique names
  */
 @ConfigurationProperties("index-reviewer")

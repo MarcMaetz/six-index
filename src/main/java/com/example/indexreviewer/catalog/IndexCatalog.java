@@ -7,8 +7,8 @@ import com.example.indexreviewer.review.RankingStrategies;
 import java.util.List;
 
 /**
- * Looks up configured indices and review periods. Loading their input is up to the {@code InputSource} (D28).
- * Framework-free: {@code ReviewConfiguration} builds it from the bound configuration (D32).
+ * Looks up configured indices and review periods. Loading their input is up to the {@code InputSource}.
+ * Framework-free: {@code ReviewConfiguration} builds it from the bound configuration.
  */
 public final class IndexCatalog {
 

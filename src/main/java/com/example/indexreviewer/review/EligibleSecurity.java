@@ -10,7 +10,7 @@ public record EligibleSecurity(String securityId, BigDecimal price, long shares,
                                BigDecimal ffmcap) {
 
     public static EligibleSecurity of(String securityId, BigDecimal price, long shares, BigDecimal freeFloat) {
-        // Multiplication only, so the product is exact without a MathContext (D13).
+        // Multiplication only, so the product is exact without a MathContext.
         BigDecimal ffmcap = price.multiply(BigDecimal.valueOf(shares)).multiply(freeFloat);
         return new EligibleSecurity(securityId, price, shares, freeFloat, ffmcap);
     }

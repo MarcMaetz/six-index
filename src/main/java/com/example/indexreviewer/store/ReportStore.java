@@ -5,8 +5,8 @@ import com.example.indexreviewer.report.ReviewReport;
 import java.util.List;
 
 /**
- * Keeps every review run as written (D21). Reports are never changed or deleted. Behind this interface a
- * database can replace the file store without touching the review (D2).
+ * Keeps every review run as written. Reports are never changed or deleted. Behind this interface a
+ * database can replace the file store without touching the review.
  */
 public interface ReportStore {
 

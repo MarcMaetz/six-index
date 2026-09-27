@@ -15,7 +15,7 @@ import java.util.Set;
  * Iterative weight capping (rulebook 5.12.4, brief's example): every constituent above its cap is set to its cap,
  * and the remaining weight is shared among the others in proportion to their FFMCAP. That can push another
  * constituent over its cap, so it repeats until none is above it. The {@link CappingRule} decides each
- * constituent's cap (D25). Calculated at full precision (D13).
+ * constituent's cap. Calculated at full precision.
  */
 public final class WeightCapping {
 
@@ -97,7 +97,7 @@ public final class WeightCapping {
         return weights;
     }
 
-    /** D13: weights add up to 1 and none exceeds its cap. A failure here is a bug, not bad input. */
+    /** Weights add up to 1 and none exceeds its cap. A failure here is a bug, not bad input. */
     private static void checkInvariants(List<CappedWeight> weights, Map<String, BigDecimal> caps) {
         BigDecimal sum = sum(weights.stream().map(CappedWeight::weight).toList());
         if (sum.subtract(BigDecimal.ONE).abs().compareTo(SUM_TOLERANCE) > 0) {

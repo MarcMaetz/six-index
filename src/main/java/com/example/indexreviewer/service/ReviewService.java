@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * The application's use cases, addressed by index name and review period id (D24). Any entry point (the REST API
+ * The application's use cases, addressed by index name and review period id. Any entry point (the REST API
  * today, a scheduler or CLI later) calls these instead of chaining catalog, input source, engine, report
  * builder and store itself.
  */
