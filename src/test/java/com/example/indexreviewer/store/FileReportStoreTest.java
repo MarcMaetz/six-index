@@ -7,6 +7,7 @@ import com.example.indexreviewer.report.ReportBuilder;
 import com.example.indexreviewer.report.ReportFormat;
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
+import com.example.indexreviewer.review.ReviewResult;
 import com.example.indexreviewer.review.ReviewStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -31,6 +33,7 @@ class FileReportStoreTest {
 
     private static final Instant NOW = Instant.parse("2026-09-25T20:10:52.184Z");
     private static final ReviewReport.Build BUILD = new ReviewReport.Build("1.0", "abc1234");
+    private static ReviewResult result;
     private static ReviewReport report;
 
     @TempDir
@@ -43,8 +46,13 @@ class FileReportStoreTest {
         var q3 = new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
         var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
                 "FFMCAP", List.of(q3));
-        var result = new ReviewEngine().run(smi, q3, new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI"));
-        report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC), BUILD).build(result);
+        result = new ReviewEngine().run(smi, q3, new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI"));
+        report = withTime(NOW);
+    }
+
+    private static ReviewReport withTime(Instant generatedAt) {
+        return new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(generatedAt, ZoneOffset.UTC), BUILD)
+                .build(result);
     }
 
     @Test
@@ -53,9 +61,9 @@ class FileReportStoreTest {
 
         var stored = store.save(report);
 
-        assertThat(stored.id()).isEqualTo("20260925T201052184Z");
+        assertThat(stored.id()).isEqualTo("20260925T201052184000000Z");
         assertThat(stored.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
-        Path file = root.resolve("SMI/2026-Q3/20260925T201052184Z.json");
+        Path file = root.resolve("SMI/2026-Q3/20260925T201052184000000Z.json");
         assertThat(file).exists();
         assertThat(store.read("SMI", "2026-Q3", stored.id())).isEqualTo(Files.readAllBytes(file));
 
@@ -66,29 +74,24 @@ class FileReportStoreTest {
     }
 
     @Test
-    void neverOverwritesRunsFromTheSameMillisecond() {
+    void neverOverwritesAnExistingReport() throws IOException {
         var store = new FileReportStore(root, mapper);
-
         var first = store.save(report);
-        var second = store.save(report);
-        var third = store.save(report);
+        byte[] written = store.read("SMI", "2026-Q3", first.id());
 
-        assertThat(List.of(first.id(), second.id(), third.id()))
-                .containsExactly("20260925T201052184Z", "20260925T201052184Z-2", "20260925T201052184Z-3");
-        assertThat(store.list("SMI", "2026-Q3")).extracting(StoredReport::id)
-                .containsExactly("20260925T201052184Z", "20260925T201052184Z-2", "20260925T201052184Z-3");
-        assertThat(store.list("SMI", "2026-Q3").getFirst()).isEqualTo(first);
+        assertThatThrownBy(() -> store.save(report)).hasCauseInstanceOf(FileAlreadyExistsException.class);
+        assertThat(store.read("SMI", "2026-Q3", first.id())).isEqualTo(written);
     }
 
     @Test
-    void listsRunsInChronologicalOrderEvenWithManySuffixes() {
+    void listsRunsInChronologicalOrder() {
         var store = new FileReportStore(root, mapper);
-        for (int i = 0; i < 11; i++) {
-            store.save(report);
+        for (Instant time : List.of(NOW.plusSeconds(1), NOW, NOW.plusNanos(1))) {
+            store.save(withTime(time));
         }
 
-        assertThat(store.list("SMI", "2026-Q3")).extracting(StoredReport::id).endsWith(
-                "20260925T201052184Z-9", "20260925T201052184Z-10", "20260925T201052184Z-11");
+        assertThat(store.list("SMI", "2026-Q3")).extracting(StoredReport::id).containsExactly(
+                "20260925T201052184000000Z", "20260925T201052184000001Z", "20260925T201053184000000Z");
     }
 
     @Test
@@ -99,7 +102,7 @@ class FileReportStoreTest {
     @Test
     void failsToListAReportMissingASummaryField() throws IOException {
         var dir = Files.createDirectories(root.resolve("SMI/2026-Q3"));
-        Files.writeString(dir.resolve("20260925T201052184Z.json"), "{\"generatedAt\" : \"2026-09-25T20:10:52.184Z\"}");
+        Files.writeString(dir.resolve("20260925T201052184000000Z.json"), "{\"generatedAt\" : \"2026-09-25T20:10:52.184Z\"}");
 
         assertThatThrownBy(() -> new FileReportStore(root, mapper).list("SMI", "2026-Q3"))
                 .hasMessageContaining("status");

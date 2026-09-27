@@ -8,7 +8,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -16,27 +15,23 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
  * Stores each report as a pretty-printed JSON file {@code <root>/<index>/<period>/<id>.json}. The id is the UTC
- * time the report was generated, e.g. {@code 20260925T201052184Z}, with a {@code -2}, {@code -3}, … suffix if
- * two runs share a millisecond. Files are created, never overwritten.
+ * time the report was generated to the nanosecond, e.g. {@code 20260925T201052184253999Z}, so ids have a fixed
+ * width and sort chronologically as text. Files are created, never overwritten: two runs in the same nanosecond
+ * make the second one fail rather than replace the first.
  */
 public final class FileReportStore implements ReportStore {
 
     private static final DateTimeFormatter ID_FORMAT =
-            DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssSSS'Z'").withZone(ZoneOffset.UTC);
+            DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssSSSSSSSSS'Z'").withZone(ZoneOffset.UTC);
     /** Ids and path segments must not be able to leave the store's folder. */
     private static final Pattern SAFE_SEGMENT = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]*");
     private static final String SUFFIX = ".json";
-    /** Chronological: by time, then by suffix as a number, so "…Z" < "…Z-2" < "…Z-10". */
-    private static final Comparator<String> RUN_ORDER = Comparator
-            .comparing(FileReportStore::timePart)
-            .thenComparingInt(FileReportStore::suffixNumber);
 
     private final Path root;
     private final JsonMapper mapper;
@@ -55,27 +50,13 @@ public final class FileReportStore implements ReportStore {
     public StoredReport save(ReviewReport report) {
         Path dir = folder(report.index(), report.reviewPeriod());
         byte[] json = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(report);
-        String baseId = ID_FORMAT.format(report.generatedAt());
+        String id = ID_FORMAT.format(report.generatedAt());
         try {
             Files.createDirectories(dir);
-            String id = baseId;
-            // Another run in the same millisecond took the id: try the next suffix.
-            for (int attempt = 2; !createNew(dir.resolve(id + SUFFIX), json); attempt++) {
-                id = baseId + "-" + attempt;
-            }
+            Files.write(dir.resolve(id + SUFFIX), json, StandardOpenOption.CREATE_NEW);
             return new StoredReport(id, report.index(), report.reviewPeriod(), report.generatedAt(), report.status());
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot store report in " + dir, e);
-        }
-    }
-
-    /** Writes a new file; false if the file already exists, which is never overwritten. */
-    private static boolean createNew(Path file, byte[] content) throws IOException {
-        try {
-            Files.write(file, content, StandardOpenOption.CREATE_NEW);
-            return true;
-        } catch (FileAlreadyExistsException e) {
-            return false;
         }
     }
 
@@ -90,7 +71,7 @@ public final class FileReportStore implements ReportStore {
                     .map(Path::toString)
                     .filter(name -> name.endsWith(SUFFIX))
                     .map(name -> name.substring(0, name.length() - SUFFIX.length()))
-                    .sorted(RUN_ORDER)
+                    .sorted()
                     .map(id -> summary(index, reviewPeriod, id))
                     .toList();
         } catch (IOException e) {
@@ -129,18 +110,6 @@ public final class FileReportStore implements ReportStore {
             }
         }
         return root.resolve(index).resolve(reviewPeriod);
-    }
-
-    /** The generation time of a run id, e.g. {@code 20260925T201052184Z} for {@code 20260925T201052184Z-2}. */
-    private static String timePart(String id) {
-        int dash = id.indexOf('-');
-        return dash < 0 ? id : id.substring(0, dash);
-    }
-
-    /** The suffix of a run id as a number; 1 for the first run of a millisecond, which has none. */
-    private static int suffixNumber(String id) {
-        int dash = id.indexOf('-');
-        return dash < 0 ? 1 : Integer.parseInt(id.substring(dash + 1));
     }
 
     private static ReportNotFoundException notFound(String index, String reviewPeriod, String id) {

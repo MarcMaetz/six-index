@@ -177,7 +177,7 @@ well.
 
 A review is a `POST`: it runs an action and creates a stored report. The store lives under
 `index-reviewer.reports-dir` (default `./reports/<index>/<period>/<run id>.json`, git-ignored). The run id is
-the UTC generation time, e.g. `20260925T201052184Z`. Unknown ids return 404. The contract is the springdoc OpenAPI spec
+the UTC generation time to the nanosecond, e.g. `20260925T201052184253999Z`. Unknown ids return 404. The contract is the springdoc OpenAPI spec
 at `/api-docs`. The Postman collection in `postman/` holds example calls with test scripts.
 
 ## Testing
@@ -188,7 +188,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`, `ReportFormatTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
 | Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, checksums, empty files, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round |
-| Storage | `FileReportStoreTest`: file naming, no overwrite for runs in the same millisecond, chronological listing, unknown and unsafe ids |
+| Storage | `FileReportStoreTest`: file naming, no overwrite of an existing report, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
 | API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, 404s, problem responses for Spring's own 404/405, and the stored report's OpenAPI schema. `ApiExceptionHandlerTest`: unusable input gives a 422 with the reason, unexpected errors a 500 without internals |
 | Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages with `config` outermost, plain-Java review logic, Spring only in `config`, `service` and `api`, no package cycles |

@@ -94,7 +94,7 @@ class IndexControllerTest {
         var run = mvc.post().uri("/api/indices/SMI/reviews/2026-Q3").exchange();
         assertThat(run).hasStatus(HttpStatus.CREATED);
         String location = run.getResponse().getHeader("Location");
-        assertThat(location).matches("http://localhost/api/indices/SMI/reviews/2026-Q3/reports/\\d{8}T\\d{9}Z(-\\d+)?");
+        assertThat(location).matches("http://localhost/api/indices/SMI/reviews/2026-Q3/reports/\\d{8}T\\d{15}Z");
         String id = location.substring(location.lastIndexOf('/') + 1);
 
         assertThat(mvc.get().uri(location)).hasStatusOk().bodyJson().satisfies(json -> {

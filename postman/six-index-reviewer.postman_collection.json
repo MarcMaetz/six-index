@@ -195,7 +195,7 @@
                   "pm.test('status 201 Created', () => pm.response.to.have.status(201));",
                   "pm.test('Location points to the stored report', () => {",
                   "  const location = pm.response.headers.get('Location');",
-                  "  pm.expect(location).to.match(/\\/api\\/indices\\/SMI\\/reviews\\/2026-Q3\\/reports\\/\\d{8}T\\d{9}Z(-\\d+)?$/);",
+                  "  pm.expect(location).to.match(/\\/api\\/indices\\/SMI\\/reviews\\/2026-Q3\\/reports\\/\\d{8}T\\d{15}Z$/);",
                   "  pm.collectionVariables.set('reportUrl', location);",
                   "  pm.collectionVariables.set('reportId', location.substring(location.lastIndexOf('/') + 1));",
                   "});",

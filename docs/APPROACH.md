@@ -187,7 +187,10 @@ section 5.12, with definitions in 2 and 4.3.
   branch, commit and time, so no names or emails end up in the jar.
 - **Every run is stored as written.** `POST` saves the report as JSON and returns 201 with its location; list
   and get endpoints read runs back. Files are created once and never changed, so "which report did we publish
-  for Q3, and when?" has an answer even after the configuration or data change.
+  for Q3, and when?" has an answer even after the configuration or data change. The run id is the UTC
+  generation time to the nanosecond, written with a single create-only attempt: a clash fails the request
+  instead of overwriting. Millisecond ids with a `-2`, `-3` retry suffix were dropped as extra code and an
+  extra sort rule for a case that practically never happens.
 - **Stored reports are returned byte for byte.** A report written by an older build may not match today's
   `ReviewReport`, so it isn't re-read into it; the OpenAPI docs still show the current schema. Listing reads only
   the time and status, and fails with the field's name if one is missing.
