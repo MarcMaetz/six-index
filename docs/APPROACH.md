@@ -155,7 +155,8 @@ section 5.12, with definitions in 2 and 4.3.
   input, a strategy that sees the whole review's input, and a rule for securities with a short history. Widening
   the signature now would add a parameter nothing uses, for data we don't have.
 - **Buffer selection** follows the rulebook: ranks 1–18 directly, then incumbents from the buffer before new
-  candidates, each in rank order (A7). Ties are broken by id (A8).
+  candidates, each in rank order (A7). Ties are broken by id (A8). The buffer always fills constituent count
+  minus direct selection rank slots (20 − 18 = 2), since the review stops earlier if too few are ranked (A12).
 - **Capping is iterative.** Capped constituents get their cap, the rest share the remainder in proportion to
   FFMCAP, and this repeats while anyone is above the cap (A14). A literal reading of rulebook 5.12.4 caps only
   securities whose raw share exceeds 18%. On the real data at a 15% cap, that single pass would publish `63` at

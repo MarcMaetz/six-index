@@ -42,7 +42,8 @@ public record ReviewSummaryResponse(
         var constituents = report.constituents().stream()
                 .map(c -> new ConstituentSummary(c.rank(), c.securityId(), c.joiner(), c.weightPercent(), c.capped()))
                 .toList();
-        return new ReviewSummaryResponse(stored.id(), reportUrl, report.index(), report.reviewPeriod(), report.generatedAt(),
-                report.status(), report.statusReasons(), constituents, report.joiners(), report.leavers());
+        return new ReviewSummaryResponse(stored.id(), reportUrl, report.index(), report.reviewPeriod(),
+                report.generatedAt(), report.status(), report.statusReasons(), constituents, report.joiners(),
+                report.leavers());
     }
 }

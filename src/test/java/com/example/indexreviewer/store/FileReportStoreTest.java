@@ -102,7 +102,8 @@ class FileReportStoreTest {
     @Test
     void failsToListAReportMissingASummaryField() throws IOException {
         var dir = Files.createDirectories(root.resolve("SMI/2026-Q3"));
-        Files.writeString(dir.resolve("20260925T201052184000000Z.json"), "{\"generatedAt\" : \"2026-09-25T20:10:52.184Z\"}");
+        Files.writeString(dir.resolve("20260925T201052184000000Z.json"),
+                "{\"generatedAt\" : \"2026-09-25T20:10:52.184Z\"}");
 
         assertThatThrownBy(() -> new FileReportStore(root, mapper).list("SMI", "2026-Q3"))
                 .hasMessageContaining("status");

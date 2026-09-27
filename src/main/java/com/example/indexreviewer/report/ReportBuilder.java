@@ -38,11 +38,11 @@ public final class ReportBuilder {
 
         return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
                 clock.instant(), build, status.status(), status.reasons(), parameters(index), constituents(result),
-                joiners, result.leavers(), result.excluded(), ranking(result), result.cappingRounds(), result.input().files(),
-                result.warnings());
+                joiners, result.leavers(), result.excluded(), ranking(result), result.cappingRounds(),
+                result.input().files(), result.warnings());
     }
 
-    private List<ReviewReport.Constituent> constituents(ReviewResult result) {
+    private static List<ReviewReport.Constituent> constituents(ReviewResult result) {
         return result.constituents().stream()
                 .map(c -> new ReviewReport.Constituent(c.rank(), c.securityId(), c.decision(), c.joiner(),
                         ffmcap(c.weight().ffmcap()), percent(c.weight().rawWeight()), percent(c.weight().weight()),
@@ -50,7 +50,7 @@ public final class ReportBuilder {
                 .toList();
     }
 
-    private List<ReviewReport.RankingEntry> ranking(ReviewResult result) {
+    private static List<ReviewReport.RankingEntry> ranking(ReviewResult result) {
         return result.selection().stream()
                 .map(o -> {
                     var eligible = o.ranked().eligible();
@@ -66,11 +66,11 @@ public final class ReportBuilder {
                 index.weightCap().movePointRight(2).stripTrailingZeros(), index.rankingStrategy());
     }
 
-    private BigDecimal percent(BigDecimal fraction) {
+    private static BigDecimal percent(BigDecimal fraction) {
         return round(fraction.movePointRight(2), WEIGHT_DECIMALS);
     }
 
-    private BigDecimal ffmcap(BigDecimal ffmcap) {
+    private static BigDecimal ffmcap(BigDecimal ffmcap) {
         return round(ffmcap, FFMCAP_DECIMALS);
     }
 

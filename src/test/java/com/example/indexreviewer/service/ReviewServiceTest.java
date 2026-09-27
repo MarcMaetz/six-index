@@ -63,7 +63,8 @@ class ReviewServiceTest {
         assertThat(run.stored().id()).isEqualTo("20260925T201052184000000Z");
         assertThat(service.reports("SMI", "2026-Q3")).containsExactly(run.stored());
         assertThat(service.report("SMI", "2026-Q3", run.stored().id())).isNotEmpty();
-        assertThat(output).contains("Review SMI 2026-Q3 stored as report 20260925T201052184000000Z: COMPLETED_WITH_WARNINGS");
+        assertThat(output).contains(
+                "Review SMI 2026-Q3 stored as report 20260925T201052184000000Z: COMPLETED_WITH_WARNINGS");
     }
 
     @Test

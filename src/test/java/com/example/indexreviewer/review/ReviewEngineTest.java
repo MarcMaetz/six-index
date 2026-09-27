@@ -82,7 +82,8 @@ class ReviewEngineTest {
     @Test
     void capsIterativelyWhenRedistributionPushesOthersOverTheCap() {
         var cap = new BigDecimal("0.15");
-        var index = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, cap, RankingStrategy.FFMCAP, List.of(Q3));
+        var index = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, cap, RankingStrategy.FFMCAP,
+                List.of(Q3));
         InputData input = new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI");
 
         ReviewResult result = engine.run(index, Q3, input);

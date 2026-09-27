@@ -51,7 +51,8 @@ public final class Selection {
             }
         }
 
-        fillBuffer(buffer, index.constituentCount() - countSelected(decisions), decisions);
+        // Ranks 1 to the direct selection rank are all taken, since at least the constituent count is ranked.
+        fillBuffer(buffer, index.constituentCount() - index.directSelectionRank(), decisions);
         return decisions.entrySet().stream().map(e -> new Outcome(e.getKey(), e.getValue())).toList();
     }
 
@@ -68,9 +69,5 @@ public final class Selection {
                     ? SelectionDecision.SELECTED_BUFFER_INCUMBENT
                     : SelectionDecision.SELECTED_BUFFER_NEW);
         }
-    }
-
-    private static int countSelected(Map<RankedSecurity, SelectionDecision> decisions) {
-        return (int) decisions.values().stream().filter(SelectionDecision::selected).count();
     }
 }

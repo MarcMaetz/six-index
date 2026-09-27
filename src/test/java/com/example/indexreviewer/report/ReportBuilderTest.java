@@ -54,7 +54,8 @@ class ReportBuilderTest {
         // Duplicate universe rows lose nothing; 166 can't be ranked, but its estimate is far below the buffer.
         assertThat(report.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
         assertThat(report.statusReasons()).extracting(StatusReason::securityId, StatusReason::relevance)
-                .containsExactly(tuple(null, Relevance.NO_DATA_LOST), tuple("166", Relevance.ESTIMATED_FAR_BELOW_BUFFER));
+                .containsExactly(tuple(null, Relevance.NO_DATA_LOST),
+                        tuple("166", Relevance.ESTIMATED_FAR_BELOW_BUFFER));
         assertThat(report.statusReasons().getLast().explanation()).isEqualTo("Not ranked, estimated FFMCAP 12890814 "
                 + "is below half the value at buffer end rank 22 (15376002109)");
 

@@ -32,7 +32,8 @@ class StatusAssessmentTest {
     private static final LocalDate REVIEW = LocalDate.parse("2026-09-21");
     private static final ReviewPeriod PERIOD = new ReviewPeriod("P", CUT_OFF, REVIEW);
     private static final IndexDefinition INDEX =
-            new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 3, BigDecimal.ONE, RankingStrategy.FFMCAP, List.of(PERIOD));
+            new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 3, BigDecimal.ONE, RankingStrategy.FFMCAP,
+                    List.of(PERIOD));
 
     @Test
     void completedWithoutWarnings() {

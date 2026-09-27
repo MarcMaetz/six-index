@@ -10,9 +10,9 @@ It must be easy to extend to new indices, review dates and rules. The design fol
 
 - **Correct and explainable:** every number and every decision in the report can be traced to a rule and to
   the input it came from.
-- **Configurable, not hard-coded:** index parameters and review dates are business configuration. Rules that
-  differ between indices (ranking, capping) and the edges of the system (input, report storage) sit behind
-  small interfaces, so replacing one doesn't touch the others.
+- **Configurable, not hard-coded:** index parameters, including the weight cap and the ranking strategy, and
+  review dates are business configuration. The edges of the system (input, report storage) sit behind small
+  interfaces, so replacing one doesn't touch the review.
 - **Testable:** the review logic is plain Java without Spring or I/O, so each rule is unit-tested in isolation.
 - **Simple:** no database, one module. Reports are stored as plain JSON files. Anything more
   waits until a requirement needs it.
@@ -41,7 +41,7 @@ in `domain` (input model and index definitions), which is left out of the diagra
 
 | Package | Responsibility |
 |---|---|
-| `domain` | Input model (`InputData`, `SecurityData`, `DataQualityWarning`, `InputFile`) and index definitions (`IndexDefinition`, `ReviewPeriod`). The definitions validate themselves when constructed. |
+| `domain` | Input model (`InputData`, `SecurityData`, `DataQualityWarning`) and index definitions (`IndexDefinition`, `ReviewPeriod`, `RankingStrategy`). The definitions validate themselves when constructed. |
 | `ingest` | `InputSource` provides a review's `InputData`; `CsvFolderInputSource` reads the three CSVs of one review, recording a warning for each problem row. |
 | `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step. |
 | `review.status` | The review status, derived from a finished `ReviewResult` (`StatusAssessment`). The review never depends on it. |

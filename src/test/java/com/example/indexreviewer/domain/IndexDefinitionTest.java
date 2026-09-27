@@ -51,7 +51,8 @@ class IndexDefinitionTest {
     @Test
     void requiresMethodology() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                        new IndexDefinition("SMI", " ", "SPI", 20, 18, 22, new BigDecimal("0.18"), RankingStrategy.FFMCAP, List.of()))
+                        new IndexDefinition("SMI", " ", "SPI", 20, 18, 22, new BigDecimal("0.18"),
+                                RankingStrategy.FFMCAP, List.of()))
                 .withMessageContaining("methodology of SMI must not be blank");
     }
 
