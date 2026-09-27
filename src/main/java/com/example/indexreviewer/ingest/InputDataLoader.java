@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Loads and validates the input of one review from its folder ({@code <data-dir>/<index>/<period>}), which
@@ -75,25 +76,16 @@ public final class InputDataLoader {
 
     /** A1: exact duplicate rows are dropped with one summary warning. */
     private Map<LocalDate, Set<String>> loadUniverse(CsvFile.Content content, List<DataQualityWarning> warnings) {
-        String source = content.source();
-
         var universe = new LinkedHashMap<LocalDate, Set<String>>();
         var duplicates = new ArrayList<String>();
-        for (var row : content.rows()) {
-            try {
-                LocalDate date = parseDate(row, DATE);
-                String id = requireValue(row, ID);
-                if (!universe.computeIfAbsent(date, d -> new LinkedHashSet<>()).add(id)) {
-                    duplicates.add(id);
-                }
-            } catch (InvalidRowException e) {
-                warnings.add(invalidRow(source, row, e));
+        for (var parsed : parseRows(content, row -> new UniverseMember(parseDate(row, DATE), requireValue(row, ID)),
+                warnings)) {
+            var member = parsed.value();
+            if (!universe.computeIfAbsent(member.date(), d -> new LinkedHashSet<>()).add(member.id())) {
+                duplicates.add(member.id());
             }
         }
-        if (!duplicates.isEmpty()) {
-            warnings.add(new DataQualityWarning(source, null, Impact.NONE,
-                    "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
-        }
+        warnDuplicates(content.source(), duplicates, warnings);
         return universe;
     }
 
@@ -107,58 +99,65 @@ public final class InputDataLoader {
         var byId = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
         var duplicates = new ArrayList<String>();
         var conflicts = new LinkedHashSet<SecurityData>();
-        for (var row : content.rows()) {
-            try {
-                var data = new SecurityData(requireValue(row, ID), parseDate(row, DATE),
-                        parsePrice(row), parseFreeFloat(row), parseShares(row));
-                var byDate = byId.computeIfAbsent(data.securityId(), id -> new LinkedHashMap<>());
-                var existing = byDate.putIfAbsent(data.date(), data);
-                if (existing == null) {
-                    continue;
-                }
-                if (existing.sameValuesAs(data)) {
-                    duplicates.add(data.securityId());
-                } else {
-                    conflicts.add(existing);
-                    warnings.add(new DataQualityWarning(source, row.line(), Impact.MISSING_DATA,
-                            "Conflicting data for %s on %s; all rows for that date ignored"
-                                    .formatted(data.securityId(), data.date()), List.of(data.securityId())));
-                }
-            } catch (InvalidRowException e) {
-                warnings.add(invalidRow(source, row, e));
+        for (var parsed : parseRows(content, row -> new SecurityData(requireValue(row, ID), parseDate(row, DATE),
+                parsePrice(row), parseFreeFloat(row), parseShares(row)), warnings)) {
+            var data = parsed.value();
+            var byDate = byId.computeIfAbsent(data.securityId(), id -> new LinkedHashMap<>());
+            var existing = byDate.putIfAbsent(data.date(), data);
+            if (existing == null) {
+                continue;
+            }
+            if (existing.sameValuesAs(data)) {
+                duplicates.add(data.securityId());
+            } else {
+                conflicts.add(existing);
+                warnings.add(new DataQualityWarning(source, parsed.line(), Impact.MISSING_DATA,
+                        "Conflicting data for %s on %s; all rows for that date ignored"
+                                .formatted(data.securityId(), data.date()), List.of(data.securityId())));
             }
         }
         for (var conflict : conflicts) {
             byId.get(conflict.securityId()).remove(conflict.date());
         }
         byId.values().removeIf(Map::isEmpty);
-        if (!duplicates.isEmpty()) {
-            warnings.add(new DataQualityWarning(source, null, Impact.NONE,
-                    "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
-        }
+        warnDuplicates(source, duplicates, warnings);
         return byId;
     }
 
     private Set<String> loadComposition(CsvFile.Content content, List<DataQualityWarning> warnings) {
-        String source = content.source();
-
         var composition = new LinkedHashSet<String>();
         var duplicates = new ArrayList<String>();
-        for (var row : content.rows()) {
-            try {
-                String id = requireValue(row, ID);
-                if (!composition.add(id)) {
-                    duplicates.add(id);
-                }
-            } catch (InvalidRowException e) {
-                warnings.add(invalidRow(source, row, e));
+        for (var parsed : parseRows(content, row -> requireValue(row, ID), warnings)) {
+            if (!composition.add(parsed.value())) {
+                duplicates.add(parsed.value());
             }
         }
+        warnDuplicates(content.source(), duplicates, warnings);
+        return composition;
+    }
+
+    /**
+     * Parses each row; a row the parser rejects is skipped with a warning, so the load loops only see valid
+     * values. Invalid-row warnings therefore come before the warnings the caller adds while processing.
+     */
+    private static <T> List<ParsedRow<T>> parseRows(CsvFile.Content content, Function<CsvFile.Row, T> parser,
+                                                    List<DataQualityWarning> warnings) {
+        var parsed = new ArrayList<ParsedRow<T>>();
+        for (var row : content.rows()) {
+            try {
+                parsed.add(new ParsedRow<>(row.line(), parser.apply(row)));
+            } catch (InvalidRowException e) {
+                warnings.add(invalidRow(content.source(), row, e));
+            }
+        }
+        return parsed;
+    }
+
+    private static void warnDuplicates(String source, List<String> duplicates, List<DataQualityWarning> warnings) {
         if (!duplicates.isEmpty()) {
             warnings.add(new DataQualityWarning(source, null, Impact.NONE,
                     "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
         }
-        return composition;
     }
 
     private static String requireValue(CsvFile.Row row, String column) {
@@ -225,6 +224,13 @@ public final class InputDataLoader {
         String id = row.values().containsKey(ID) ? row.get(ID) : "";
         return new DataQualityWarning(source, row.line(), Impact.MISSING_DATA, "Row ignored: " + e.getMessage(),
                 id.isEmpty() ? List.of() : List.of(id));
+    }
+
+    /** A row's parsed value with its line number, for warnings raised after parsing. */
+    private record ParsedRow<T>(int line, T value) {
+    }
+
+    private record UniverseMember(LocalDate date, String id) {
     }
 
     private static final class InvalidRowException extends RuntimeException {

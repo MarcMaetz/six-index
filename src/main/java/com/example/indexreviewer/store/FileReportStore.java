@@ -51,18 +51,24 @@ public final class FileReportStore implements ReportStore {
         String baseId = ID_FORMAT.format(report.generatedAt());
         try {
             Files.createDirectories(dir);
-            for (int attempt = 1; ; attempt++) {
-                String id = attempt == 1 ? baseId : baseId + "-" + attempt;
-                try {
-                    Files.write(dir.resolve(id + SUFFIX), json, StandardOpenOption.CREATE_NEW);
-                    return new StoredReport(id, report.index(), report.reviewPeriod(), report.generatedAt(),
-                            report.status());
-                } catch (FileAlreadyExistsException e) {
-                    // Another run in the same millisecond: try the next suffix.
-                }
+            String id = baseId;
+            // Another run in the same millisecond took the id: try the next suffix.
+            for (int attempt = 2; !createNew(dir.resolve(id + SUFFIX), json); attempt++) {
+                id = baseId + "-" + attempt;
             }
+            return new StoredReport(id, report.index(), report.reviewPeriod(), report.generatedAt(), report.status());
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot store report in " + dir, e);
+        }
+    }
+
+    /** Writes a new file; false if the file already exists, which is never overwritten. */
+    private static boolean createNew(Path file, byte[] content) throws IOException {
+        try {
+            Files.write(file, content, StandardOpenOption.CREATE_NEW);
+            return true;
+        } catch (FileAlreadyExistsException e) {
+            return false;
         }
     }
 

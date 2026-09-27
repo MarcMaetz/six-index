@@ -47,6 +47,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Ranking strategy looked up once per review and carried on `ReviewResult`; static registry kept on purpose (D33) |
 | 2026-09-26 | Stored-report endpoint documented with the `ReviewReport` schema in OpenAPI; slice tests, group id and package-by-layer kept, reasons recorded (D34) |
 | 2026-09-26 | Decision numbers removed from code comments (70 of 73), convention added to `AGENT.md` (D35) |
+| 2026-09-27 | Large try blocks in `InputDataLoader`, `CsvFile` and `FileReportStore` split up; try now only wraps the call it translates (D36) |
 
 ## Design decisions
 
@@ -509,6 +510,23 @@ decided, why, and what we rejected.
   stop a deliberate decision from being undone.
 - **Rejected:** keeping all (noise for a reviewer); removing all (loses the pointer where a comment can't carry
   the full reasoning); also dropping assumption references (they are the audit link from code to rulebook).
+
+### D36 — Try blocks wrap only the call whose exception they translate
+- `InputDataLoader`: the three load loops each wrapped their whole body in `try/catch (InvalidRowException)`.
+  A generic `parseRows(content, parser, warnings)` now owns the one catch and returns only valid values (with
+  their line number); the loops just apply duplicate and conflict logic. The duplicate summary warning, repeated
+  three times, became `warnDuplicates`.
+- `CsvFile.read`: a try-with-resources covered about 40 lines of header and row parsing. `read` now only
+  translates `IOException`/`CsvValidationException` into `InputDataException`; `parse` and `readHeader` declare
+  the checked exceptions.
+- `FileReportStore.save`: a try nested in a retry loop inside another try. `createNew` returns false when the
+  file exists, so the loop has no exception-driven control flow.
+- **Why:** a wide try hides which statement can actually throw, and a catch around the whole loop body is easy
+  to widen by accident (for example, catching a bug in the conflict logic as an "invalid row").
+- **Behaviour change:** invalid-row warnings for `sec_data.csv` now all come before its conflict warnings, instead
+  of interleaved by line. Warnings were already not strictly line-ordered (field-count warnings come first).
+- **Left as they are:** one-statement wrappers (`parseDate`, `parseShares`, `sha256`, `FileReportStore.read`
+  and `list`), which already translate exactly one call.
 
 ## Input data findings
 
