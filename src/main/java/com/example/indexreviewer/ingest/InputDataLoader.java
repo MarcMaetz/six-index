@@ -32,9 +32,9 @@ import java.util.function.Function;
  */
 public final class InputDataLoader {
 
-    public static final String UNIVERSE_FILE_SUFFIX = "_universe.csv";
-    public static final String SECURITY_DATA_FILE = "sec_data.csv";
-    public static final String COMPOSITION_FILE = "composition.csv";
+    static final String UNIVERSE_FILE_SUFFIX = "_universe.csv";
+    static final String SECURITY_DATA_FILE = "sec_data.csv";
+    static final String COMPOSITION_FILE = "composition.csv";
 
     private static final String ID = "id";
     private static final String DATE = "date";
@@ -43,7 +43,7 @@ public final class InputDataLoader {
     private static final String SHARES = "shares";
 
     /** File name of a universe's constituent list, e.g. {@code SPI} → {@code spi_universe.csv}. */
-    public static String universeFileName(String universe) {
+    static String universeFileName(String universe) {
         return universe.toLowerCase(Locale.ROOT) + UNIVERSE_FILE_SUFFIX;
     }
 

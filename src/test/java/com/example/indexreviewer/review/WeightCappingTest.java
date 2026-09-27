@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.within;
 
 class WeightCappingTest {
@@ -78,6 +79,24 @@ class WeightCappingTest {
     }
 
     @Test
+    void noConstituentsGiveNoWeights() {
+        var result = WeightCapping.cap(ffmcaps(), single("0.5"));
+
+        assertThat(result.weights()).isEmpty();
+        assertThat(result.rounds()).isEmpty();
+    }
+
+    @Test
+    void invariantCheckCatchesWeightsNotAddingUpToOneOrAboveTheCap() {
+        var caps = Map.of("A", new BigDecimal("0.6"), "B", new BigDecimal("0.6"));
+
+        assertThatIllegalStateException().isThrownBy(() -> WeightCapping.checkInvariants(
+                List.of(weight("A", "0.5"), weight("B", "0.4")), caps)).withMessageContaining("add up to");
+        assertThatIllegalStateException().isThrownBy(() -> WeightCapping.checkInvariants(
+                List.of(weight("A", "0.3"), weight("B", "0.7")), caps)).withMessageContaining("exceeds its cap");
+    }
+
+    @Test
     void rejectsCapThatCannotReachFullWeight() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> WeightCapping.cap(ffmcaps("A", 1, "B", 1), single("0.4")));
@@ -132,5 +151,10 @@ class WeightCappingTest {
             map.put((String) idsAndValues[i], BigDecimal.valueOf(((Number) idsAndValues[i + 1]).longValue()));
         }
         return map;
+    }
+
+    private static CappedWeight weight(String id, String weight) {
+        var value = new BigDecimal(weight);
+        return new CappedWeight(id, value, value, value, BigDecimal.ONE, false);
     }
 }

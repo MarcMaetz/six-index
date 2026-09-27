@@ -27,7 +27,7 @@ public final class ReportBuilder {
         var status = result.assessment();
 
         var joiners = result.joiners().stream()
-                .map(c -> new ReviewReport.Joiner(c.securityId(), c.ranked().rank(), c.decision()))
+                .map(c -> new ReviewReport.Joiner(c.securityId(), c.rank(), c.decision()))
                 .toList();
         var leavers = result.leavers().stream()
                 .map(l -> new ReviewReport.Leaver(l.securityId(), l.rank(), l.reason(), l.detail()))
@@ -44,7 +44,7 @@ public final class ReportBuilder {
 
     private List<ReviewReport.Constituent> constituents(ReviewResult result) {
         return result.constituents().stream()
-                .map(c -> new ReviewReport.Constituent(c.ranked().rank(), c.securityId(), c.decision(), c.joiner(),
+                .map(c -> new ReviewReport.Constituent(c.rank(), c.securityId(), c.decision(), c.joiner(),
                         ffmcap(c.weight().ffmcap()), percent(c.weight().rawWeight()), percent(c.weight().weight()),
                         round(c.weight().cappingFactor(), format.cappingFactorDecimals()), c.weight().capped()))
                 .toList();
@@ -53,10 +53,9 @@ public final class ReportBuilder {
     private List<ReviewReport.RankingEntry> ranking(ReviewResult result) {
         return result.selection().stream()
                 .map(o -> {
-                    var security = o.security().security();
-                    return new ReviewReport.RankingEntry(o.security().rank(), security.securityId(), security.price(),
-                            security.shares(), security.freeFloat(), ffmcap(security.ffmcap()),
-                            o.security().incumbent(), o.decision());
+                    var eligible = o.ranked().eligible();
+                    return new ReviewReport.RankingEntry(o.rank(), o.securityId(), eligible.price(), eligible.shares(),
+                            eligible.freeFloat(), ffmcap(eligible.ffmcap()), o.incumbent(), o.decision());
                 })
                 .toList();
     }

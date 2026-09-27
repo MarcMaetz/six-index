@@ -9,7 +9,7 @@ import java.util.SequencedMap;
  * limits. The SMI uses one cap for all ({@link SingleCap}); a tiered rule such as the SLI's 9%/4.5% (rulebook
  * 5.17.4) would be another implementation.
  */
-public interface CappingRule {
+interface CappingRule {
 
     /**
      * @param ffmcapById FFMCAP of each selected constituent, in rank order

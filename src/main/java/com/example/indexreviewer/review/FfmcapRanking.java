@@ -3,9 +3,9 @@ package com.example.indexreviewer.review;
 import java.math.BigDecimal;
 
 /** Ranks by free float market capitalization, as the brief specifies. */
-public final class FfmcapRanking implements RankingStrategy {
+final class FfmcapRanking implements RankingStrategy {
 
-    public static final String NAME = "FFMCAP";
+    static final String NAME = "FFMCAP";
 
     @Override
     public String name() {

@@ -17,7 +17,7 @@ import java.util.Set;
  * constituent over its cap, so it repeats until none is above it. The {@link CappingRule} decides each
  * constituent's cap. Calculated at full precision.
  */
-public final class WeightCapping {
+final class WeightCapping {
 
     static final MathContext PRECISION = MathContext.DECIMAL128;
     static final BigDecimal SUM_TOLERANCE = new BigDecimal("1E-20");
@@ -26,8 +26,8 @@ public final class WeightCapping {
      * @param weights constituents' weights, in the order given
      * @param rounds  ids capped in each round, for traceability; empty if no constituent exceeded its cap
      */
-    public record Result(List<CappedWeight> weights, List<List<String>> rounds) {
-        public Result {
+    record Result(List<CappedWeight> weights, List<List<String>> rounds) {
+        Result {
             weights = List.copyOf(weights);
             rounds = rounds.stream().map(List::copyOf).toList();
         }
@@ -40,7 +40,7 @@ public final class WeightCapping {
      * @param ffmcapById FFMCAP of each constituent, all positive
      * @param rule       decides each constituent's cap; the caps must add up to at least 1
      */
-    public static Result cap(SequencedMap<String, BigDecimal> ffmcapById, CappingRule rule) {
+    static Result cap(SequencedMap<String, BigDecimal> ffmcapById, CappingRule rule) {
         if (ffmcapById.isEmpty()) {
             return new Result(List.of(), List.of());
         }
@@ -113,7 +113,7 @@ public final class WeightCapping {
     }
 
     /** Weights add up to 1 and none exceeds its cap. A failure here is a bug, not bad input. */
-    private static void checkInvariants(List<CappedWeight> weights, Map<String, BigDecimal> caps) {
+    static void checkInvariants(List<CappedWeight> weights, Map<String, BigDecimal> caps) {
         BigDecimal sum = sum(weights.stream().map(CappedWeight::weight).toList());
         if (sum.subtract(BigDecimal.ONE).abs().compareTo(SUM_TOLERANCE) > 0) {
             throw new IllegalStateException("Weights add up to " + sum + ", not 1");

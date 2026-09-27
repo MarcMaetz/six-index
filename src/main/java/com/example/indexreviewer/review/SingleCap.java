@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.SequencedMap;
 
 /** The same maximum weight for every constituent, e.g. 18% for the SMI (rulebook 5.12.4). */
-public record SingleCap(BigDecimal cap) implements CappingRule {
+record SingleCap(BigDecimal cap) implements CappingRule {
 
     @Override
     public Map<String, BigDecimal> caps(SequencedMap<String, BigDecimal> ffmcapById) {

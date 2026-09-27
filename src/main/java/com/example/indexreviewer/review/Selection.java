@@ -17,14 +17,26 @@ import java.util.Map;
  */
 public final class Selection {
 
-    public record Outcome(RankedSecurity security, SelectionDecision decision) {
+    public record Outcome(RankedSecurity ranked, SelectionDecision decision) {
+
+        public String securityId() {
+            return ranked.securityId();
+        }
+
+        public int rank() {
+            return ranked.rank();
+        }
+
+        public boolean incumbent() {
+            return ranked.incumbent();
+        }
     }
 
     private Selection() {
     }
 
     /** Decisions for all ranked securities, in rank order. */
-    public static List<Outcome> select(List<RankedSecurity> ranked, IndexDefinition index) {
+    static List<Outcome> select(List<RankedSecurity> ranked, IndexDefinition index) {
         Map<RankedSecurity, SelectionDecision> decisions = new LinkedHashMap<>();
         var buffer = new ArrayList<RankedSecurity>();
         for (var security : ranked) {

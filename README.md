@@ -29,6 +29,7 @@ compiles with, so no JDK 25 install is needed.
 ```bash
 ./gradlew build      # compile and run all tests
 ./gradlew bootRun    # start the API on http://localhost:8080
+./gradlew pitest     # mutation tests of the review logic, report in build/reports/pitest
 ```
 
 Run the review:

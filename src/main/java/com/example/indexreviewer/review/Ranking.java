@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Set;
 
 /** Ranks eligible securities by a strategy's ranking value, highest first; ties are broken by id (A8). */
-public final class Ranking {
+final class Ranking {
 
     private Ranking() {
     }
 
-    public static List<RankedSecurity> rank(List<EligibleSecurity> eligible, RankingStrategy strategy,
+    static List<RankedSecurity> rank(List<EligibleSecurity> eligible, RankingStrategy strategy,
                                             Set<String> currentComposition) {
         record Scored(EligibleSecurity security, BigDecimal value) {
         }

@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'com.gorylenko.gradle-git-properties' version '4.0.1'
+	id 'info.solidsoft.pitest' version '1.19.0'
 }
 
 group = 'com.example'
@@ -58,4 +59,19 @@ gitProperties {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Mutation testing of the review logic: ./gradlew pitest, report in build/reports/pitest. Not part of build.
+pitest {
+	pitestVersion = '1.30.0'
+	junit5PluginVersion = '1.2.3'
+	// The plugin's own launcher (1.x) clashes with Spring Boot's JUnit 6; use the managed one from testRuntimeOnly
+	addJUnitPlatformLauncher = false
+	targetClasses = ['com.example.indexreviewer.review.*']
+	// Report tests too: they read the review result the way the report does
+	targetTests = ['com.example.indexreviewer.review.*', 'com.example.indexreviewer.report.*']
+	mutators = ['STRONGER']
+	threads = 4
+	outputFormats = ['HTML', 'XML']
+	timestampedReports = false
 }

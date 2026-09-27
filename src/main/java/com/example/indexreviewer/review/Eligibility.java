@@ -15,10 +15,10 @@ import java.util.List;
  * These are the data the weights need (FFMCAP, rulebook 5.12.4), whatever the ranking strategy, so the check
  * holds for every strategy; a strategy needing more data would add its own exclusions.
  */
-public final class Eligibility {
+final class Eligibility {
 
-    public record Result(List<EligibleSecurity> eligible, List<Exclusion> excluded) {
-        public Result {
+    record Result(List<EligibleSecurity> eligible, List<Exclusion> excluded) {
+        Result {
             eligible = List.copyOf(eligible);
             excluded = List.copyOf(excluded);
         }
@@ -27,7 +27,7 @@ public final class Eligibility {
     private Eligibility() {
     }
 
-    public static Result check(InputData data, ReviewPeriod period) {
+    static Result check(InputData data, ReviewPeriod period) {
         var eligible = new ArrayList<EligibleSecurity>();
         var excluded = new ArrayList<Exclusion>();
         for (String id : data.universe(period.reviewDate())) {

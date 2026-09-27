@@ -37,15 +37,19 @@ class ReviewEngineTest {
         ReviewResult result = engine.run(SMI, Q3, input);
 
         assertThat(result.constituents()).hasSize(20);
+        // Ranks 1–18 directly, then the two incumbents from the buffer at 21 and 22.
+        assertThat(result.constituents()).extracting(Constituent::rank)
+                .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 22);
         assertThat(result.joiners()).extracting(Constituent::securityId).containsExactly("177");
         assertThat(result.leavers()).singleElement().satisfies(leaver -> {
             assertThat(leaver.securityId()).isEqualTo("103");
             assertThat(leaver.rank()).isEqualTo(35);
             assertThat(leaver.reason()).isEqualTo(LeaveReason.BELOW_BUFFER);
+            assertThat(leaver.detail()).isEqualTo("Rank 35, below the buffer");
         });
         // Buffer: 249 and 28 (new) rank above incumbents 160 and 81, which take the last two slots.
-        assertThat(result.selection()).filteredOn(o -> o.security().rank() > 18 && o.security().rank() <= 22)
-                .extracting(o -> o.security().securityId(), Selection.Outcome::decision)
+        assertThat(result.selection()).filteredOn(o -> o.rank() > 18 && o.rank() <= 22)
+                .extracting(Selection.Outcome::securityId, Selection.Outcome::decision)
                 .containsExactly(
                         tuple("249", SelectionDecision.NOT_SELECTED_BUFFER_FULL),
                         tuple("28", SelectionDecision.NOT_SELECTED_BUFFER_FULL),
@@ -113,5 +117,28 @@ class ReviewEngineTest {
         assertThat(result.leavers()).filteredOn(l -> l.securityId().equals("B")).singleElement()
                 .satisfies(l -> assertThat(l.detail())
                         .isEqualTo("Missing shares on review date 2026-09-21, free float on review date 2026-09-21"));
+    }
+
+    @Test
+    void incumbentInBufferLeavesWhenSlotsAreTaken() {
+        // One constituent, direct up to rank 1, buffer to rank 2: A takes the only slot, incumbent B ranks 2nd.
+        var input = new InputData(
+                Map.of(REVIEW, Set.of("A", "B")),
+                Map.of("A", Map.of(CUT_OFF, securityData("A", CUT_OFF, "20", null, null),
+                                REVIEW, securityData("A", REVIEW, null, "1", 100L)),
+                        "B", Map.of(CUT_OFF, securityData("B", CUT_OFF, "10", null, null),
+                                REVIEW, securityData("B", REVIEW, null, "1", 100L))),
+                Set.of("B"), List.of(), List.of());
+        var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 1, 1, 2, BigDecimal.ONE,
+                "FFMCAP", List.of(Q3));
+
+        var result = engine.run(index, Q3, input);
+
+        assertThat(result.leavers()).singleElement().satisfies(leaver -> {
+            assertThat(leaver.securityId()).isEqualTo("B");
+            assertThat(leaver.rank()).isEqualTo(2);
+            assertThat(leaver.reason()).isEqualTo(LeaveReason.BUFFER_FULL);
+            assertThat(leaver.detail()).isEqualTo("Rank 2, buffer slots taken");
+        });
     }
 }

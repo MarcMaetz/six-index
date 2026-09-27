@@ -35,14 +35,13 @@ public final class ReviewEngine {
         var selected = selection.stream().filter(o -> o.decision().selected()).toList();
 
         var ffmcapById = new LinkedHashMap<String, BigDecimal>();
-        selected.forEach(o -> ffmcapById.put(o.security().securityId(), o.security().security().ffmcap()));
+        selected.forEach(o -> ffmcapById.put(o.securityId(), o.ranked().eligible().ffmcap()));
         var capping = WeightCapping.cap(ffmcapById, cappingRule(index));
         Map<String, CappedWeight> weightById = capping.weights().stream()
                 .collect(Collectors.toMap(CappedWeight::securityId, Function.identity()));
 
         var constituents = selected.stream()
-                .map(o -> new Constituent(o.security(), o.decision(), !o.security().incumbent(),
-                        weightById.get(o.security().securityId())))
+                .map(o -> new Constituent(o.ranked(), o.decision(), !o.incumbent(), weightById.get(o.securityId())))
                 .toList();
 
         return new ReviewResult(index, period, strategy, input, eligibility.excluded(), selection, constituents,
@@ -61,10 +60,9 @@ public final class ReviewEngine {
     private static List<Leaver> leavers(InputData input, ReviewPeriod period, Eligibility.Result eligibility,
                                         List<Selection.Outcome> selection) {
         Map<String, Selection.Outcome> outcomeById = selection.stream()
-                .collect(Collectors.toMap(o -> o.security().securityId(), Function.identity()));
+                .collect(Collectors.toMap(Selection.Outcome::securityId, Function.identity()));
         Map<String, Exclusion> exclusionById = eligibility.excluded().stream()
                 .collect(Collectors.toMap(Exclusion::securityId, Function.identity()));
-        var universe = input.universe(period.reviewDate());
 
         var leavers = new ArrayList<Leaver>();
         for (String id : input.currentComposition()) {
@@ -75,7 +73,8 @@ public final class ReviewEngine {
                 }
             } else if (exclusionById.containsKey(id)) {
                 leavers.add(new Leaver(id, null, LeaveReason.NOT_ELIGIBLE, exclusionById.get(id).reason()));
-            } else if (!universe.contains(id)) {
+            } else {
+                // A universe security is either ranked or excluded, so this one left the universe.
                 leavers.add(new Leaver(id, null, LeaveReason.NOT_IN_UNIVERSE,
                         "Not in the universe on " + period.reviewDate()));
             }
@@ -84,9 +83,9 @@ public final class ReviewEngine {
     }
 
     private static Leaver notSelected(Selection.Outcome outcome) {
-        int rank = outcome.security().rank();
+        int rank = outcome.rank();
         boolean bufferFull = outcome.decision() == SelectionDecision.NOT_SELECTED_BUFFER_FULL;
-        return new Leaver(outcome.security().securityId(), rank,
+        return new Leaver(outcome.securityId(), rank,
                 bufferFull ? LeaveReason.BUFFER_FULL : LeaveReason.BELOW_BUFFER,
                 "Rank %d, %s".formatted(rank, bufferFull ? "buffer slots taken" : "below the buffer"));
     }

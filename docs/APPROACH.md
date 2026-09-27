@@ -51,6 +51,8 @@ decided, why, and what we rejected.
 | 2026-09-27 | Long methods (25+ lines) split into named steps in `WeightCapping`, `ReportBuilder`, `StatusAssessment`, `ReviewEngine`, `Selection`, `CsvFile`; no behaviour change (D37) |
 | 2026-09-27 | Duplicates removed: one index/period lookup in `ReviewService`, one `SecurityData` test fixture; other near-duplicates kept on purpose (D38) |
 | 2026-09-27 | Dead-code sweep (unreferenced declarations, enum constants, main code used only by tests, unused parameters, imports, test helpers, tracked files): only one unused import found and removed |
+| 2026-09-27 | Review pipeline steps package-private; accessor chains replaced by named hops and shortcuts (`Outcome.ranked`, `RankedSecurity.eligible`) (D39) |
+| 2026-09-27 | Mutation testing with PIT on `review`: 88% → 98% killed after 7 new tests; one redundant condition removed from `ReviewEngine.leavers` (D40) |
 
 ## Design decisions
 
@@ -564,6 +566,39 @@ decided, why, and what we rejected.
     different key; a helper would hide nothing.
   - Test date constants (`CUT_OFF`, `REVIEW`) per test class: each test reads on its own.
 
+### D39 — Review internals package-private; accessor chains named per hop
+- Scanned for `public` types and members used only inside their package. In `review`, the pipeline steps
+  (`Eligibility`, `Ranking`, `WeightCapping`, `CappingRule`, `SingleCap`, `FfmcapRanking`) and `Selection.select`
+  are now package-private: other packages only need the engine, its result types and `RankingStrategies`.
+  `InputDataLoader`'s file-name constants are package-private too.
+- `report` reached review data through chains such as `o.security().security().ffmcap()`. The components are
+  renamed so each hop says what it returns (`Selection.Outcome.ranked`, as `Constituent` already had, and
+  `RankedSecurity.eligible`), and `Outcome`/`Constituent` got `securityId()`, `rank()`, `incumbent()` shortcuts.
+- **Kept public although only used in their package:** Spring and Jackson entry points (application class,
+  controller, response DTOs, properties record); the value records (`RankedSecurity`, `EligibleSecurity`,
+  `CappedWeight`) because they are part of the public `ReviewResult`.
+- **Rejected:** flattening `Constituent`'s weight fields (`c.weight().capped()` is one hop into a value, clear
+  as it is); an ArchUnit rule for visibility (no simple rule separates result types from pipeline steps).
+
+### D40 — Mutation testing (PIT) for the review logic, on demand
+- `./gradlew pitest` (gradle-pitest-plugin 1.19.0, PIT 1.30.0, `STRONGER` mutators) mutates `review` and runs
+  the `review` and `report` tests. Not part of `build`: it takes longer and its value is finding weak tests,
+  not gating a commit.
+- `addJUnitPlatformLauncher = false`: the plugin otherwise adds a 1.x JUnit launcher that clashes with Spring
+  Boot 4's JUnit 6 (every test "failed" before mutation), and would also change the normal test classpath.
+- First run: 88% killed (153/173), 3 mutants without coverage. Real gaps closed with tests: tie-break by id
+  (A8, never exercised), unknown ranking strategy, `BUFFER_FULL` leaver and leaver details, empty capping
+  input, the A13 boundaries (estimate exactly at half; ranked count exactly at the buffer end), missing shares
+  or free float for an estimate, the invariant check itself, constituent ranks. Now 98% (168/171).
+- One survivor was an **equivalent mutant pointing at dead logic**: `leavers` checked `!universe.contains(id)`
+  after "not ranked, not excluded", which is always true (every universe security is ranked or excluded). The
+  condition is removed with a comment saying why.
+- **Accepted survivors (3):** removing the call to `checkInvariants` (a guard that only fails on a bug; tested
+  directly instead), its tolerance boundary (needs a sum exactly 1 ± 1E-20), and `overCap`'s
+  `!capped.contains` (capped weights equal their cap exactly, so the check is redundant but states intent).
+- **Rejected:** mutating `ingest`/`report` too (mostly mapping and parsing, covered by example tests; can be
+  added by widening `targetClasses`); a mutation threshold in the build (would make a slow tool a gate).
+
 ## Input data findings
 
 Profiled 2026-09-25, before writing any parsing code.
@@ -663,6 +698,8 @@ down, visible in the report, and can be changed in one place.
 - Where the brief simplifies the rulebook (A4–A6) and how the design leaves room for the full rules.
 - The five points left open were decided, not asked (D23): each is documented, visible in the report and
   changeable in one place, and none changes the Q3 result.
+- Test quality measured, not assumed (D40): mutation testing took the review logic from 88% to 98% killed
+  mutants and found an untested rulebook rule (tie-break by id, A8) and a condition that could never be false.
 - The buffer is what changes the result: plain top 20 gives 3 joiners and 3 leavers, the buffer gives 1 and 1.
 - Traceability/auditability: how a reviewer can see why a security joined, left or was capped.
 - Separating business-owned parameters (`config/indices.yml`) from technical config and from formulas (D11).

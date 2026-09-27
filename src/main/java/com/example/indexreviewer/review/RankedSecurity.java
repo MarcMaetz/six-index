@@ -7,9 +7,9 @@ import java.math.BigDecimal;
  *
  * @param incumbent whether it is in the current index composition
  */
-public record RankedSecurity(int rank, EligibleSecurity security, BigDecimal rankingValue, boolean incumbent) {
+public record RankedSecurity(int rank, EligibleSecurity eligible, BigDecimal rankingValue, boolean incumbent) {
 
     public String securityId() {
-        return security.securityId();
+        return eligible.securityId();
     }
 }

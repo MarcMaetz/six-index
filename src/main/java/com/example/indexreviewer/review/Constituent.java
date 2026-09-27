@@ -6,4 +6,8 @@ public record Constituent(RankedSecurity ranked, SelectionDecision decision, boo
     public String securityId() {
         return ranked.securityId();
     }
+
+    public int rank() {
+        return ranked.rank();
+    }
 }

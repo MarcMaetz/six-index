@@ -103,10 +103,35 @@ class StatusAssessmentTest {
         assertThat(nearBuffer.reasons()).extracting(StatusReason::relevance)
                 .containsExactly(Relevance.ESTIMATED_NEAR_BUFFER);
 
-        // No price on either date: can't estimate, so it counts as relevant.
-        data.put("D", Map.of(REVIEW, securityData("D", REVIEW, null, "1", 100L)));
+        // Exactly half the buffer-end value is not below it: still too close to call.
+        data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1.5", "1", 100L)));
         assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
-                .containsExactly(Relevance.NOT_ESTIMABLE);
+                .containsExactly(Relevance.ESTIMATED_NEAR_BUFFER);
+    }
+
+    @Test
+    void unrankedSecurityWithoutPriceSharesOrFreeFloatIsNotEstimable() {
+        // Any one of the three missing on both dates makes an estimate impossible, so it counts as relevant.
+        var data = fullData();
+        for (var row : List.of(securityData("D", REVIEW, null, "1", 100L),
+                securityData("D", CUT_OFF, "1", "1", null),
+                securityData("D", CUT_OFF, "1", null, 100L))) {
+            data.put("D", Map.of(row.date(), row));
+            assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
+                    .containsExactly(Relevance.NOT_ESTIMABLE);
+        }
+    }
+
+    @Test
+    void bufferEndReachedExactlyGivesAThreshold() {
+        // Buffer end 4 and exactly 4 ranked (A, B, C, E): the buffer end value is E's 100, so D's 1 is harmless.
+        var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 4, BigDecimal.ONE,
+                "FFMCAP", List.of(PERIOD));
+        var data = fullData();
+        data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
+
+        assertThat(assess(index, data, List.of()).reasons()).extracting(StatusReason::relevance)
+                .containsExactly(Relevance.ESTIMATED_FAR_BELOW_BUFFER);
     }
 
     @Test

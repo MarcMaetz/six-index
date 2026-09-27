@@ -80,7 +80,7 @@ public final class StatusAssessment {
 
         Context(ReviewResult result) {
             this.result = result;
-            this.ranked = result.selection().stream().map(Selection.Outcome::security).toList();
+            this.ranked = result.selection().stream().map(Selection.Outcome::ranked).toList();
             this.rankedById = ranked.stream()
                     .collect(Collectors.toMap(RankedSecurity::securityId, Function.identity()));
         }
