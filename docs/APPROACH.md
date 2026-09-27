@@ -185,8 +185,11 @@ section 5.12, with definitions in 2 and 4.3.
 - **It records the build.** Each report carries the application version and Git revision (`-dirty` with
   uncommitted changes, `unknown` without Git); `/actuator/info` shows the same. `git.properties` is limited to
   branch, commit and time, so no names or emails end up in the jar.
-- **Every run is stored as written.** `POST` saves the report as JSON and returns 201 with its location; list
-  and get endpoints read runs back. Files are created once and never changed, so "which report did we publish
+- **Every run is stored as written.** `POST` saves the full report as JSON and returns 201 with its location
+  and a summary: report id, status and reasons, the constituents with weights, joiners and leavers. The audit
+  trail (204-row ranking, capping rounds, input checksums, warnings) is only in the stored report, so the
+  response answers "what changed, and is it OK?" in one screen; returning the full report was rejected as
+  mostly detail nobody reads at that moment. List and get endpoints read runs back. Files are created once and never changed, so "which report did we publish
   for Q3, and when?" has an answer even after the configuration or data change. The run id is the UTC
   generation time to the nanosecond, written with a single create-only attempt: a clash fails the request
   instead of overwriting. Millisecond ids with a `-2`, `-3` retry suffix were dropped as extra code and an

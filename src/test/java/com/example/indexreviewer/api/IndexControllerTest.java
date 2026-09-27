@@ -67,39 +67,45 @@ class IndexControllerTest {
     }
 
     @Test
-    void runsSmiQ3Review() {
-        assertThat(mvc.post().uri("/api/indices/SMI/reviews/2026-Q3")).hasStatus(HttpStatus.CREATED).bodyJson()
-                .satisfies(json -> {
-                    assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
-                    assertThat(json).extractingPath("$.statusReasons[*].relevance")
-                            .isEqualTo(List.of("NO_DATA_LOST", "ESTIMATED_FAR_BELOW_BUFFER"));
-                    assertThat(json).extractingPath("$.constituents.length()").isEqualTo(20);
-                    assertThat(json).extractingPath("$.joiners[*].securityId").isEqualTo(List.of("177"));
-                    assertThat(json).extractingPath("$.leavers[*].securityId").isEqualTo(List.of("103"));
-                    assertThat(json).extractingPath("$.leavers[0].reason").isEqualTo("BELOW_BUFFER");
-                    assertThat(json).extractingPath("$.constituents[?(@.capped == true)].securityId")
-                            .isEqualTo(List.of("155", "205"));
-                    assertThat(json).extractingPath("$.constituents[0].weightPercent").isEqualTo(18.0);
-                    assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
-                    assertThat(json).extractingPath("$.excluded[0].securityId").isEqualTo("166");
-                    assertThat(json).extractingPath("$.parameters.methodology").asString().contains("v3.40");
-                    assertThat(json).extractingPath("$.build.version").isEqualTo("0.0.1-SNAPSHOT");
-                    assertThat(json).extractingPath("$.build.revision").asString().matches("[0-9a-f]{7,}(-dirty)?");
-                    assertThat(json).extractingPath("$.ranking[34].price").isEqualTo(165.7);
-                });
-    }
-
-    @Test
-    void storesEveryRunAndReturnsItAsWritten() {
+    void runsSmiQ3ReviewAndReturnsSummary() {
         var run = mvc.post().uri("/api/indices/SMI/reviews/2026-Q3").exchange();
         assertThat(run).hasStatus(HttpStatus.CREATED);
         String location = run.getResponse().getHeader("Location");
         assertThat(location).matches("http://localhost/api/indices/SMI/reviews/2026-Q3/reports/\\d{8}T\\d{15}Z");
+
+        assertThat(run).bodyJson().satisfies(json -> {
+            assertThat(json).extractingPath("$.reportId").isEqualTo(location.substring(location.lastIndexOf('/') + 1));
+            assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
+            assertThat(json).extractingPath("$.statusReasons[*].relevance")
+                    .isEqualTo(List.of("NO_DATA_LOST", "ESTIMATED_FAR_BELOW_BUFFER"));
+            assertThat(json).extractingPath("$.constituents.length()").isEqualTo(20);
+            assertThat(json).extractingPath("$.constituents[?(@.capped == true)].securityId")
+                    .isEqualTo(List.of("155", "205"));
+            assertThat(json).extractingPath("$.constituents[0].weightPercent").isEqualTo(18.0);
+            assertThat(json).extractingPath("$.joiners[*].securityId").isEqualTo(List.of("177"));
+            assertThat(json).extractingPath("$.leavers[*].securityId").isEqualTo(List.of("103"));
+            assertThat(json).extractingPath("$.leavers[0].reason").isEqualTo("BELOW_BUFFER");
+            // The audit trail is only in the stored report.
+            assertThat(json).doesNotHavePath("$.ranking");
+            assertThat(json).doesNotHavePath("$.warnings");
+        });
+    }
+
+    @Test
+    void storesFullReportOfEveryRun() {
+        var run = mvc.post().uri("/api/indices/SMI/reviews/2026-Q3").exchange();
+        String location = run.getResponse().getHeader("Location");
         String id = location.substring(location.lastIndexOf('/') + 1);
 
         assertThat(mvc.get().uri(location)).hasStatusOk().bodyJson().satisfies(json -> {
             assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
             assertThat(json).extractingPath("$.joiners[0].securityId").isEqualTo("177");
+            assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
+            assertThat(json).extractingPath("$.excluded[0].securityId").isEqualTo("166");
+            assertThat(json).extractingPath("$.parameters.methodology").asString().contains("v3.40");
+            assertThat(json).extractingPath("$.build.version").isEqualTo("0.0.1-SNAPSHOT");
+            assertThat(json).extractingPath("$.build.revision").asString().matches("[0-9a-f]{7,}(-dirty)?");
+            assertThat(json).extractingPath("$.ranking[34].price").isEqualTo(165.7);
         });
         assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/reports")).hasStatusOk().bodyJson()
                 .extractingPath("$[*].id").asArray().contains(id);

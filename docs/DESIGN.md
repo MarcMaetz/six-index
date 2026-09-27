@@ -168,7 +168,7 @@ ties are broken by id.
 |---|---|
 | `GET /api/indices` | Configured indices and review periods |
 | `GET /api/indices/{index}/reviews/{period}/input` | Loaded input: files with checksums, counts per date, composition, warnings |
-| `POST /api/indices/{index}/reviews/{period}` | Runs the review, stores the report: **201 Created**, `ReviewReport` body, `Location` of the stored report |
+| `POST /api/indices/{index}/reviews/{period}` | Runs the review, stores the full `ReviewReport`: **201 Created**, summary body (status, constituents with weights, joiners, leavers), `Location` of the stored report |
 | `GET /api/indices/{index}/reviews/{period}/reports` | Stored runs of the review, oldest first: id, generation time, status |
 | `GET /api/indices/{index}/reviews/{period}/reports/{id}` | One stored report, byte for byte as written |
 
@@ -190,7 +190,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round |
 | Storage | `FileReportStoreTest`: file naming, no overwrite of an existing report, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
-| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, 404s, problem responses for Spring's own 404/405, and the stored report's OpenAPI schema. `ApiExceptionHandlerTest`: unusable input gives a 422 with the reason, unexpected errors a 500 without internals |
+| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with a summary and `Location`, full stored reports returned as written, 404s, problem responses for Spring's own 404/405, and the stored report's OpenAPI schema. `ApiExceptionHandlerTest`: unusable input gives a 422 with the reason, unexpected errors a 500 without internals |
 | Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages with `config` outermost, plain-Java review logic, Spring only in `config`, `service` and `api`, no package cycles |
 | Manual | Postman test scripts for the same expected results |
 
