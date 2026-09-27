@@ -213,7 +213,7 @@ public final class InputDataLoader {
                 try {
                     parsed.add(new ParsedRow<>(row.line(), parser.apply(row)));
                 } catch (InvalidRowException e) {
-                    String id = row.values().containsKey(ID) ? row.get(ID) : "";
+                    String id = row.get(ID);
                     warn(row.line(), Impact.MISSING_DATA, "Row ignored: " + e.getMessage(),
                             id.isEmpty() ? List.of() : List.of(id));
                 }

@@ -34,6 +34,7 @@ truly needs no entry, and tell the user why.
 ./gradlew build     # compile + tests
 ./gradlew bootRun   # http://localhost:8080, Swagger UI at /swagger-ui.html
 ./gradlew pitest    # mutation tests of review logic (not part of build); expect 3 known survivors (D40)
+./gradlew test jacocoTestReport   # coverage; uncovered lines are the known ones in D45
 ```
 
 ## Conventions

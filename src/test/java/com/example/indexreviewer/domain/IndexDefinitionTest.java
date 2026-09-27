@@ -31,10 +31,20 @@ class IndexDefinitionTest {
     }
 
     @Test
+    void rejectsNonPositiveCountsAndRanks() {
+        assertThatIllegalArgumentException().isThrownBy(() -> smi(0, 18, 22, "0.18", List.of()))
+                .withMessageContaining("constituent count 0 must be positive");
+        assertThatIllegalArgumentException().isThrownBy(() -> smi(20, 0, 22, "0.18", List.of()))
+                .withMessageContaining("direct selection rank 0");
+    }
+
+    @Test
     void rejectsCapThatCannotAddUpToFullWeight() {
         assertThatIllegalArgumentException().isThrownBy(() -> smi(20, 18, 22, "0.04", List.of()))
                 .withMessageContaining("cannot add up to 100%");
         assertThatIllegalArgumentException().isThrownBy(() -> smi(20, 18, 22, "1.5", List.of()))
+                .withMessageContaining("must be in (0, 1]");
+        assertThatIllegalArgumentException().isThrownBy(() -> smi(20, 18, 22, "0", List.of()))
                 .withMessageContaining("must be in (0, 1]");
     }
 
@@ -43,6 +53,19 @@ class IndexDefinitionTest {
         assertThatIllegalArgumentException().isThrownBy(() ->
                         new IndexDefinition("SMI", " ", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of()))
                 .withMessageContaining("methodology of SMI must not be blank");
+    }
+
+    @Test
+    void requiresName() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                        new IndexDefinition(null, "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
+                                "FFMCAP", List.of()))
+                .withMessage("index name must not be blank");
+    }
+
+    @Test
+    void reviewPeriodsMayBeLeftOut() {
+        assertThat(smi(20, 18, 22, "0.18", null).reviewPeriods()).isEmpty();
     }
 
     @Test

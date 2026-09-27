@@ -142,6 +142,55 @@ class InputDataLoaderTest {
     }
 
     @Test
+    void readsFilesWithoutByteOrderMarkAndSkipsBlankLines() throws IOException {
+        Files.writeString(dir.resolve(InputDataLoader.universeFileName("SPI")), "date;id\n\n2026-09-21;1\n");
+        Files.writeString(dir.resolve(InputDataLoader.SECURITY_DATA_FILE),
+                "id;date;price;free_float;shares\n1;2026-09-10;12.5;;\n\n");
+        Files.writeString(dir.resolve(InputDataLoader.COMPOSITION_FILE), "id\n1\n");
+
+        InputData data = loader.load(dir, "SPI");
+
+        assertThat(data.universe(REVIEW)).containsExactly("1");
+        // Empty free float and shares are missing values, not invalid rows.
+        assertThat(data.securityData("1", CUT_OFF)).get().satisfies(d -> {
+            assertThat(d.price()).isEqualByComparingTo("12.5");
+            assertThat(d.freeFloat()).isNull();
+            assertThat(d.shares()).isNull();
+        });
+        assertThat(data.warnings()).isEmpty();
+    }
+
+    @Test
+    void skipsZeroFreeFloatAndSharesOutOfRange() throws IOException {
+        writeFiles(
+                "date;id\n",
+                """
+                        id;date;price;free_float;shares
+                        1;2026-09-10;10;0;100
+                        2;2026-09-10;10;0.5;99999999999999999999
+                        3;2026-09-10;10;0.5;0
+                        """,
+                "id\n");
+
+        InputData data = loader.load(dir, "SPI");
+
+        assertThat(data.securityDataById()).isEmpty();
+        assertThat(data.warnings()).extracting(DataQualityWarning::toString).containsExactly(
+                "sec_data.csv:2: Row ignored: free_float 0 is not in (0, 1]",
+                "sec_data.csv:3: Row ignored: shares 99999999999999999999 is out of range",
+                "sec_data.csv:4: Row ignored: shares 0 is not a positive whole number");
+    }
+
+    @Test
+    void failsOnEmptyFile() throws IOException {
+        Files.writeString(dir.resolve(InputDataLoader.universeFileName("SPI")), "");
+
+        assertThatThrownBy(() -> loader.load(dir, "SPI"))
+                .isInstanceOf(InputDataException.class)
+                .hasMessage("spi_universe.csv is empty, expected header [date, id]");
+    }
+
+    @Test
     void failsOnMissingColumn() throws IOException {
         writeFiles("date;id\n", "id;date;price;shares\n", "id\n");
 

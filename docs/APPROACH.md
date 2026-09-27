@@ -56,6 +56,7 @@ decided, why, and what we rejected.
 | 2026-09-27 | `null` only at the edges, `Optional` inside the review logic; stored-report summaries read into a typed record instead of by field-name strings (D41) |
 | 2026-09-27 | Long parameter lists reviewed: report format kept flat, header fields now tested (D42); loader warnings owned per file instead of passed-in lists (D43) |
 | 2026-09-27 | Error Prone in the build with `-Werror`; 6 findings fixed, format strings checked at compile time (D44) |
+| 2026-09-27 | JaCoCo coverage: 97% → 98% lines, 89% → 99.6% branches with 11 new tests; one branch that could never be taken removed (D45) |
 
 ## Design decisions
 
@@ -661,6 +662,25 @@ decided, why, and what we rejected.
   `@SuppressWarnings("CheckName")` and a comment saying why.
 - **Rejected:** SpotBugs/PMD in addition (overlap with Error Prone, slower, separate reports); `-Werror`
   only for Error Prone checks (no plugin switch for that; plain javac warnings are worth fixing too).
+
+### D45 — Coverage with JaCoCo, used to find untested branches
+- Gradle's `jacoco` plugin; `./gradlew test jacocoTestReport` writes HTML and XML to `build/reports/jacoco`. Not
+  a gate: a percentage threshold rewards tests written for the number; the report is read for what is missing.
+- First run: 97% of lines, 89% of branches. Mutation testing (D40) only covered `review`; the gaps were
+  elsewhere, mostly in input handling and validation:
+  - `ingest`: a file **without** a byte order mark (every test file had one), blank lines, an empty file,
+    empty shares and free float, free float 0, shares 0 and shares too large for a `long`.
+  - `api`: the 422 "unusable input data" response had no test.
+  - `domain`/`config`/`report`: constituent count and direct selection rank below 1, weight cap 0, missing name,
+    omitted review periods, duplicate index names, negative report decimals, and `SecurityData.sameValuesAs`
+    with missing values (the A9 duplicate check).
+- One branch could never be taken: `FileLoad.parseRows` checked whether a row has an `id` column, but every
+  input file requires one. Removed.
+- Now 98.2% of lines and 99.6% of branches. **Left uncovered on purpose:** `catch (IOException)` blocks that only
+  translate the exception (`CsvFile`, `FileReportStore`; triggering them needs an unreadable disk), the
+  impossible `NoSuchAlgorithmException` for SHA-256, `main`, and a missing commit id in `git.properties`.
+- **Rejected:** a coverage threshold in the build (see above); forcing I/O failures with file permissions
+  (flaky under WSL and root, and the code under test is a one-line rethrow).
 
 ## Input data findings
 

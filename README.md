@@ -30,6 +30,7 @@ compiles with, so no JDK 25 install is needed.
 ./gradlew build      # compile and run all tests
 ./gradlew bootRun    # start the API on http://localhost:8080
 ./gradlew pitest     # mutation tests of the review logic, report in build/reports/pitest
+./gradlew test jacocoTestReport   # line and branch coverage, report in build/reports/jacoco
 ```
 
 Run the review:
