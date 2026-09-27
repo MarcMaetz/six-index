@@ -251,6 +251,9 @@ After the features were complete, the code was scanned smell by smell:
   the summary with fields it doesn't have. A test keeps the two schemas apart.
 - **Try blocks** wrap only the call whose exception they translate; a wide try can swallow a bug as an
   "invalid row".
+- **Loops and streams.** A stream when it builds a new list or map (`toList()`, `groupingBy`); a plain `for`
+  loop when it fills an ordered map or needs several steps per element. `forEach` with a lambda that fills
+  another collection hides the side effect, so the code has none.
 - **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping:
   weights this round → anyone above the cap? → cap them and repeat → final weights with capping factors).
   Single loops that read top to bottom were left alone.

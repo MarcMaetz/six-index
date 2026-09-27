@@ -26,8 +26,10 @@ public final class ReviewEngine {
     public ReviewResult run(IndexDefinition index, ReviewPeriod period, InputData input) {
         var eligibility = Eligibility.check(input, period);
         var warnings = new ArrayList<>(input.warnings());
-        eligibility.excluded().forEach(exclusion -> warnings.add(new DataQualityWarning(SOURCE, null,
-                Impact.MISSING_DATA, "Excluded from ranking: " + exclusion.reason(), List.of(exclusion.securityId()))));
+        warnings.addAll(eligibility.excluded().stream()
+                .map(exclusion -> new DataQualityWarning(SOURCE, null, Impact.MISSING_DATA,
+                        "Excluded from ranking: " + exclusion.reason(), List.of(exclusion.securityId())))
+                .toList());
 
         var strategy = RankingStrategies.byName(index.rankingStrategy());
         var ranked = Ranking.rank(eligibility.eligible(), strategy, input.currentComposition());
@@ -36,7 +38,9 @@ public final class ReviewEngine {
         var selected = selection.stream().filter(o -> o.decision().selected()).toList();
 
         var ffmcapById = new LinkedHashMap<String, BigDecimal>();
-        selected.forEach(o -> ffmcapById.put(o.securityId(), o.ranked().eligible().ffmcap()));
+        for (var outcome : selected) {
+            ffmcapById.put(outcome.securityId(), outcome.ranked().eligible().ffmcap());
+        }
         var capping = WeightCapping.cap(ffmcapById, index.weightCap());
         Map<String, CappedWeight> weightById = capping.weights().stream()
                 .collect(Collectors.toMap(CappedWeight::securityId, Function.identity()));

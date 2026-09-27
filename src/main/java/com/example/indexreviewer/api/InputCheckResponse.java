@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * What was loaded for a review, so the input can be checked before the review runs: the files read, how much
@@ -29,10 +31,9 @@ public record InputCheckResponse(
         List<DataQualityWarning> warnings) {
 
     static InputCheckResponse of(IndexDefinition index, ReviewPeriod period, InputData data) {
-        var countByDate = new TreeMap<LocalDate, Long>();
-        data.securityDataById().values().stream()
+        SortedMap<LocalDate, Long> countByDate = data.securityDataById().values().stream()
                 .flatMap(byDate -> byDate.keySet().stream())
-                .forEach(date -> countByDate.merge(date, 1L, Long::sum));
+                .collect(Collectors.groupingBy(Function.identity(), TreeMap::new, Collectors.counting()));
         return new InputCheckResponse(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
                 data.files(), data.universe(period.reviewDate()).size(), countByDate,
                 List.copyOf(data.currentComposition()), data.warnings());

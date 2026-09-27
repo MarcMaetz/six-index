@@ -25,11 +25,15 @@ public record InputData(
 
     public InputData {
         var universe = new LinkedHashMap<LocalDate, Set<String>>();
-        universeByDate.forEach((date, ids) -> universe.put(date, Collections.unmodifiableSet(new LinkedHashSet<>(ids))));
+        for (var entry : universeByDate.entrySet()) {
+            universe.put(entry.getKey(), Collections.unmodifiableSet(new LinkedHashSet<>(entry.getValue())));
+        }
         universeByDate = Collections.unmodifiableMap(universe);
 
         var securityData = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
-        securityDataById.forEach((id, byDate) -> securityData.put(id, Collections.unmodifiableMap(new LinkedHashMap<>(byDate))));
+        for (var entry : securityDataById.entrySet()) {
+            securityData.put(entry.getKey(), Collections.unmodifiableMap(new LinkedHashMap<>(entry.getValue())));
+        }
         securityDataById = Collections.unmodifiableMap(securityData);
 
         currentComposition = Collections.unmodifiableSet(new LinkedHashSet<>(currentComposition));
