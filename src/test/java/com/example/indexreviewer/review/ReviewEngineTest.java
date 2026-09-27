@@ -3,7 +3,6 @@ package com.example.indexreviewer.review;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
-import com.example.indexreviewer.domain.SecurityData;
 import com.example.indexreviewer.ingest.InputDataLoader;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
 import org.junit.jupiter.api.Test;
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.example.indexreviewer.review.SecurityDataFixtures.securityData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.within;
@@ -97,9 +97,9 @@ class ReviewEngineTest {
     void incumbentsLeaveWhenNotInUniverseOrNotEligible() {
         var input = new InputData(
                 Map.of(REVIEW, Set.of("A", "B")),
-                Map.of("A", Map.of(CUT_OFF, data("A", CUT_OFF, "10", null, null),
-                                REVIEW, data("A", REVIEW, null, "1", 100L)),
-                        "B", Map.of(CUT_OFF, data("B", CUT_OFF, "10", null, null))),
+                Map.of("A", Map.of(CUT_OFF, securityData("A", CUT_OFF, "10", null, null),
+                                REVIEW, securityData("A", REVIEW, null, "1", 100L)),
+                        "B", Map.of(CUT_OFF, securityData("B", CUT_OFF, "10", null, null))),
                 Set.of("A", "B", "C"), List.of(), List.of());
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 1, 1, 1, BigDecimal.ONE,
                 "FFMCAP", List.of(Q3));
@@ -113,10 +113,5 @@ class ReviewEngineTest {
         assertThat(result.leavers()).filteredOn(l -> l.securityId().equals("B")).singleElement()
                 .satisfies(l -> assertThat(l.detail())
                         .isEqualTo("Missing shares on review date 2026-09-21, free float on review date 2026-09-21"));
-    }
-
-    private static SecurityData data(String id, LocalDate date, String price, String freeFloat, Long shares) {
-        return new SecurityData(id, date, price == null ? null : new BigDecimal(price),
-                freeFloat == null ? null : new BigDecimal(freeFloat), shares);
     }
 }

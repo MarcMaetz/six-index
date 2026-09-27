@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.example.indexreviewer.review.SecurityDataFixtures.securityData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -86,7 +87,7 @@ class StatusAssessmentTest {
         // D has no review-date row, so it is estimated from cut-off shares and free float. Without D the ranking
         // is A 500, B 400, C 300, E 100: the buffer end (rank 3) is 300, so an estimate is harmless below 150.
         var data = fullData();
-        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "1", "1", 100L)));
+        data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 100L)));
         var harmless = assess(data, List.of());
         assertThat(harmless.status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
         assertThat(harmless.reasons()).singleElement().satisfies(r -> {
@@ -96,14 +97,14 @@ class StatusAssessmentTest {
         });
 
         // 200 would rank 4th, below the buffer, but within the margin: the estimate is too close to call (A13).
-        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "2", "1", 100L)));
+        data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "2", "1", 100L)));
         var nearBuffer = assess(data, List.of());
         assertThat(nearBuffer.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
         assertThat(nearBuffer.reasons()).extracting(StatusReason::relevance)
                 .containsExactly(Relevance.ESTIMATED_NEAR_BUFFER);
 
         // No price on either date: can't estimate, so it counts as relevant.
-        data.put("D", Map.of(REVIEW, sec("D", REVIEW, null, "1", 100L)));
+        data.put("D", Map.of(REVIEW, securityData("D", REVIEW, null, "1", 100L)));
         assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
                 .containsExactly(Relevance.NOT_ESTIMABLE);
     }
@@ -114,7 +115,7 @@ class StatusAssessmentTest {
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 5, BigDecimal.ONE,
                 "FFMCAP", List.of(PERIOD));
         var data = fullData();
-        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "1", "1", 1L)));
+        data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
 
         var status = assess(index, data, List.of());
 
@@ -128,7 +129,7 @@ class StatusAssessmentTest {
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 5, 3, 5, BigDecimal.ONE,
                 "FFMCAP", List.of(PERIOD));
         var data = fullData();
-        data.put("D", Map.of(CUT_OFF, sec("D", CUT_OFF, "1", "1", 1L)));
+        data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
 
         var status = assess(index, data, List.of());
 
@@ -157,17 +158,13 @@ class StatusAssessmentTest {
         var data = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
         long shares = 500;
         for (String id : List.of("A", "B", "C", "D", "E")) {
-            data.put(id, Map.of(CUT_OFF, sec(id, CUT_OFF, "1", null, null),
-                    REVIEW, sec(id, REVIEW, null, "1", shares)));
+            data.put(id, Map.of(CUT_OFF, securityData(id, CUT_OFF, "1", null, null),
+                    REVIEW, securityData(id, REVIEW, null, "1", shares)));
             shares -= 100;
         }
         return data;
     }
 
-    private static SecurityData sec(String id, LocalDate date, String price, String freeFloat, Long shares) {
-        return new SecurityData(id, date, price == null ? null : new BigDecimal(price),
-                freeFloat == null ? null : new BigDecimal(freeFloat), shares);
-    }
 
     private static DataQualityWarning warning(Impact impact, String... ids) {
         return new DataQualityWarning("test.csv", 2, impact, "test warning", List.of(ids));

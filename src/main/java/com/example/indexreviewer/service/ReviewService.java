@@ -55,12 +55,11 @@ public class ReviewService {
 
     /** Loads and validates a review's input without running the review. */
     public ReviewInput input(String index, String period) {
-        var definition = catalog.index(index);
-        var reviewPeriod = catalog.reviewPeriod(definition, period);
-        var data = inputSource.load(definition, reviewPeriod);
-        LOG.debug("Loaded input of {} {}: {} file(s), {} warning(s)", definition.name(), reviewPeriod.id(),
+        var review = review(index, period);
+        var data = inputSource.load(review.index(), review.period());
+        LOG.debug("Loaded input of {} {}: {} file(s), {} warning(s)", review.index().name(), review.period().id(),
                 data.files().size(), data.warnings().size());
-        return new ReviewInput(definition, reviewPeriod, data);
+        return new ReviewInput(review.index(), review.period(), data);
     }
 
     /** Runs a review and stores its report. */
@@ -75,13 +74,22 @@ public class ReviewService {
 
     /** Stored runs of a review, oldest first. */
     public List<StoredReport> reports(String index, String period) {
-        var definition = catalog.index(index);
-        return reportStore.list(definition.name(), catalog.reviewPeriod(definition, period).id());
+        var review = review(index, period);
+        return reportStore.list(review.index().name(), review.period().id());
     }
 
     /** A stored report exactly as written, as JSON. */
     public byte[] report(String index, String period, String id) {
+        var review = review(index, period);
+        return reportStore.read(review.index().name(), review.period().id(), id);
+    }
+
+    /** The configured index and review period; fails if either is not configured. */
+    private Review review(String index, String period) {
         var definition = catalog.index(index);
-        return reportStore.read(definition.name(), catalog.reviewPeriod(definition, period).id(), id);
+        return new Review(definition, catalog.reviewPeriod(definition, period));
+    }
+
+    private record Review(IndexDefinition index, ReviewPeriod period) {
     }
 }

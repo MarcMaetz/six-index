@@ -49,6 +49,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Decision numbers removed from code comments (70 of 73), convention added to `AGENT.md` (D35) |
 | 2026-09-27 | Large try blocks in `InputDataLoader`, `CsvFile` and `FileReportStore` split up; try now only wraps the call it translates (D36) |
 | 2026-09-27 | Long methods (25+ lines) split into named steps in `WeightCapping`, `ReportBuilder`, `StatusAssessment`, `ReviewEngine`, `Selection`, `CsvFile`; no behaviour change (D37) |
+| 2026-09-27 | Duplicates removed: one index/period lookup in `ReviewService`, one `SecurityData` test fixture; other near-duplicates kept on purpose (D38) |
 
 ## Design decisions
 
@@ -544,6 +545,23 @@ decided, why, and what we rejected.
   top to bottom; splitting would only move lines around) and `ReviewEngine.run` (already a sequence of steps;
   only its exclusion-warning loop became one `forEach`).
 - No behaviour change; the existing tests cover every moved branch.
+
+### D38 — Duplicated code removed where it is the same rule, kept where it only looks alike
+- Found with a scan for repeated line windows plus a read-through of the (small) code base.
+- Removed:
+  - `ReviewService.input`, `reports` and `report` each looked up index and review period from the catalog; a
+    private `review(index, period)` now does it once, so "not configured" is decided in one place.
+  - `ReviewEngineTest.data(...)` and `StatusAssessmentTest.sec(...)` were the same `SecurityData` builder;
+    both use `SecurityDataFixtures.securityData(...)` now.
+- **Kept on purpose:**
+  - `IndexResponse` / `IndexDefinition` and `InputCheckResponse` / `ReviewReport` repeat fields: API types are
+    kept separate from domain and report types so either can change without breaking the other.
+  - `Eligibility.check` and `StatusAssessment.estimatedValue` both read price, shares and free float per date,
+    but apply different rules: eligibility is strict (brief's date rule), the estimate falls back to the other
+    date (A13). Sharing the code would tie the two rules together.
+  - `Collectors.toMap(..., Function.identity())` lookups by id (four uses): standard idiom, each with a
+    different key; a helper would hide nothing.
+  - Test date constants (`CUT_OFF`, `REVIEW`) per test class: each test reads on its own.
 
 ## Input data findings
 
