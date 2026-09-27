@@ -50,6 +50,7 @@ decided, why, and what we rejected.
 | 2026-09-27 | Large try blocks in `InputDataLoader`, `CsvFile` and `FileReportStore` split up; try now only wraps the call it translates (D36) |
 | 2026-09-27 | Long methods (25+ lines) split into named steps in `WeightCapping`, `ReportBuilder`, `StatusAssessment`, `ReviewEngine`, `Selection`, `CsvFile`; no behaviour change (D37) |
 | 2026-09-27 | Duplicates removed: one index/period lookup in `ReviewService`, one `SecurityData` test fixture; other near-duplicates kept on purpose (D38) |
+| 2026-09-27 | Dead-code sweep (unreferenced declarations, enum constants, main code used only by tests, unused parameters, imports, test helpers, tracked files): only one unused import found and removed |
 
 ## Design decisions
 
