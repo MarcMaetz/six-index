@@ -1,4 +1,4 @@
-package com.example.indexreviewer.review;
+package com.example.indexreviewer.review.status;
 
 import java.util.List;
 

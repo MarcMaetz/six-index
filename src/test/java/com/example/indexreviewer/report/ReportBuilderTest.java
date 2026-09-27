@@ -5,10 +5,10 @@ import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
 import com.example.indexreviewer.review.ReviewEngine;
-import com.example.indexreviewer.review.ReviewStatus;
 import com.example.indexreviewer.review.SelectionDecision;
-import com.example.indexreviewer.review.StatusReason;
-import com.example.indexreviewer.review.StatusReason.Relevance;
+import com.example.indexreviewer.review.status.ReviewStatus;
+import com.example.indexreviewer.review.status.StatusReason;
+import com.example.indexreviewer.review.status.StatusReason.Relevance;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

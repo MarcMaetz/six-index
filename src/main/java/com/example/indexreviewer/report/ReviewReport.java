@@ -3,9 +3,9 @@ package com.example.indexreviewer.report;
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.InputFile;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
-import com.example.indexreviewer.review.ReviewStatus;
 import com.example.indexreviewer.review.SelectionDecision;
-import com.example.indexreviewer.review.StatusReason;
+import com.example.indexreviewer.review.status.ReviewStatus;
+import com.example.indexreviewer.review.status.StatusReason;
 
 import java.math.BigDecimal;
 import java.time.Instant;

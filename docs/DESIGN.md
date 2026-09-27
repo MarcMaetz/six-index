@@ -43,7 +43,8 @@ in `domain` (input model and index definitions), which is left out of the diagra
 |---|---|
 | `domain` | Input model (`InputData`, `SecurityData`, `DataQualityWarning`, `InputFile`) and index definitions (`IndexDefinition`, `ReviewPeriod`). The definitions validate themselves when constructed. |
 | `ingest` | `InputSource` provides a review's `InputData`; `CsvFolderInputSource` reads the three CSVs of one review, recording a warning for each problem row. |
-| `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step; its review status is derived from it (`StatusAssessment`). |
+| `review` | The review pipeline (below). Produces a `ReviewResult` that keeps every intermediate step. |
+| `review.status` | The review status, derived from a finished `ReviewResult` (`StatusAssessment`). The review never depends on it. |
 | `report` | Renders a `ReviewResult` as the `ReviewReport`, rounding for display only. |
 | `store` | `ReportStore` keeps every report as written; `FileReportStore` writes one JSON file per run. |
 | `catalog` | `IndexCatalog` looks up configured indices and review periods; unknown ones raise `NotConfiguredException` (404). Framework-free. |
@@ -100,8 +101,8 @@ Validation happens in two layers:
 Each warning has an **impact**: `NONE` (nothing lost, e.g. an identical duplicate row was dropped) or
 `MISSING_DATA` (a row was ignored, conflicting rows were dropped, or a security was excluded).
 
-The **review status** tells a reviewer whether to look closer. `StatusAssessment` in `review` derives
-it from the result, available as `ReviewResult.assessment()`:
+The **review status** tells a reviewer whether to look closer. `StatusAssessment` in `review.status` derives
+it from the result (`StatusAssessment.assess(result)`, called by `ReportBuilder`):
 
 | Status | When |
 |---|---|
@@ -156,7 +157,7 @@ ties are broken by id.
 | New quarter | Add a review period to the YAML and a `data/<index>/<period>/` folder. No code change. |
 | New index with a single cap and a buffer (the SMI's rules, other numbers) | Add an index block to the YAML and its data folder. No code change. |
 | Tiered capping (e.g. SLI: largest 4 at 9%, rest at 4.5%, rulebook 5.17.4) | Implement `CappingRule`, add its parameters to `IndexDefinition` and the YAML, and pick it in `ReviewEngine.cappingRule`. The capping loop is unchanged; `WeightCappingTest` runs a tiered rule already. |
-| New ranking criterion computed from price, shares and free float | Implement `RankingStrategy`, register it in `RankingStrategies` (a static registry on purpose), and select it in the YAML. |
+| New ranking criterion computed from price, shares and free float | Implement `RankingStrategy` (or, for a single value of the security, add a `ByValue` line) and register it in `RankingStrategies` (a static registry on purpose), and select it in the YAML. |
 | The rulebook's selection list (A4: 12-month average FFMCAP and turnover) | Three steps: add turnover and history to the input files, `InputData` and the loader; give `RankingStrategy` the review's input, not just one `EligibleSecurity`; decide what happens to securities without enough history. `Eligibility` stays: it checks the data the weights need. |
 | New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
 | Store reports in a database | Implement `ReportStore` and expose it as the bean in `ReviewConfiguration`. Nothing else changes. |

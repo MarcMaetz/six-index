@@ -1,8 +1,8 @@
 package com.example.indexreviewer.api;
 
 import com.example.indexreviewer.report.ReviewReport;
-import com.example.indexreviewer.review.ReviewStatus;
-import com.example.indexreviewer.review.StatusReason;
+import com.example.indexreviewer.review.status.ReviewStatus;
+import com.example.indexreviewer.review.status.StatusReason;
 import com.example.indexreviewer.store.StoredReport;
 
 import java.math.BigDecimal;

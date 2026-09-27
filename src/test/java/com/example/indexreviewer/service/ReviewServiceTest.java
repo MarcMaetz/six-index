@@ -9,7 +9,7 @@ import com.example.indexreviewer.report.ReportBuilder;
 import com.example.indexreviewer.report.ReportFormat;
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
-import com.example.indexreviewer.review.ReviewStatus;
+import com.example.indexreviewer.review.status.ReviewStatus;
 import com.example.indexreviewer.store.FileReportStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

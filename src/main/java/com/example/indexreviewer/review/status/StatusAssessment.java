@@ -1,9 +1,12 @@
-package com.example.indexreviewer.review;
+package com.example.indexreviewer.review.status;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
-import com.example.indexreviewer.review.StatusReason.Relevance;
-import com.example.indexreviewer.review.StatusReason.WarningRef;
+import com.example.indexreviewer.review.RankedSecurity;
+import com.example.indexreviewer.review.ReviewResult;
+import com.example.indexreviewer.review.Selection;
+import com.example.indexreviewer.review.status.StatusReason.Relevance;
+import com.example.indexreviewer.review.status.StatusReason.WarningRef;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +22,6 @@ import java.util.stream.Collectors;
  * always needs attention (A12).
  * <p>
  * Part of the review, not the report: it judges the result using the index's buffer and ranking strategy.
- * Read it through {@link ReviewResult#assessment()}.
  */
 public final class StatusAssessment {
 
@@ -41,7 +43,7 @@ public final class StatusAssessment {
         this.unranked = new UnrankedEstimate(result, ranked);
     }
 
-    static Result assess(ReviewResult result) {
+    public static Result assess(ReviewResult result) {
         return new StatusAssessment(result).assess();
     }
 

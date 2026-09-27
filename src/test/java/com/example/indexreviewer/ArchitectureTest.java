@@ -58,6 +58,12 @@ class ArchitectureTest {
             .that().resideOutsideOfPackages(ROOT, ROOT + ".config..", ROOT + ".service..", ROOT + ".api..")
             .should().dependOnClassesThat().resideInAPackage("org.springframework..");
 
+    /** The status judges a finished review; the review itself never depends on it (the slices below can't see this). */
+    @ArchTest
+    static final ArchRule reviewDoesNotDependOnStatus = noClasses()
+            .that().resideInAPackage(ROOT + ".review")
+            .should().dependOnClassesThat().resideInAPackage(ROOT + ".review.status..");
+
     @ArchTest
     static final ArchRule noPackageCycles = slices().matching(ROOT + ".(*)..").should().beFreeOfCycles();
 }

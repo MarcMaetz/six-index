@@ -8,7 +8,7 @@ import com.example.indexreviewer.report.ReportFormat;
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.ReviewResult;
-import com.example.indexreviewer.review.ReviewStatus;
+import com.example.indexreviewer.review.status.ReviewStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

@@ -2,6 +2,7 @@ package com.example.indexreviewer.report;
 
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.review.ReviewResult;
+import com.example.indexreviewer.review.status.StatusAssessment;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -24,7 +25,7 @@ public final class ReportBuilder {
     public ReviewReport build(ReviewResult result) {
         var index = result.index();
         var period = result.period();
-        var status = result.assessment();
+        var status = StatusAssessment.assess(result);
 
         var joiners = result.joiners().stream()
                 .map(c -> new ReviewReport.Joiner(c.securityId(), c.rank(), c.decision()))

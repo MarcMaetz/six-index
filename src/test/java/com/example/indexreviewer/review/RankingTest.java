@@ -15,7 +15,7 @@ class RankingTest {
     void ranksHighestValueFirstAndBreaksTiesById() {
         // B and A tie at 100 and are given in that order: A ranks first by id (A8).
         var ranked = Ranking.rank(List.of(eligible("C", 50), eligible("B", 100), eligible("A", 100)),
-                new FfmcapRanking(), Set.of("B"));
+                RankingStrategies.FFMCAP, Set.of("B"));
 
         assertThat(ranked).extracting(RankedSecurity::rank, RankedSecurity::securityId, RankedSecurity::incumbent)
                 .containsExactly(tuple(1, "A", false), tuple(2, "B", true), tuple(3, "C", false));

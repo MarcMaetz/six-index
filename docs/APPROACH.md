@@ -171,8 +171,12 @@ section 5.12, with definitions in 2 and 4.3.
   explanation and the warning it comes from. All reasons are kept, harmless ones too. Free text can't be filtered
   or tested reliably, and stored reports are long-lived.
 - **Part of the review, not the report.** The status applies review rules (buffer end, ranking strategy), so it
-  lives in `review` and is read from the result; in the report package it would hide a business rule in the
-  formatting layer.
+  lives in `review.status`; in the report package it would hide a business rule in the formatting layer. It is a
+  subpackage because it is a separate stage: it reads a finished `ReviewResult` and only public review types, and
+  the review never depends on it (an ArchUnit rule, since the slice check sees `review` as one). `ReportBuilder`
+  calls `StatusAssessment.assess(result)` directly; a `ReviewResult.assessment()` shortcut would make the two
+  packages depend on each other. The pipeline stays one flat package: Java has no subpackage visibility, so
+  splitting ranking, selection or capping would make their package-private steps public.
 - **Split by rule.** `StatusAssessment.assess(result)` builds a private instance holding the result and its rank
   lookup, and reads top to bottom: warnings → where each security stands → status. The A13 estimate, the largest
   and most assumption-laden part, is its own class (`UnrankedEstimate`) with the buffer-end value computed once.
@@ -216,11 +220,18 @@ After the features were complete, the code was scanned smell by smell:
   "invalid row".
 - **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping: caps →
   distribute → over the cap? → repeat → factors). Single loops that read top to bottom were left alone.
+- **Shared state in an object.** Where the steps of one calculation all need the same data (`WeightCapping`:
+  FFMCAP, caps, the growing capped set; `StatusAssessment`: the result and its rank lookup), a static entry
+  point creates a private instance that holds it, instead of passing three parameters to every step. Steps
+  without shared state (`Eligibility`, `Ranking`, `Selection`) stay static, with a private constructor and
+  `final` so they can't be instantiated or extended.
 - **Duplication** was removed where it was the same rule. A `Constituent` is its selection outcome plus its
-  weight, and "joiner" is derived from the outcome, not stored a second time. Look-alikes stayed: API types that repeat domain
-  fields change independently, and eligibility and the status estimate read the same data under different rules.
+  weight, and "joiner" is derived from the outcome, not stored a second time. Look-alikes stayed: API types that
+  repeat domain fields change independently, and eligibility and the status estimate read the same data under
+  different rules.
 - **Visibility and naming.** The pipeline steps are package-private; other packages see only the engine and
-  its results. Accessor chains name each hop (`o.ranked().eligible().ffmcap()`).
+  its results. A strategy that only reads one value is a line in `RankingStrategies` (`FFMCAP`), not a class.
+  Accessor chains name each hop (`o.ranked().eligible().ffmcap()`).
 - **Warnings** are collected per input file instead of in one list passed through every method.
 - **Dead code:** one unused import, plus two conditions that were always true, found by the tools below.
 

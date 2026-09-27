@@ -1,6 +1,6 @@
 package com.example.indexreviewer.store;
 
-import com.example.indexreviewer.review.ReviewStatus;
+import com.example.indexreviewer.review.status.ReviewStatus;
 
 import java.time.Instant;
 

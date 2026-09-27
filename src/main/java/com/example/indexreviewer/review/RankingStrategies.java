@@ -1,5 +1,6 @@
 package com.example.indexreviewer.review;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -13,8 +14,20 @@ import java.util.stream.Stream;
  */
 public final class RankingStrategies {
 
-    private static final Map<String, RankingStrategy> BY_NAME = Stream.<RankingStrategy>of(new FfmcapRanking())
+    /** Ranks by free float market capitalization, as the brief specifies. */
+    static final RankingStrategy FFMCAP = new ByValue("FFMCAP", EligibleSecurity::ffmcap);
+
+    private static final Map<String, RankingStrategy> BY_NAME = Stream.of(FFMCAP)
             .collect(Collectors.toUnmodifiableMap(RankingStrategy::name, Function.identity()));
+
+    /** A strategy that reads one value of the security. */
+    private record ByValue(String name, Function<EligibleSecurity, BigDecimal> value) implements RankingStrategy {
+
+        @Override
+        public BigDecimal rankingValue(EligibleSecurity security) {
+            return value.apply(security);
+        }
+    }
 
     private RankingStrategies() {
     }

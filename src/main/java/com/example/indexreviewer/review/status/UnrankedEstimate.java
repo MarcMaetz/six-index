@@ -1,8 +1,11 @@
-package com.example.indexreviewer.review;
+package com.example.indexreviewer.review.status;
 
 import com.example.indexreviewer.domain.SecurityData;
-import com.example.indexreviewer.review.StatusReason.Relevance;
-import com.example.indexreviewer.review.StatusReason.WarningRef;
+import com.example.indexreviewer.review.EligibleSecurity;
+import com.example.indexreviewer.review.RankedSecurity;
+import com.example.indexreviewer.review.ReviewResult;
+import com.example.indexreviewer.review.status.StatusReason.Relevance;
+import com.example.indexreviewer.review.status.StatusReason.WarningRef;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

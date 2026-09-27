@@ -33,7 +33,14 @@ final class WeightCapping {
         }
     }
 
-    private WeightCapping() {
+    private final SequencedMap<String, BigDecimal> ffmcapById;
+    private final Map<String, BigDecimal> caps;
+    /** Constituents set to their cap so far; grows each round. */
+    private final Set<String> capped = new LinkedHashSet<>();
+
+    private WeightCapping(SequencedMap<String, BigDecimal> ffmcapById, Map<String, BigDecimal> caps) {
+        this.ffmcapById = ffmcapById;
+        this.caps = caps;
     }
 
     /**
@@ -44,20 +51,21 @@ final class WeightCapping {
         if (ffmcapById.isEmpty()) {
             return new Result(List.of(), List.of());
         }
-        Map<String, BigDecimal> caps = caps(ffmcapById, rule);
+        return new WeightCapping(ffmcapById, caps(ffmcapById, rule)).cap();
+    }
 
-        Set<String> capped = new LinkedHashSet<>();
+    private Result cap() {
         var rounds = new ArrayList<List<String>>();
-        var weights = distribute(ffmcapById, capped, caps);
-        var overCap = overCap(weights, capped, caps);
+        var weights = distribute();
+        var overCap = overCap(weights);
         while (!overCap.isEmpty()) {
             capped.addAll(overCap);
             rounds.add(overCap);
-            weights = distribute(ffmcapById, capped, caps);
-            overCap = overCap(weights, capped, caps);
+            weights = distribute();
+            overCap = overCap(weights);
         }
 
-        var result = cappedWeights(ffmcapById, weights, capped);
+        var result = cappedWeights(weights);
         checkInvariants(result, caps);
         return new Result(result, rounds);
     }
@@ -73,8 +81,7 @@ final class WeightCapping {
     }
 
     /** Constituents not yet capped whose weight exceeds their cap. */
-    private static List<String> overCap(Map<String, BigDecimal> weights, Set<String> capped,
-                                        Map<String, BigDecimal> caps) {
+    private List<String> overCap(Map<String, BigDecimal> weights) {
         return weights.entrySet().stream()
                 .filter(e -> !capped.contains(e.getKey()) && e.getValue().compareTo(caps.get(e.getKey())) > 0)
                 .map(Map.Entry::getKey)
@@ -82,8 +89,7 @@ final class WeightCapping {
     }
 
     /** Capped constituents get their cap; the rest share the remaining weight in proportion to FFMCAP. */
-    private static Map<String, BigDecimal> distribute(Map<String, BigDecimal> ffmcapById, Set<String> capped,
-                                                      Map<String, BigDecimal> caps) {
+    private Map<String, BigDecimal> distribute() {
         BigDecimal remaining = BigDecimal.ONE.subtract(sum(capped.stream().map(caps::get).toList()));
         BigDecimal uncappedTotal = sum(ffmcapById.entrySet().stream()
                 .filter(e -> !capped.contains(e.getKey()))
@@ -97,8 +103,7 @@ final class WeightCapping {
     }
 
     /** Capping factor ∝ weight / FFMCAP, normalised so the uncapped constituents get 1. */
-    private static List<CappedWeight> cappedWeights(SequencedMap<String, BigDecimal> ffmcapById,
-                                                    Map<String, BigDecimal> weights, Set<String> capped) {
+    private List<CappedWeight> cappedWeights(Map<String, BigDecimal> weights) {
         BigDecimal total = sum(ffmcapById.values());
         Map<String, BigDecimal> ratio = new LinkedHashMap<>();
         weights.forEach((id, weight) -> ratio.put(id, weight.divide(ffmcapById.get(id), PRECISION)));
