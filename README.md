@@ -84,8 +84,8 @@ deliberately doesn't cover, is in [docs/DESIGN.md](docs/DESIGN.md#configuration-
 ## Documentation
 
 - [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing, limits.
-- [docs/APPROACH.md](docs/APPROACH.md): decision log (D1–D35), assumptions (A1–A14) with a summary of the
-  deliberate ones, input data findings and the rulebook rules applied.
+- [docs/APPROACH.md](docs/APPROACH.md): why it is built this way, by topic; the input data findings, the
+  rulebook rules applied, and the assumptions (A1–A14).
 - [data/README.md](data/README.md): input file formats.
 
 ## Layout
@@ -95,7 +95,7 @@ config/indices.yml   index definitions and review periods (business configuratio
 data/SMI/2026-Q3/    input CSVs of the Q3 2026 SMI review
 reports/             stored review runs, created at runtime (git-ignored)
 postman/             Postman collection with test scripts
-docs/                design doc, decision log
+docs/                design doc, approach
 src/main/java/com/example/indexreviewer/
   domain/            input model and index definitions (framework-free)
   ingest/            input source: CSV loading and row validation

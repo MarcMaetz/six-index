@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 
 /**
  * The ranking strategies the application knows, looked up by the name used in the configuration. A static
- * registry, not Spring beans (D33): {@code IndexCatalog} checks the names at startup, {@code ReviewEngine} looks
+ * registry, not Spring beans: {@code IndexCatalog} checks the names at startup, {@code ReviewEngine} looks
  * up the strategy once per review. Strategies become beans wired in {@code config} once one needs outside
  * dependencies.
  */

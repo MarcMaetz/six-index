@@ -22,6 +22,6 @@ jq -n '{
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "deny",
-    permissionDecisionReason: "docs/APPROACH.md has no changes in this commit. Per AGENT.md, add a Timeline row (and a D<n> decision / assumption / open question if the work involved one) and retry. If this change genuinely needs no log entry, add [no-approach] to the commit message and say why to the user."
+    permissionDecisionReason: "docs/APPROACH.md has no changes in this commit. Per AGENT.md, update the matching topic (and Assumptions if the work involved one) and retry. If this change genuinely needs no log entry, add [no-approach] to the commit message and say why to the user."
   }
 }'

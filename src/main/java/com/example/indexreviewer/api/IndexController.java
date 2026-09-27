@@ -63,7 +63,7 @@ public class IndexController {
     }
 
     /**
-     * Returned as stored bytes, not re-serialized, so older reports stay exactly as written (D21). The annotation
+     * Returned as stored bytes, not re-serialized, so older reports stay exactly as written. The annotation
      * documents them with the current report schema.
      */
     @Operation(summary = "Get a stored report exactly as it was written")
