@@ -149,4 +149,16 @@ class IndexControllerTest {
                         + ".content['application/json'].schema['$ref']")
                 .isEqualTo("#/components/schemas/ReviewReport");
     }
+
+    @Test
+    void apiDocsKeepSummaryAndReportConstituentsApart() {
+        assertThat(mvc.get().uri("/api-docs")).hasStatusOk().bodyJson().satisfies(json -> {
+            assertThat(json).extractingPath("$.components.schemas.ReviewSummaryResponse.properties.constituents"
+                    + ".items['$ref']").isEqualTo("#/components/schemas/ConstituentSummary");
+            assertThat(json).extractingPath("$.components.schemas.ConstituentSummary.properties")
+                    .asMap().doesNotContainKey("cappingFactor");
+            assertThat(json).extractingPath("$.components.schemas.Constituent.properties")
+                    .asMap().containsKey("cappingFactor");
+        });
+    }
 }

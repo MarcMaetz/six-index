@@ -26,18 +26,21 @@ public record ReviewSummaryResponse(
         Instant generatedAt,
         ReviewStatus status,
         List<StatusReason> statusReasons,
-        List<Constituent> constituents,
+        List<ConstituentSummary> constituents,
         List<ReviewReport.Joiner> joiners,
         List<Leaver> leavers) {
 
-    /** A security in the new composition; weights are in percent. */
-    public record Constituent(int rank, String securityId, boolean joiner, BigDecimal weightPercent,
-                              boolean capped) {
+    /**
+     * A security in the new composition; weights are in percent. Not named {@code Constituent}: the OpenAPI docs
+     * name schemas by simple class name, and the report's {@code Constituent} would hide this one.
+     */
+    public record ConstituentSummary(int rank, String securityId, boolean joiner, BigDecimal weightPercent,
+                                     boolean capped) {
     }
 
     static ReviewSummaryResponse of(StoredReport stored, URI reportUrl, ReviewReport report) {
         var constituents = report.constituents().stream()
-                .map(c -> new Constituent(c.rank(), c.securityId(), c.joiner(), c.weightPercent(), c.capped()))
+                .map(c -> new ConstituentSummary(c.rank(), c.securityId(), c.joiner(), c.weightPercent(), c.capped()))
                 .toList();
         return new ReviewSummaryResponse(stored.id(), reportUrl, report.index(), report.reviewPeriod(), report.generatedAt(),
                 report.status(), report.statusReasons(), constituents, report.joiners(), report.leavers());

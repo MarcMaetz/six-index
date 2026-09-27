@@ -246,7 +246,9 @@ After the features were complete, the code was scanned smell by smell:
   review's `Leaver` and `Exclusion`; their former copies matched field for field. Own records remain where the
   shape really differs: the report rounds values (`Constituent`, `RankingEntry`), and `Joiner` and `WarningRef`
   leave fields out (a reason's `WarningRef` drops the warning's id list, which would otherwise repeat 204 ids in
-  each of 204 reasons).
+  each of 204 reasons). The summary's constituent record is called `ConstituentSummary`: OpenAPI names schemas
+  by simple class name, so a second `Constituent` was silently merged with the report's in Swagger, showing
+  the summary with fields it doesn't have. A test keeps the two schemas apart.
 - **Try blocks** wrap only the call whose exception they translate; a wide try can swallow a bug as an
   "invalid row".
 - **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping:

@@ -191,7 +191,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round, and fails a review with too few rankable securities (A12) |
 | Storage | `FileReportStoreTest`: file naming, no overwrite of an existing report, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
-| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with a summary and `Location`, full stored reports returned as written, 404s, problem responses for Spring's own 404/405, and the stored report's OpenAPI schema. `ApiExceptionHandlerTest`: unusable input gives a 422 with the reason, unexpected errors a 500 without internals |
+| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with a summary and `Location`, full stored reports returned as written, 404s, problem responses for Spring's own 404/405, the stored report's OpenAPI schema, and separate schemas for the summary's and the report's constituents. `ApiExceptionHandlerTest`: unusable input gives a 422 with the reason, unexpected errors a 500 without internals |
 | Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages with `config` outermost, plain-Java review logic, Spring only in `config`, `service` and `api`, no package cycles |
 | Manual | Postman test scripts for the same expected results |
 
