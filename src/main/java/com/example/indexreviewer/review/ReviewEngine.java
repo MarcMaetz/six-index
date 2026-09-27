@@ -41,7 +41,7 @@ public final class ReviewEngine {
                 .collect(Collectors.toMap(CappedWeight::securityId, Function.identity()));
 
         var constituents = selected.stream()
-                .map(o -> new Constituent(o.ranked(), o.decision(), !o.incumbent(), weightById.get(o.securityId())))
+                .map(o -> new Constituent(o, weightById.get(o.securityId())))
                 .toList();
 
         return new ReviewResult(index, period, strategy, input, eligibility.excluded(), selection, constituents,

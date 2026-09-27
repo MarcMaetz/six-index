@@ -213,7 +213,8 @@ After the features were complete, the code was scanned smell by smell:
   "invalid row".
 - **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping: caps →
   distribute → over the cap? → repeat → factors). Single loops that read top to bottom were left alone.
-- **Duplication** was removed where it was the same rule. Look-alikes stayed: API types that repeat domain
+- **Duplication** was removed where it was the same rule. A `Constituent` is its selection outcome plus its
+  weight, and "joiner" is derived from the outcome, not stored a second time. Look-alikes stayed: API types that repeat domain
   fields change independently, and eligibility and the status estimate read the same data under different rules.
 - **Visibility and naming.** The pipeline steps are package-private; other packages see only the engine and
   its results. Accessor chains name each hop (`o.ranked().eligible().ffmcap()`).
