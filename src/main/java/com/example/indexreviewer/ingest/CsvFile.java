@@ -2,14 +2,12 @@ package com.example.indexreviewer.ingest;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
-import com.example.indexreviewer.domain.InputFile;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.CharacterCodingException;
@@ -17,11 +15,8 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -29,8 +24,7 @@ import java.util.Map;
  * Reads a {@code ;}-separated CSV file with a header row into rows addressable by column name. Handles a UTF-8
  * byte order mark and CRLF line endings. Blank lines are skipped; rows with the wrong number of fields are
  * reported as warnings and skipped. Bytes that are not valid UTF-8 fail the load instead of being replaced
- * silently, which would turn a corrupted id or number into a wrong one. The checksum is taken from the same
- * bytes that are parsed.
+ * silently, which would turn a corrupted id or number into a wrong one.
  */
 final class CsvFile {
 
@@ -46,11 +40,11 @@ final class CsvFile {
         }
     }
 
-    record Content(InputFile file, List<Row> rows, List<DataQualityWarning> warnings) {
+    record Content(Path file, List<Row> rows, List<DataQualityWarning> warnings) {
 
         /** File name used as the source of warnings. */
         String source() {
-            return Path.of(file.path()).getFileName().toString();
+            return file.getFileName().toString();
         }
     }
 
@@ -62,9 +56,7 @@ final class CsvFile {
             throw new InputDataException("Input file not found: " + file);
         }
         try {
-            byte[] bytes = Files.readAllBytes(file);
-            var inputFile = new InputFile(file.toString(), sha256(bytes));
-            return parse(file.getFileName().toString(), inputFile, bytes, requiredColumns);
+            return parse(file, requiredColumns);
         } catch (CharacterCodingException e) {
             throw new InputDataException(file.getFileName() + " is not valid UTF-8", e);
         } catch (IOException | CsvValidationException e) {
@@ -72,22 +64,22 @@ final class CsvFile {
         }
     }
 
-    private static Content parse(String source, InputFile inputFile, byte[] bytes, List<String> requiredColumns)
-            throws IOException, CsvValidationException {
+    private static Content parse(Path file, List<String> requiredColumns) throws IOException, CsvValidationException {
+        String source = file.getFileName().toString();
         try (var reader = new BufferedReader(
-                new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8.newDecoder()
+                new InputStreamReader(Files.newInputStream(file), StandardCharsets.UTF_8.newDecoder()
                         .onMalformedInput(CodingErrorAction.REPORT)
                         .onUnmappableCharacter(CodingErrorAction.REPORT)))) {
             skipByteOrderMark(reader);
             var csv = new CSVReaderBuilder(reader)
                     .withCSVParser(new CSVParserBuilder().withSeparator(SEPARATOR).build())
                     .build();
-            return readRows(csv, inputFile, source, readHeader(csv, source, requiredColumns));
+            return readRows(csv, file, source, readHeader(csv, source, requiredColumns));
         }
     }
 
     /** Data rows after the header; blank lines are skipped, rows with the wrong field count are warned about. */
-    private static Content readRows(CSVReader csv, InputFile inputFile, String source, List<String> columns)
+    private static Content readRows(CSVReader csv, Path file, String source, List<String> columns)
             throws IOException, CsvValidationException {
         var rows = new ArrayList<Row>();
         var warnings = new ArrayList<DataQualityWarning>();
@@ -109,7 +101,7 @@ final class CsvFile {
             }
             rows.add(new Row(line, values));
         }
-        return new Content(inputFile, rows, warnings);
+        return new Content(file, rows, warnings);
     }
 
     /** The trimmed column names; fails if the file is empty or a required column is missing. */
@@ -125,14 +117,6 @@ final class CsvFile {
             throw new InputDataException(source + " is missing column(s) " + missing + ", found " + columns);
         }
         return columns;
-    }
-
-    private static String sha256(byte[] bytes) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is required on every Java platform", e);
-        }
     }
 
     private static void skipByteOrderMark(BufferedReader reader) throws IOException {

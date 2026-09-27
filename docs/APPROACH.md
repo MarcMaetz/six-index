@@ -203,14 +203,19 @@ section 5.12, with definitions in 2 and 4.3.
 
 - **The report explains itself.** It holds the parameters with the rulebook version, the full ranking with the
   price, shares and free float behind each FFMCAP (so `103` = 165.7 × 45,867,891 × 1 can be recomputed by hand),
-  exclusions and leavers with reasons, weights and capping factors, the capping rounds, the input files with
-  SHA-256 checksums, all warnings and the status reasons.
+  exclusions and leavers with reasons, weights and capping factors, the capping rounds, the input files read,
+  all warnings and the status reasons.
+- **The input values are the audit trail, not file checksums.** The ranking records every price, shares and free
+  float the result was computed from, so the report can be rechecked on its own. SHA-256 checksums of the input
+  files were dropped: they add little over those values, and they tied a CSV detail into the domain. In
+  production the input would come from a market-data system or database, where a snapshot id or as-of time
+  would identify the data, recorded by that `InputSource`.
 - **It records the build.** Each report carries the application version and Git revision (`-dirty` with
   uncommitted changes, `unknown` without Git); `/actuator/info` shows the same. `git.properties` is limited to
   branch, commit and time, so no names or emails end up in the jar.
 - **Every run is stored as written.** `POST` saves the full report as JSON and returns 201 with its location and a
   summary: report id and `reportUrl`, status and reasons, the constituents with weights, joiners and leavers. The
-  audit trail (204-row ranking, capping rounds, input checksums, warnings) is only in the stored report, so the
+  audit trail (204-row ranking, capping rounds, input files, warnings) is only in the stored report, so the
   response answers "what changed, and is it OK?" in one screen; returning the full report was rejected as mostly
   detail nobody reads at that moment. `reportUrl` repeats the `Location` header in the body: the header is the HTTP
   standard, but Swagger UI, Postman's body view and JSON-only clients don't show it. The disk path is not in the
@@ -225,8 +230,8 @@ section 5.12, with definitions in 2 and 4.3.
   the time and status, and fails with the field's name if one is missing.
 - **The report format stays flat.** It is the published JSON (API, stored reports, Postman), so nesting its
   fields would be a breaking change; the fields that could be mixed up are tested instead.
-- **Not done:** archiving the input files with each report. The checksums prove which data was used but don't
-  keep it; this is listed in `DESIGN.md` under *Limits of the design*.
+- **Not done:** archiving the input files with each report; the report keeps the values that were used, not
+  the files. This is listed in `DESIGN.md` under *Limits of the design*.
 
 ## Code quality
 
@@ -265,8 +270,7 @@ tests written for the number, and the value is in reading what they find.
   redundant but explanatory check in the capping loop.
 - **Coverage** (`./gradlew test jacocoTestReport`): 89% of branches at first, 99.6% now. The gaps were in input
   handling and validation: files without a byte order mark, blank lines, empty files, out-of-range values, the
-  422 response, configuration rules. Left uncovered: one-line I/O rethrows, the impossible SHA-256 error, `main`,
-  and a missing commit id.
+  422 response, configuration rules. Left uncovered: one-line I/O rethrows, `main` and a missing commit id.
 
 A one-off smell scan checked for anything these three miss: OpenRewrite's Java 25 migration and
 static-analysis recipes (dry run), and PMD 7 with its design, best-practice and code-style rules. Neither is part
@@ -341,7 +345,8 @@ can be changed in one place.
   why the displayed weights add up to 99.999999%.
 - **Validation and status:** lenient rows, status from warning impact, the estimate with its safety margin, and
   why the estimate stays despite "simplicity first".
-- **Traceability:** rulebook version, recomputable FFMCAP, input checksums, build revision, every run stored.
+- **Traceability:** rulebook version, recomputable FFMCAP from the input values in the report, build
+  revision, every run stored; why file checksums were dropped.
 - **Rulebook simplifications** (A4–A6) and the deliberate assumptions.
 - **Testing:** hand-made cases per step, the real Q3 data at engine, report and API level, architecture rules as
   tests; test quality measured with mutation testing and coverage, which found real gaps.

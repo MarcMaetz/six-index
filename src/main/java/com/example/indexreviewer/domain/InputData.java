@@ -21,7 +21,7 @@ public record InputData(
         Map<String, Map<LocalDate, SecurityData>> securityDataById,
         Set<String> currentComposition,
         List<DataQualityWarning> warnings,
-        List<InputFile> files) {
+        List<String> files) {
 
     public InputData {
         var universe = new LinkedHashMap<LocalDate, Set<String>>();

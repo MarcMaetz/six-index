@@ -132,7 +132,7 @@ A report answers "why is this security in or out, and with what weight?" without
   FFMCAP was calculated from, so every value can be recomputed by hand;
 - exclusions and leavers with reasons;
 - each constituent's raw weight, final weight and capping factor, and the capping rounds;
-- the input files with SHA-256 checksums, which prove which data produced the report;
+- the paths of the input files read;
 - all data-quality warnings, and the reasons behind the status;
 - the application version and Git revision that produced it (`build`; `-dirty` if built with uncommitted
   changes, `unknown` without a Git checkout).
@@ -168,7 +168,7 @@ ties are broken by id.
 | Method and path | Result |
 |---|---|
 | `GET /api/indices` | Configured indices and review periods |
-| `GET /api/indices/{index}/reviews/{period}/input` | Loaded input: files with checksums, counts per date, composition, warnings |
+| `GET /api/indices/{index}/reviews/{period}/input` | Loaded input: files read, counts per date, composition, warnings |
 | `POST /api/indices/{index}/reviews/{period}` | Runs the review, stores the full `ReviewReport`: **201 Created**, summary body (status, constituents with weights, joiners, leavers) with `reportUrl`, the same URI as the `Location` header of the stored report |
 | `GET /api/indices/{index}/reviews/{period}/reports` | Stored runs of the review, oldest first: id, generation time, status |
 | `GET /api/indices/{index}/reviews/{period}/reports/{id}` | One stored report, byte for byte as written |
@@ -187,7 +187,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 |---|---|
 | Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a test-only tiered rule, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `RankingTest` (tie-break by id, A8), `RankingStrategiesTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
 | Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`, `ReportFormatTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
-| Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, invalid UTF-8, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, checksums, empty files, missing files and columns |
+| Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, invalid UTF-8, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, files read, empty files, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round |
 | Storage | `FileReportStoreTest`: file naming, no overwrite of an existing report, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
@@ -235,4 +235,5 @@ simplicity over feature quantity:
   no run is marked as the official one.
 - **Versioned configuration and archived input.** Re-running a period after changing `indices.yml` gives a new
   report under the same period id; the stored report records the parameters and rulebook version it used.
-  Input checksums prove which data produced a report, but the files themselves aren't archived with it.
+  The report keeps the input values the result was computed from, but the files themselves aren't archived
+  with it, and nothing identifies their version.

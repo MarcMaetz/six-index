@@ -53,7 +53,7 @@ class IndexControllerTest {
                     assertThat(json).extractingPath("$.securityDataCountByDate['2026-09-21']").isEqualTo(204);
                     assertThat(json).extractingPath("$.currentComposition.length()").isEqualTo(20);
                     assertThat(json).extractingPath("$.files.length()").isEqualTo(3);
-                    assertThat(json).extractingPath("$.files[0].path").isEqualTo("data/SMI/2026-Q3/spi_universe.csv");
+                    assertThat(json).extractingPath("$.files[0]").isEqualTo("data/SMI/2026-Q3/spi_universe.csv");
                     assertThat(json).extractingPath("$.warnings.length()").isEqualTo(1);
                 });
     }

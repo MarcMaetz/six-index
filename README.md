@@ -40,7 +40,7 @@ curl -i -X POST http://localhost:8080/api/indices/SMI/reviews/2026-Q3
 ```
 
 The response is `201 Created` with a summary: status, the 20 constituents with weights, joiners and leavers.
-The full report with the audit trail (ranking, capping rounds, input checksums, warnings) is stored, and there
+The full report with the audit trail (ranking with input values, capping rounds, warnings) is stored, and there
 are two ways to reach it:
 
 - **Over the API:** `reportUrl` in the response body (also in the `Location` header), e.g.
@@ -52,7 +52,7 @@ are two ways to reach it:
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/indices` | Configured indices and review periods |
-| `GET /api/indices/{index}/reviews/{period}/input` | Load and validate a review's input without running it: files with SHA-256 checksums, counts, warnings |
+| `GET /api/indices/{index}/reviews/{period}/input` | Load and validate a review's input without running it: files read, counts, warnings |
 | `POST /api/indices/{index}/reviews/{period}` | Run the review, store the full report and return a summary with `reportUrl` (201, `Location` header) |
 | `GET /api/indices/{index}/reviews/{period}/reports` | List the stored runs of a review, oldest first |
 | `GET /api/indices/{index}/reviews/{period}/reports/{id}` | Get a stored report exactly as it was written |

@@ -3,7 +3,6 @@ package com.example.indexreviewer.api;
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
-import com.example.indexreviewer.domain.InputFile;
 import com.example.indexreviewer.domain.ReviewPeriod;
 
 import java.time.LocalDate;
@@ -12,8 +11,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * What was loaded for a review, so the input can be checked before the review runs: the files read with their
- * checksums, how much data each date has, the current composition, and the data-quality warnings.
+ * What was loaded for a review, so the input can be checked before the review runs: the files read, how much
+ * data each date has, the current composition, and the data-quality warnings.
  *
  * @param universeSizeOnReviewDate  securities in the universe on the review date
  * @param securityDataCountByDate   number of securities with market data, per date
@@ -23,7 +22,7 @@ public record InputCheckResponse(
         String reviewPeriod,
         LocalDate cutOffDate,
         LocalDate reviewDate,
-        List<InputFile> files,
+        List<String> files,
         int universeSizeOnReviewDate,
         SortedMap<LocalDate, Long> securityDataCountByDate,
         List<String> currentComposition,

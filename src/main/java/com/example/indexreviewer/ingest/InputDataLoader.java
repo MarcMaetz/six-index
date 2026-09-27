@@ -67,7 +67,7 @@ public final class InputDataLoader {
         var loaded = List.of(universeFile, securityFile, compositionFile);
         return new InputData(universeByDate, securityData, composition,
                 loaded.stream().flatMap(file -> file.warnings.stream()).toList(),
-                loaded.stream().map(file -> file.content.file()).toList());
+                loaded.stream().map(file -> file.content.file().toString()).toList());
     }
 
     /** A1: exact duplicate rows are dropped with one summary warning. */

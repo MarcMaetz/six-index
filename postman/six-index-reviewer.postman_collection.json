@@ -129,9 +129,9 @@
                   "  pm.expect(body.securityDataCountByDate['2026-09-21']).to.eql(204);",
                   "});",
                   "pm.test('20 current constituents', () => pm.expect(body.currentComposition).to.have.lengthOf(20));",
-                  "pm.test('3 files with SHA-256 checksums', () => {",
+                  "pm.test('3 input files, universe first', () => {",
                   "  pm.expect(body.files).to.have.lengthOf(3);",
-                  "  body.files.forEach(f => pm.expect(f.sha256).to.match(/^[0-9a-f]{64}$/));",
+                  "  pm.expect(body.files[0]).to.eql('data/SMI/2026-Q3/spi_universe.csv');",
                   "});",
                   "pm.test('only warning: 204 duplicate universe rows (A1)', () => {",
                   "  pm.expect(body.warnings).to.have.lengthOf(1);",
@@ -150,7 +150,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "indices", "SMI", "reviews", "2026-Q3", "input"]
             },
-            "description": "Loads and validates the input of a review from data/SMI/2026-Q3 without running it: files with SHA-256 checksums, data counts per date, current composition and data-quality warnings."
+            "description": "Loads and validates the input of a review from data/SMI/2026-Q3 without running it: files read, data counts per date, current composition and data-quality warnings."
           },
           "response": []
         },
@@ -346,7 +346,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "indices", "SMI", "reviews", "2026-Q3", "reports", "{{reportId}}"]
             },
-            "description": "Returns one stored report exactly as it was written: the full result with the audit trail (parameters, full ranking with a decision per security, capping rounds, exclusions, input files with SHA-256, warnings, build). `reportId` is set by \"Run review (SMI 2026-Q3)\" from its Location header."
+            "description": "Returns one stored report exactly as it was written: the full result with the audit trail (parameters, full ranking with a decision per security, capping rounds, exclusions, input files, warnings, build). `reportId` is set by \"Run review (SMI 2026-Q3)\" from its Location header."
           },
           "response": []
         },

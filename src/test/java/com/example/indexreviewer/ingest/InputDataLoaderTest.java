@@ -10,10 +10,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
-import java.util.HexFormat;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -226,25 +223,13 @@ class InputDataLoaderTest {
     }
 
     @Test
-    void recordsFilesWithChecksums() throws IOException {
+    void recordsTheFilesRead() throws IOException {
         writeFiles("date;id\n", "id;date;price;free_float;shares\n", "id\n");
 
         InputData data = loader.load(dir, "SPI");
 
-        // sha256 of the BOM followed by "id\n"
-        assertThat(data.files()).hasSize(3).last().satisfies(f -> {
-            assertThat(f.path()).isEqualTo(dir.resolve("composition.csv").toString());
-            assertThat(f.sha256()).isEqualTo(sha256Hex("\uFEFFid\n"));
-        });
-    }
-
-    private static String sha256Hex(String content) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(content.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+        assertThat(data.files()).containsExactly(dir.resolve("spi_universe.csv").toString(),
+                dir.resolve("sec_data.csv").toString(), dir.resolve("composition.csv").toString());
     }
 
     /** Writes the three input files with a UTF-8 byte order mark, as delivered. */

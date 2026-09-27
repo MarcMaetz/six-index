@@ -36,7 +36,7 @@ public class IndexController {
     }
 
     @Operation(summary = "Load and validate the input of a review without running it",
-            description = "Returns the files read (with SHA-256 checksums), data counts, the current composition "
+            description = "Returns the files read, data counts, the current composition "
                     + "and all data-quality warnings.")
     @GetMapping("/{index}/reviews/{period}/input")
     public InputCheckResponse input(@PathVariable String index, @PathVariable String period) {
