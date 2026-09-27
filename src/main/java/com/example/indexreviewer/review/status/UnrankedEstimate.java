@@ -47,16 +47,12 @@ final class UnrankedEstimate {
                     + "ranked, so it could reach the buffer").formatted(bufferEnd), warning);
         }
         var value = bufferEndValue.get();
-        return estimate.get().compareTo(value.multiply(HARMLESS_SHARE_OF_BUFFER_END)) < 0
-                ? new StatusReason(id, Relevance.ESTIMATED_FAR_BELOW_BUFFER,
-                        "Not ranked, " + comparedToBufferEnd(estimate.get(), value, "is below"), warning)
-                : new StatusReason(id, Relevance.ESTIMATED_NEAR_BUFFER,
-                        "Not ranked, " + comparedToBufferEnd(estimate.get(), value, "is not below"), warning);
-    }
-
-    private String comparedToBufferEnd(BigDecimal estimate, BigDecimal bufferEndValue, String comparison) {
-        return "estimated %s %s %s half the value at buffer end rank %d (%s)".formatted(
-                result.index().rankingStrategy(), plain(estimate), comparison, bufferEnd, plain(bufferEndValue));
+        boolean farBelow = estimate.get().compareTo(value.multiply(HARMLESS_SHARE_OF_BUFFER_END)) < 0;
+        String explanation = "Not ranked, estimated %s %s is %s half the value at buffer end rank %d (%s)".formatted(
+                result.index().rankingStrategy(), plain(estimate.get()), farBelow ? "below" : "not below", bufferEnd,
+                plain(value));
+        return new StatusReason(id, farBelow ? Relevance.ESTIMATED_FAR_BELOW_BUFFER : Relevance.ESTIMATED_NEAR_BUFFER,
+                explanation, warning);
     }
 
     private static String plain(BigDecimal value) {

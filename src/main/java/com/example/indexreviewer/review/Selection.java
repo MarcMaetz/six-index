@@ -3,6 +3,7 @@ package com.example.indexreviewer.review;
 import com.example.indexreviewer.domain.IndexDefinition;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,16 +58,15 @@ public final class Selection {
     /** Fills the free slots from the buffer: incumbents first, then new securities, each in rank order (A7). */
     private static void fillBuffer(List<RankedSecurity> buffer, int slots,
                                    Map<RankedSecurity, SelectionDecision> decisions) {
-        int free = slots;
-        for (boolean incumbents : new boolean[]{true, false}) {
-            for (var security : buffer) {
-                if (free > 0 && security.incumbent() == incumbents) {
-                    decisions.put(security, incumbents
-                            ? SelectionDecision.SELECTED_BUFFER_INCUMBENT
-                            : SelectionDecision.SELECTED_BUFFER_NEW);
-                    free--;
-                }
-            }
+        // Incumbents sort first; the sort is stable, so each group keeps its rank order.
+        var chosen = buffer.stream()
+                .sorted(Comparator.comparing(RankedSecurity::incumbent).reversed())
+                .limit(slots)
+                .toList();
+        for (var security : chosen) {
+            decisions.put(security, security.incumbent()
+                    ? SelectionDecision.SELECTED_BUFFER_INCUMBENT
+                    : SelectionDecision.SELECTED_BUFFER_NEW);
         }
     }
 

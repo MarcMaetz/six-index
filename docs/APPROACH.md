@@ -257,6 +257,9 @@ After the features were complete, the code was scanned smell by smell:
 - **Loops and streams.** A stream when it builds a new list or map (`toList()`, `groupingBy`); a plain `for`
   loop when it fills an ordered map or needs several steps per element. `forEach` with a lambda that fills
   another collection hides the side effect, so the code has none.
+- **Plain over clever.** Buffer filling sorts incumbents first and takes the free slots (a stable sort keeps the
+  rank order within each group) instead of looping over `{true, false}`. The status estimate picks its relevance
+  and wording from one boolean instead of passing sentence fragments to a helper.
 - **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping:
   weights this round → anyone above the cap? → cap them and repeat → final weights with capping factors).
   Single loops that read top to bottom were left alone.

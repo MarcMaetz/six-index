@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +112,7 @@ final class CsvFile {
         if (header == null) {
             throw new InputDataException(source + " is empty, expected header " + requiredColumns);
         }
-        List<String> columns = List.of(header).stream().map(String::trim).toList();
+        List<String> columns = Arrays.stream(header).map(String::trim).toList();
         List<String> missing = requiredColumns.stream().filter(c -> !columns.contains(c)).toList();
         if (!missing.isEmpty()) {
             throw new InputDataException(source + " is missing column(s) " + missing + ", found " + columns);

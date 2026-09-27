@@ -102,8 +102,9 @@ class StatusAssessmentTest {
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "2", "1", 100L)));
         var nearBuffer = assess(data, List.of());
         assertThat(nearBuffer.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(nearBuffer.reasons()).extracting(StatusReason::relevance)
-                .containsExactly(Relevance.ESTIMATED_NEAR_BUFFER);
+        assertThat(nearBuffer.reasons()).extracting(StatusReason::relevance, StatusReason::explanation)
+                .containsExactly(tuple(Relevance.ESTIMATED_NEAR_BUFFER,
+                        "Not ranked, estimated FFMCAP 200 is not below half the value at buffer end rank 3 (300)"));
 
         // Exactly half the buffer-end value is not below it: still too close to call.
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1.5", "1", 100L)));
