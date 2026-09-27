@@ -522,166 +522,71 @@ decided, why, and what we rejected.
   the full reasoning); also dropping assumption references (they are the audit link from code to rulebook).
 
 ### D36 — Try blocks wrap only the call whose exception they translate
-- `InputDataLoader`: the three load loops each wrapped their whole body in `try/catch (InvalidRowException)`.
-  A generic `parseRows(content, parser, warnings)` now owns the one catch and returns only valid values (with
-  their line number); the loops just apply duplicate and conflict logic. The duplicate summary warning, repeated
-  three times, became `warnDuplicates`. (Refined by D43: both are now methods of the per-file `FileLoad`.)
-- `CsvFile.read`: a try-with-resources covered about 40 lines of header and row parsing. `read` now only
-  translates `IOException`/`CsvValidationException` into `InputDataException`; `parse` and `readHeader` declare
-  the checked exceptions.
-- `FileReportStore.save`: a try nested in a retry loop inside another try. `createNew` returns false when the
-  file exists, so the loop has no exception-driven control flow.
-- **Why:** a wide try hides which statement can actually throw, and a catch around the whole loop body is easy
-  to widen by accident (for example, catching a bug in the conflict logic as an "invalid row").
-- **Behaviour change:** invalid-row warnings for `sec_data.csv` now all come before its conflict warnings, instead
-  of interleaved by line. Warnings were already not strictly line-ordered (field-count warnings come first).
-- **Left as they are:** one-statement wrappers (`parseDate`, `parseShares`, `sha256`, `FileReportStore.read`
-  and `list`), which already translate exactly one call.
+- `InputDataLoader`'s three row loops shared one catch via `parseRows` (refined by D43); `CsvFile.read` only
+  translates I/O errors, parsing moved to methods that declare them; `FileReportStore.save` retries through
+  `createNew` (returns false if the file exists) instead of a try nested in a loop.
+- **Why:** a wide try hides which statement throws and can swallow a bug as an "invalid row".
+- Invalid-row warnings of a file now come before its conflict warnings. One-statement wrappers stay as they are.
 
 ### D37 — Long methods split into named steps
-- Found with a scan for methods of 25+ lines in `src/main`. Split where a method did several separate jobs:
-  - `WeightCapping.cap` (41 lines): `caps` (validate caps reach 100%), `overCap` (one round's check), and
-    `cappedWeights` (capping factors and result); `cap` keeps only the iteration.
-  - `ReportBuilder.build` (35): `constituents`, `ranking` and `parameters` mappings extracted.
-  - `StatusAssessment.assess` (33): `reasons(warning)` and `status(reasons)`; `Context.assess` (30) hands
-    unranked securities to `unranked`, which holds the A13 estimate logic.
-  - `ReviewEngine.leavers`: the not-selected case moved to `notSelected`; `Selection.select`: buffer filling
-    (A7) moved to `fillBuffer`; `CsvFile.parse`: row loop moved to `readRows`.
-- **Why:** each extracted method has a name and a Javadoc that say what the step does, so the top-level
-  method reads as the algorithm (e.g. capping: caps → distribute → over cap? → repeat → factors).
-- **Left as they are:** `Eligibility.check` and `InputDataLoader.loadSecurityData` (one loop each, reads
-  top to bottom; splitting would only move lines around) and `ReviewEngine.run` (already a sequence of steps;
-  only its exclusion-warning loop became one `forEach`).
-- No behaviour change; the existing tests cover every moved branch.
+- Methods of 25+ lines doing several jobs were split: `WeightCapping.cap`, `ReportBuilder.build`,
+  `StatusAssessment.assess`, `ReviewEngine.leavers`, `Selection.select`, `CsvFile.parse`. The top-level method
+  now reads as the algorithm (capping: caps → distribute → over cap? → repeat → factors).
+- **Left as they are:** single loops that read top to bottom (`Eligibility.check`, `loadSecurityData`).
 
-### D38 — Duplicated code removed where it is the same rule, kept where it only looks alike
-- Found with a scan for repeated line windows plus a read-through of the (small) code base.
-- Removed:
-  - `ReviewService.input`, `reports` and `report` each looked up index and review period from the catalog; a
-    private `review(index, period)` now does it once, so "not configured" is decided in one place.
-  - `ReviewEngineTest.data(...)` and `StatusAssessmentTest.sec(...)` were the same `SecurityData` builder;
-    both use `SecurityDataFixtures.securityData(...)` now.
-- **Kept on purpose:**
-  - `IndexResponse` / `IndexDefinition` and `InputCheckResponse` / `ReviewReport` repeat fields: API types are
-    kept separate from domain and report types so either can change without breaking the other.
-  - `Eligibility.check` and `StatusAssessment.estimatedValue` both read price, shares and free float per date,
-    but apply different rules: eligibility is strict (brief's date rule), the estimate falls back to the other
-    date (A13). Sharing the code would tie the two rules together.
-  - `Collectors.toMap(..., Function.identity())` lookups by id (four uses): standard idiom, each with a
-    different key; a helper would hide nothing.
-  - Test date constants (`CUT_OFF`, `REVIEW`) per test class: each test reads on its own.
+### D38 — Duplicated code removed where it is the same rule
+- Removed: the index/period lookup repeated in three `ReviewService` methods, and one test fixture defined twice.
+- **Kept on purpose:** API types that repeat domain fields (they change independently); eligibility and the
+  status estimate, which read the same data under different rules (strict vs. fallback, A13).
 
 ### D39 — Review internals package-private; accessor chains named per hop
-- Scanned for `public` types and members used only inside their package. In `review`, the pipeline steps
-  (`Eligibility`, `Ranking`, `WeightCapping`, `CappingRule`, `SingleCap`, `FfmcapRanking`) and `Selection.select`
-  are now package-private: other packages only need the engine, its result types and `RankingStrategies`.
-  `InputDataLoader`'s file-name constants are package-private too.
-- `report` reached review data through chains such as `o.security().security().ffmcap()`. The components are
-  renamed so each hop says what it returns (`Selection.Outcome.ranked`, as `Constituent` already had, and
-  `RankedSecurity.eligible`), and `Outcome`/`Constituent` got `securityId()`, `rank()`, `incumbent()` shortcuts.
-- **Kept public although only used in their package:** Spring and Jackson entry points (application class,
-  controller, response DTOs, properties record); the value records (`RankedSecurity`, `EligibleSecurity`,
-  `CappedWeight`) because they are part of the public `ReviewResult`.
-- **Rejected:** flattening `Constituent`'s weight fields (`c.weight().capped()` is one hop into a value, clear
-  as it is); an ArchUnit rule for visibility (no simple rule separates result types from pipeline steps).
+- The pipeline steps in `review` (`Eligibility`, `Ranking`, `WeightCapping`, `CappingRule`, `SingleCap`,
+  `FfmcapRanking`) are package-private; other packages see only the engine, its results and `RankingStrategies`.
+- `o.security().security().ffmcap()` became `o.ranked().eligible().ffmcap()`, plus `securityId()`, `rank()`,
+  `incumbent()` shortcuts on `Outcome` and `Constituent`. Report JSON unchanged.
+- **Kept public:** Spring/Jackson entry points and the value records exposed by `ReviewResult`.
 
 ### D40 — Mutation testing (PIT) for the review logic, on demand
-- `./gradlew pitest` (gradle-pitest-plugin 1.19.0, PIT 1.30.0, `STRONGER` mutators) mutates `review` and runs
-  the `review` and `report` tests. Not part of `build`: it takes longer and its value is finding weak tests,
-  not gating a commit.
-- `addJUnitPlatformLauncher = false`: the plugin otherwise adds a 1.x JUnit launcher that clashes with Spring
-  Boot 4's JUnit 6 (every test "failed" before mutation), and would also change the normal test classpath.
-- First run: 88% killed (153/173), 3 mutants without coverage. Real gaps closed with tests: tie-break by id
-  (A8, never exercised), unknown ranking strategy, `BUFFER_FULL` leaver and leaver details, empty capping
-  input, the A13 boundaries (estimate exactly at half; ranked count exactly at the buffer end), missing shares
-  or free float for an estimate, the invariant check itself, constituent ranks. Now 98% (168/171).
-- One survivor was an **equivalent mutant pointing at dead logic**: `leavers` checked `!universe.contains(id)`
-  after "not ranked, not excluded", which is always true (every universe security is ranked or excluded). The
-  condition is removed with a comment saying why.
-- **Accepted survivors (3):** removing the call to `checkInvariants` (a guard that only fails on a bug; tested
-  directly instead), its tolerance boundary (needs a sum exactly 1 ± 1E-20), and `overCap`'s
-  `!capped.contains` (capped weights equal their cap exactly, so the check is redundant but states intent).
-- **Rejected:** mutating `ingest`/`report` too (mostly mapping and parsing, covered by example tests; can be
-  added by widening `targetClasses`); a mutation threshold in the build (would make a slow tool a gate).
+- `./gradlew pitest` mutates `review` and runs the `review` and `report` tests; not part of `build`.
+  `addJUnitPlatformLauncher = false`, since the plugin's 1.x launcher clashes with Spring Boot 4's JUnit 6.
+- 88% → 98% killed. Found untested rules (tie-break by id A8, `BUFFER_FULL` leavers, A13 boundaries) and a
+  condition in `leavers` that could never be false (removed).
+- **3 accepted survivors:** the call to `checkInvariants` (a bug guard, tested directly), its tolerance
+  boundary, and `overCap`'s `!capped.contains` (redundant but states intent).
+- **Rejected:** a mutation threshold in the build (would make a slow tool a gate).
 
 ### D41 — `null` only at the edges; stored summaries read as a typed record
-- **Missing values.** A scan of every `null` in `src/main` showed one pattern: `null` means "missing" in
-  records that mirror the input or become JSON (`SecurityData` values, `DataQualityWarning.line`,
-  `Leaver.rank`, `StatusReason.securityId`/`warning`), each documented in its Javadoc; and it comes back from
-  library or framework calls (map lookups, `csv.readNext()`, `ObjectProvider.getIfAvailable()`). Two places
-  broke the pattern: `Eligibility.check` and `StatusAssessment.estimatedValue` turned `Optional`s back into
-  `null` and then null-checked them. Both now stay with `Optional` until the values are used.
-  `ReviewReport.Leaver.rank` now documents its `null` like `review.Leaver` does.
-  Rerunning PIT (D40) after the rewrite exposed one more untested rule: the estimate's price fallback to the
-  review date (A13), which had been hidden in a shared helper. It has a test now; 169/172 killed, the same 3
-  accepted survivors.
-- **Rejected:** `Optional` as record components or JSON fields (not what `Optional` is for, and Jackson would
-  need extra configuration); `Optional`-returning accessors on `SecurityData` (a record's accessors can't change
-  type, and extra getters would duplicate every field).
-- **Stored-report summaries.** `FileReportStore.summary` read `"generatedAt"` and `"status"` from a JSON tree by
-  name; a renamed report field would have shown up as a `NullPointerException`. It now reads a private
-  `Summary(Instant generatedAt, ReviewStatus status)` record with an `ObjectReader` that ignores the other
-  fields and fails on a missing or `null` one, naming it. A test covers a stored file without `status`.
-- **Rejected:** deserializing the whole `ReviewReport` (an older report may not match today's type, D34);
-  keeping an index file next to the reports (a second source of truth for data the report already holds).
+- `null` means "missing" only in documented input/JSON records and in library return values. `Eligibility` and
+  the status estimate now stay with `Optional` instead of converting back to `null`; this exposed one more
+  untested rule (price fallback to the review date, A13), now tested.
+- `FileReportStore` reads `generatedAt` and `status` into a `Summary` record that fails naming a missing field,
+  instead of looking them up by string in a JSON tree.
+- **Rejected:** `Optional` in records or JSON; deserializing the whole `ReviewReport` (older reports may differ, D34).
 
 ### D42 — Long constructor lists kept; the risky part tested instead
-- `ReviewReport` (17 components) and `ReviewResult` (10) have one production constructor call each.
-  `ReviewResult`'s components all have different types, so a mix-up doesn't compile. `ReviewReport` has two
-  same-typed neighbour pairs (`index`/`reviewPeriod`, `cutOffDate`/`reviewDate`) that no test checked, so a
-  swap in `ReportBuilder` would have gone unnoticed. `ReportBuilderTest` now asserts all four.
-- **Rejected:** grouping `ReviewReport` into nested parts (e.g. a `period` object). It is the published JSON
-  format (API responses, stored reports, Postman tests); regrouping would be a breaking format change to fix a
-  single constructor call. A builder for the records was rejected for the same reason: more code for one call.
+- `ReviewReport` (17 components) is the published JSON format and is built in one place, so it stays flat. Its
+  same-typed neighbours (`index`/`reviewPeriod`, `cutOffDate`/`reviewDate`) were untested; now asserted.
+- **Rejected:** nested groups or a builder (a breaking format change or extra code for a single call).
 
 ### D43 — Loader warnings owned per file, not passed around
-- `InputDataLoader` passed one `warnings` list (and a `files` list) through `read`, every `loadX`, `parseRows`
-  and `warnDuplicates`, each appending to it; `CsvFile.readRows` did the same. Now a private `FileLoad` holds one
-  file's content and its warnings (starting with the CSV reader's), and offers `parseRows`, `warnDuplicates`
-  and `warn`. The loaders take a `FileLoad`; `load` concatenates the files' warnings in file order at the end.
-  `CsvFile.readRows` builds and returns its own `Content`.
-- Warning order is unchanged (per file: CSV warnings, invalid rows, then duplicates and conflicts); the
-  existing `containsExactly` tests pass untouched.
-- **Rejected:** returning `(value, warnings)` pairs from every step (more wrapping, same result); an event
-  listener for warnings (indirection for a single consumer).
+- One `warnings` list was passed through every loader method to be appended to. Now a private `FileLoad` holds a
+  file's rows and its own warnings; `load` joins them in file order. Warning order unchanged.
+- **Rejected:** `(value, warnings)` pairs from every step (more wrapping, same result).
 
 ### D44 — Error Prone at compile time, warnings fail the build
-- `net.ltgt.errorprone` 5.1.1 with Error Prone 2.50.0 on main and test code, plus `-Werror`. The first run found
-  6 warnings, all fixed:
-  - `AnnotateFormatMethod`: `Validation.require(condition, format, args...)`. Annotating it with
-    `@FormatMethod` would put a library annotation into `domain`, which the ArchUnit rule forbids (D30). The
-    callers now pass `"…".formatted(...)`, which Error Prone checks directly; formatting eagerly costs nothing,
-    since the checks run once at startup.
-  - `StringSplitter`: `FileReportStore`'s run order used `id.split("-")[0]`; now `timePart` and
-    `suffixNumber`, named helpers using `indexOf`.
-  - `AssignmentExpression`: the capping loop's `while (!(overCap = …).isEmpty())` (introduced in D37) is a
-    plain loop again.
-  - `MissingSummary` (3): Javadocs with only tags got a summary line.
-- Checked that `-Werror` works: a deliberate `split` made the build fail, then was reverted.
-- **Why in the build, not on demand like PIT (D40):** it is quiet after the fixes and adds little compile
-  time; a warning that only scrolls by is never read. A finding that is wrong in context is suppressed with
-  `@SuppressWarnings("CheckName")` and a comment saying why.
-- **Rejected:** SpotBugs/PMD in addition (overlap with Error Prone, slower, separate reports); `-Werror`
-  only for Error Prone checks (no plugin switch for that; plain javac warnings are worth fixing too).
+- Error Prone 2.50.0 with `-Werror`; the first run's 6 findings are fixed. Format strings: `Validation.require`
+  takes a finished message, since a `@FormatMethod` annotation would break the plain-Java rule for `domain` (D30).
+- **Why in the build, unlike PIT:** it is quiet and cheap, and a warning that only scrolls by is never read.
+  Suppress only with `@SuppressWarnings("CheckName")` and a reason.
+- **Rejected:** SpotBugs/PMD as well (overlap, slower).
 
 ### D45 — Coverage with JaCoCo, used to find untested branches
-- Gradle's `jacoco` plugin; `./gradlew test jacocoTestReport` writes HTML and XML to `build/reports/jacoco`. Not
-  a gate: a percentage threshold rewards tests written for the number; the report is read for what is missing.
-- First run: 97% of lines, 89% of branches. Mutation testing (D40) only covered `review`; the gaps were
-  elsewhere, mostly in input handling and validation:
-  - `ingest`: a file **without** a byte order mark (every test file had one), blank lines, an empty file,
-    empty shares and free float, free float 0, shares 0 and shares too large for a `long`.
-  - `api`: the 422 "unusable input data" response had no test.
-  - `domain`/`config`/`report`: constituent count and direct selection rank below 1, weight cap 0, missing name,
-    omitted review periods, duplicate index names, negative report decimals, and `SecurityData.sameValuesAs`
-    with missing values (the A9 duplicate check).
-- One branch could never be taken: `FileLoad.parseRows` checked whether a row has an `id` column, but every
-  input file requires one. Removed.
-- Now 98.2% of lines and 99.6% of branches. **Left uncovered on purpose:** `catch (IOException)` blocks that only
-  translate the exception (`CsvFile`, `FileReportStore`; triggering them needs an unreadable disk), the
-  impossible `NoSuchAlgorithmException` for SHA-256, `main`, and a missing commit id in `git.properties`.
-- **Rejected:** a coverage threshold in the build (see above); forcing I/O failures with file permissions
-  (flaky under WSL and root, and the code under test is a one-line rethrow).
+- `./gradlew test jacocoTestReport`; read for what is missing, not a gate (a threshold rewards tests for the number).
+- 89% → 99.6% of branches. Gaps were in input handling and validation: files without a byte order mark, blank
+  lines, empty files, out-of-range values, the 422 response, config rules. One branch that could never be taken
+  was removed.
+- **Left uncovered:** one-line I/O rethrows, the impossible SHA-256 `NoSuchAlgorithmException`, `main`, and a
+  missing commit id in `git.properties`.
 
 ## Input data findings
 
