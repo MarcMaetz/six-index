@@ -38,7 +38,13 @@ public final class Selection {
             }
         }
 
-        int slots = index.constituentCount() - countSelected(decisions);
+        fillBuffer(buffer, index.constituentCount() - countSelected(decisions), decisions);
+        return decisions.entrySet().stream().map(e -> new Outcome(e.getKey(), e.getValue())).toList();
+    }
+
+    /** Fills the free slots from the buffer: incumbents first, then new securities, each in rank order (A7). */
+    private static void fillBuffer(List<RankedSecurity> buffer, int slots,
+                                   Map<RankedSecurity, SelectionDecision> decisions) {
         for (boolean incumbents : new boolean[]{true, false}) {
             for (var security : buffer) {
                 if (slots > 0 && security.incumbent() == incumbents) {
@@ -49,7 +55,6 @@ public final class Selection {
                 }
             }
         }
-        return decisions.entrySet().stream().map(e -> new Outcome(e.getKey(), e.getValue())).toList();
     }
 
     private static int countSelected(Map<RankedSecurity, SelectionDecision> decisions) {

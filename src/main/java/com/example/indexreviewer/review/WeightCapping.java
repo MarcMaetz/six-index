@@ -44,42 +44,40 @@ public final class WeightCapping {
         if (ffmcapById.isEmpty()) {
             return new Result(List.of(), List.of());
         }
+        Map<String, BigDecimal> caps = caps(ffmcapById, rule);
+
+        Set<String> capped = new LinkedHashSet<>();
+        var rounds = new ArrayList<List<String>>();
+        var weights = distribute(ffmcapById, capped, caps);
+        List<String> overCap;
+        while (!(overCap = overCap(weights, capped, caps)).isEmpty()) {
+            capped.addAll(overCap);
+            rounds.add(overCap);
+            weights = distribute(ffmcapById, capped, caps);
+        }
+
+        var result = cappedWeights(ffmcapById, weights, capped);
+        checkInvariants(result, caps);
+        return new Result(result, rounds);
+    }
+
+    /** Each constituent's cap; fails if the caps cannot add up to 100%. */
+    private static Map<String, BigDecimal> caps(SequencedMap<String, BigDecimal> ffmcapById, CappingRule rule) {
         Map<String, BigDecimal> caps = rule.caps(ffmcapById);
         if (sum(caps.values()).compareTo(BigDecimal.ONE) < 0) {
             throw new IllegalArgumentException(ffmcapById.size() + " constituents with caps adding up to "
                     + sum(caps.values()) + " (" + rule + ") cannot add up to 100%");
         }
-        BigDecimal total = sum(ffmcapById.values());
+        return caps;
+    }
 
-        Set<String> capped = new LinkedHashSet<>();
-        var rounds = new ArrayList<List<String>>();
-        Map<String, BigDecimal> weights;
-        while (true) {
-            weights = distribute(ffmcapById, capped, caps);
-            List<String> overCap = weights.entrySet().stream()
-                    .filter(e -> !capped.contains(e.getKey()) && e.getValue().compareTo(caps.get(e.getKey())) > 0)
-                    .map(Map.Entry::getKey)
-                    .toList();
-            if (overCap.isEmpty()) {
-                break;
-            }
-            capped.addAll(overCap);
-            rounds.add(overCap);
-        }
-
-        // Capping factor ∝ weight / FFMCAP, normalised so the uncapped constituents get 1.
-        Map<String, BigDecimal> ratio = new LinkedHashMap<>();
-        weights.forEach((id, weight) -> ratio.put(id, weight.divide(ffmcapById.get(id), PRECISION)));
-        BigDecimal maxRatio = ratio.values().stream().reduce(BigDecimal::max).orElseThrow();
-
-        var result = new ArrayList<CappedWeight>();
-        for (var entry : ffmcapById.entrySet()) {
-            String id = entry.getKey();
-            result.add(new CappedWeight(id, entry.getValue(), entry.getValue().divide(total, PRECISION),
-                    weights.get(id), ratio.get(id).divide(maxRatio, PRECISION), capped.contains(id)));
-        }
-        checkInvariants(result, caps);
-        return new Result(result, rounds);
+    /** Constituents not yet capped whose weight exceeds their cap. */
+    private static List<String> overCap(Map<String, BigDecimal> weights, Set<String> capped,
+                                        Map<String, BigDecimal> caps) {
+        return weights.entrySet().stream()
+                .filter(e -> !capped.contains(e.getKey()) && e.getValue().compareTo(caps.get(e.getKey())) > 0)
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
     /** Capped constituents get their cap; the rest share the remaining weight in proportion to FFMCAP. */
@@ -95,6 +93,23 @@ public final class WeightCapping {
                 ? caps.get(id)
                 : ffmcap.multiply(remaining).divide(uncappedTotal, PRECISION)));
         return weights;
+    }
+
+    /** Capping factor ∝ weight / FFMCAP, normalised so the uncapped constituents get 1. */
+    private static List<CappedWeight> cappedWeights(SequencedMap<String, BigDecimal> ffmcapById,
+                                                    Map<String, BigDecimal> weights, Set<String> capped) {
+        BigDecimal total = sum(ffmcapById.values());
+        Map<String, BigDecimal> ratio = new LinkedHashMap<>();
+        weights.forEach((id, weight) -> ratio.put(id, weight.divide(ffmcapById.get(id), PRECISION)));
+        BigDecimal maxRatio = ratio.values().stream().reduce(BigDecimal::max).orElseThrow();
+
+        var result = new ArrayList<CappedWeight>();
+        for (var entry : ffmcapById.entrySet()) {
+            String id = entry.getKey();
+            result.add(new CappedWeight(id, entry.getValue(), entry.getValue().divide(total, PRECISION),
+                    weights.get(id), ratio.get(id).divide(maxRatio, PRECISION), capped.contains(id)));
+        }
+        return result;
     }
 
     /** Weights add up to 1 and none exceeds its cap. A failure here is a bug, not bad input. */

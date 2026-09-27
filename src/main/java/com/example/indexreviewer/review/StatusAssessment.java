@@ -1,5 +1,6 @@
 package com.example.indexreviewer.review;
 
+import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.SecurityData;
 import com.example.indexreviewer.review.StatusReason.Relevance;
@@ -41,17 +42,7 @@ public final class StatusAssessment {
         var context = new Context(result);
         var reasons = new ArrayList<StatusReason>();
         for (var warning : result.warnings()) {
-            var ref = WarningRef.of(warning);
-            if (warning.impact() == Impact.NONE) {
-                reasons.add(new StatusReason(null, Relevance.NO_DATA_LOST, "No data lost", ref));
-            } else if (warning.securityIds().isEmpty()) {
-                reasons.add(new StatusReason(null, Relevance.SECURITY_UNKNOWN,
-                        "Data is missing, but the affected security is unknown", ref));
-            } else {
-                for (String id : warning.securityIds()) {
-                    reasons.add(context.assess(id, ref));
-                }
-            }
+            reasons.addAll(reasons(warning, context));
         }
         int selected = result.constituents().size();
         int needed = result.index().constituentCount();
@@ -59,16 +50,27 @@ public final class StatusAssessment {
             reasons.add(new StatusReason(null, Relevance.INDEX_INCOMPLETE,
                     "Only %d securities could be selected, %d needed".formatted(selected, needed), null));
         }
+        return new Result(status(reasons), reasons);
+    }
 
-        ReviewStatus status;
-        if (reasons.stream().anyMatch(r -> r.relevance().needsAttention())) {
-            status = ReviewStatus.REQUIRES_ATTENTION;
-        } else if (reasons.isEmpty()) {
-            status = ReviewStatus.COMPLETED;
-        } else {
-            status = ReviewStatus.COMPLETED_WITH_WARNINGS;
+    /** One reason per affected security, or one without a security if the warning names none. */
+    private static List<StatusReason> reasons(DataQualityWarning warning, Context context) {
+        var ref = WarningRef.of(warning);
+        if (warning.impact() == Impact.NONE) {
+            return List.of(new StatusReason(null, Relevance.NO_DATA_LOST, "No data lost", ref));
         }
-        return new Result(status, reasons);
+        if (warning.securityIds().isEmpty()) {
+            return List.of(new StatusReason(null, Relevance.SECURITY_UNKNOWN,
+                    "Data is missing, but the affected security is unknown", ref));
+        }
+        return warning.securityIds().stream().map(id -> context.assess(id, ref)).toList();
+    }
+
+    private static ReviewStatus status(List<StatusReason> reasons) {
+        if (reasons.stream().anyMatch(r -> r.relevance().needsAttention())) {
+            return ReviewStatus.REQUIRES_ATTENTION;
+        }
+        return reasons.isEmpty() ? ReviewStatus.COMPLETED : ReviewStatus.COMPLETED_WITH_WARNINGS;
     }
 
     private static final class Context {
@@ -98,6 +100,12 @@ public final class StatusAssessment {
                         : new StatusReason(id, Relevance.RANKED_BELOW_BUFFER,
                                 "Ranked %d, below buffer end %d".formatted(rank, bufferEnd), warning);
             }
+            return unranked(id, warning);
+        }
+
+        /** An unranked security, judged by its estimated ranking value against the buffer end (A13). */
+        private StatusReason unranked(String id, WarningRef warning) {
+            int bufferEnd = result.index().bufferEndRank();
             var estimate = estimatedValue(id);
             if (estimate.isEmpty()) {
                 return new StatusReason(id, Relevance.NOT_ESTIMABLE,

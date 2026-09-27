@@ -48,6 +48,7 @@ decided, why, and what we rejected.
 | 2026-09-26 | Stored-report endpoint documented with the `ReviewReport` schema in OpenAPI; slice tests, group id and package-by-layer kept, reasons recorded (D34) |
 | 2026-09-26 | Decision numbers removed from code comments (70 of 73), convention added to `AGENT.md` (D35) |
 | 2026-09-27 | Large try blocks in `InputDataLoader`, `CsvFile` and `FileReportStore` split up; try now only wraps the call it translates (D36) |
+| 2026-09-27 | Long methods (25+ lines) split into named steps in `WeightCapping`, `ReportBuilder`, `StatusAssessment`, `ReviewEngine`, `Selection`, `CsvFile`; no behaviour change (D37) |
 
 ## Design decisions
 
@@ -527,6 +528,22 @@ decided, why, and what we rejected.
   of interleaved by line. Warnings were already not strictly line-ordered (field-count warnings come first).
 - **Left as they are:** one-statement wrappers (`parseDate`, `parseShares`, `sha256`, `FileReportStore.read`
   and `list`), which already translate exactly one call.
+
+### D37 — Long methods split into named steps
+- Found with a scan for methods of 25+ lines in `src/main`. Split where a method did several separate jobs:
+  - `WeightCapping.cap` (41 lines): `caps` (validate caps reach 100%), `overCap` (one round's check), and
+    `cappedWeights` (capping factors and result); `cap` keeps only the iteration.
+  - `ReportBuilder.build` (35): `constituents`, `ranking` and `parameters` mappings extracted.
+  - `StatusAssessment.assess` (33): `reasons(warning)` and `status(reasons)`; `Context.assess` (30) hands
+    unranked securities to `unranked`, which holds the A13 estimate logic.
+  - `ReviewEngine.leavers`: the not-selected case moved to `notSelected`; `Selection.select`: buffer filling
+    (A7) moved to `fillBuffer`; `CsvFile.parse`: row loop moved to `readRows`.
+- **Why:** each extracted method has a name and a Javadoc that say what the step does, so the top-level
+  method reads as the algorithm (e.g. capping: caps → distribute → over cap? → repeat → factors).
+- **Left as they are:** `Eligibility.check` and `InputDataLoader.loadSecurityData` (one loop each, reads
+  top to bottom; splitting would only move lines around) and `ReviewEngine.run` (already a sequence of steps;
+  only its exclusion-warning loop became one `forEach`).
+- No behaviour change; the existing tests cover every moved branch.
 
 ## Input data findings
 

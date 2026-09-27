@@ -1,10 +1,12 @@
 package com.example.indexreviewer.report;
 
+import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.review.ReviewResult;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.util.List;
 
 /** Turns a {@link ReviewResult} into a {@link ReviewReport}, rounding values for display only. */
 public final class ReportBuilder {
@@ -24,11 +26,6 @@ public final class ReportBuilder {
         var period = result.period();
         var status = result.assessment();
 
-        var constituents = result.constituents().stream()
-                .map(c -> new ReviewReport.Constituent(c.ranked().rank(), c.securityId(), c.decision(), c.joiner(),
-                        ffmcap(c.weight().ffmcap()), percent(c.weight().rawWeight()), percent(c.weight().weight()),
-                        round(c.weight().cappingFactor(), format.cappingFactorDecimals()), c.weight().capped()))
-                .toList();
         var joiners = result.joiners().stream()
                 .map(c -> new ReviewReport.Joiner(c.securityId(), c.ranked().rank(), c.decision()))
                 .toList();
@@ -38,7 +35,23 @@ public final class ReportBuilder {
         var excluded = result.excluded().stream()
                 .map(e -> new ReviewReport.Exclusion(e.securityId(), e.reason()))
                 .toList();
-        var ranking = result.selection().stream()
+
+        return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
+                clock.instant(), build, status.status(), status.reasons(), parameters(index), constituents(result),
+                joiners, leavers, excluded, ranking(result), result.cappingRounds(), result.input().files(),
+                result.warnings());
+    }
+
+    private List<ReviewReport.Constituent> constituents(ReviewResult result) {
+        return result.constituents().stream()
+                .map(c -> new ReviewReport.Constituent(c.ranked().rank(), c.securityId(), c.decision(), c.joiner(),
+                        ffmcap(c.weight().ffmcap()), percent(c.weight().rawWeight()), percent(c.weight().weight()),
+                        round(c.weight().cappingFactor(), format.cappingFactorDecimals()), c.weight().capped()))
+                .toList();
+    }
+
+    private List<ReviewReport.RankingEntry> ranking(ReviewResult result) {
+        return result.selection().stream()
                 .map(o -> {
                     var security = o.security().security();
                     return new ReviewReport.RankingEntry(o.security().rank(), security.securityId(), security.price(),
@@ -46,13 +59,12 @@ public final class ReportBuilder {
                             o.security().incumbent(), o.decision());
                 })
                 .toList();
-        var parameters = new ReviewReport.Parameters(index.methodology(), index.universe(),
+    }
+
+    private static ReviewReport.Parameters parameters(IndexDefinition index) {
+        return new ReviewReport.Parameters(index.methodology(), index.universe(),
                 index.constituentCount(), index.directSelectionRank(), index.bufferEndRank(),
                 index.weightCap().movePointRight(2).stripTrailingZeros(), index.rankingStrategy());
-
-        return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
-                clock.instant(), build, status.status(), status.reasons(), parameters, constituents, joiners, leavers,
-                excluded, ranking, result.cappingRounds(), result.input().files(), result.warnings());
     }
 
     private BigDecimal percent(BigDecimal fraction) {

@@ -75,28 +75,35 @@ final class CsvFile {
                     .withCSVParser(new CSVParserBuilder().withSeparator(SEPARATOR).build())
                     .build();
             List<String> columns = readHeader(csv, source, requiredColumns);
-
-            var rows = new ArrayList<Row>();
             var warnings = new ArrayList<DataQualityWarning>();
-            String[] fields;
-            while ((fields = csv.readNext()) != null) {
-                int line = (int) csv.getLinesRead();
-                if (fields.length == 1 && fields[0].isBlank()) {
-                    continue;
-                }
-                if (fields.length != columns.size()) {
-                    warnings.add(new DataQualityWarning(source, line, Impact.MISSING_DATA, "Row ignored: expected %d fields, found %d"
-                            .formatted(columns.size(), fields.length), List.of()));
-                    continue;
-                }
-                var values = new HashMap<String, String>();
-                for (int i = 0; i < columns.size(); i++) {
-                    values.put(columns.get(i), fields[i]);
-                }
-                rows.add(new Row(line, values));
-            }
+            var rows = readRows(csv, source, columns, warnings);
             return new Content(inputFile, rows, warnings);
         }
+    }
+
+    /** Data rows after the header; blank lines are skipped, rows with the wrong field count are warned about. */
+    private static List<Row> readRows(CSVReader csv, String source, List<String> columns,
+                                      List<DataQualityWarning> warnings) throws IOException, CsvValidationException {
+        var rows = new ArrayList<Row>();
+        String[] fields;
+        while ((fields = csv.readNext()) != null) {
+            int line = (int) csv.getLinesRead();
+            if (fields.length == 1 && fields[0].isBlank()) {
+                continue;
+            }
+            if (fields.length != columns.size()) {
+                warnings.add(new DataQualityWarning(source, line, Impact.MISSING_DATA,
+                        "Row ignored: expected %d fields, found %d".formatted(columns.size(), fields.length),
+                        List.of()));
+                continue;
+            }
+            var values = new HashMap<String, String>();
+            for (int i = 0; i < columns.size(); i++) {
+                values.put(columns.get(i), fields[i]);
+            }
+            rows.add(new Row(line, values));
+        }
+        return rows;
     }
 
     /** The trimmed column names; fails if the file is empty or a required column is missing. */

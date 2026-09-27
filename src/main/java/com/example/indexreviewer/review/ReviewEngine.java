@@ -24,13 +24,10 @@ public final class ReviewEngine {
     static final String SOURCE = "review";
 
     public ReviewResult run(IndexDefinition index, ReviewPeriod period, InputData input) {
-        var warnings = new ArrayList<>(input.warnings());
-
         var eligibility = Eligibility.check(input, period);
-        for (var exclusion : eligibility.excluded()) {
-            warnings.add(new DataQualityWarning(SOURCE, null, Impact.MISSING_DATA,
-                    "Excluded from ranking: " + exclusion.reason(), List.of(exclusion.securityId())));
-        }
+        var warnings = new ArrayList<>(input.warnings());
+        eligibility.excluded().forEach(exclusion -> warnings.add(new DataQualityWarning(SOURCE, null,
+                Impact.MISSING_DATA, "Excluded from ranking: " + exclusion.reason(), List.of(exclusion.securityId()))));
 
         var strategy = RankingStrategies.byName(index.rankingStrategy());
         var ranked = Ranking.rank(eligibility.eligible(), strategy, input.currentComposition());
@@ -74,11 +71,7 @@ public final class ReviewEngine {
             var outcome = outcomeById.get(id);
             if (outcome != null) {
                 if (!outcome.decision().selected()) {
-                    int rank = outcome.security().rank();
-                    boolean bufferFull = outcome.decision() == SelectionDecision.NOT_SELECTED_BUFFER_FULL;
-                    leavers.add(new Leaver(id, rank,
-                            bufferFull ? LeaveReason.BUFFER_FULL : LeaveReason.BELOW_BUFFER,
-                            "Rank %d, %s".formatted(rank, bufferFull ? "buffer slots taken" : "below the buffer")));
+                    leavers.add(notSelected(outcome));
                 }
             } else if (exclusionById.containsKey(id)) {
                 leavers.add(new Leaver(id, null, LeaveReason.NOT_ELIGIBLE, exclusionById.get(id).reason()));
@@ -88,5 +81,13 @@ public final class ReviewEngine {
             }
         }
         return leavers;
+    }
+
+    private static Leaver notSelected(Selection.Outcome outcome) {
+        int rank = outcome.security().rank();
+        boolean bufferFull = outcome.decision() == SelectionDecision.NOT_SELECTED_BUFFER_FULL;
+        return new Leaver(outcome.security().securityId(), rank,
+                bufferFull ? LeaveReason.BUFFER_FULL : LeaveReason.BELOW_BUFFER,
+                "Rank %d, %s".formatted(rank, bufferFull ? "buffer slots taken" : "below the buffer"));
     }
 }
