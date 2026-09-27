@@ -4,6 +4,7 @@ plugins {
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'com.gorylenko.gradle-git-properties' version '4.0.1'
 	id 'info.solidsoft.pitest' version '1.19.0'
+	id 'net.ltgt.errorprone' version '5.1.1'
 }
 
 group = 'com.example'
@@ -35,6 +36,14 @@ dependencies {
 	// Architecture rules as tests
 	testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.1'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Static analysis at compile time
+	errorprone 'com.google.errorprone:error_prone_core:2.50.0'
+}
+
+// Error Prone warnings fail the build, so they get fixed (or suppressed with a reason) instead of scrolling by
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs.add('-Werror')
 }
 
 // Package the business configuration (config/indices.yml) as the default copy on the classpath

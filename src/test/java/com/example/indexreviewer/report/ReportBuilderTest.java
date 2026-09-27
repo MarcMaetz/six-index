@@ -40,6 +40,11 @@ class ReportBuilderTest {
         var report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC), BUILD)
                 .build(result);
 
+        // Positional constructor with same-typed neighbours: each header field must land in its own place.
+        assertThat(report.index()).isEqualTo("SMI");
+        assertThat(report.reviewPeriod()).isEqualTo("2026-Q3");
+        assertThat(report.cutOffDate()).isEqualTo(Q3.cutOffDate());
+        assertThat(report.reviewDate()).isEqualTo(Q3.reviewDate());
         assertThat(report.generatedAt()).isEqualTo(NOW);
         assertThat(report.build()).isEqualTo(BUILD);
         assertThat(report.parameters().weightCapPercent()).isEqualByComparingTo("18");

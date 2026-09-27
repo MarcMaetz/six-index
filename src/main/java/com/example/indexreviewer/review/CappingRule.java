@@ -12,8 +12,9 @@ import java.util.SequencedMap;
 interface CappingRule {
 
     /**
+     * Returns the maximum weight of each constituent, in (0, 1].
+     *
      * @param ffmcapById FFMCAP of each selected constituent, in rank order
-     * @return maximum weight of each constituent, in (0, 1]
      */
     Map<String, BigDecimal> caps(SequencedMap<String, BigDecimal> ffmcapById);
 }

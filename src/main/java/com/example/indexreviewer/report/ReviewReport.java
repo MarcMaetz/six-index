@@ -60,7 +60,11 @@ public record ReviewReport(
     public record Joiner(String securityId, int rank, SelectionDecision selection) {
     }
 
-    /** @param rank its rank, or {@code null} if it could not be ranked */
+    /**
+     * A current constituent that is not in the new composition.
+     *
+     * @param rank its rank, or {@code null} if it could not be ranked
+     */
     public record Leaver(String securityId, Integer rank, LeaveReason reason, String detail) {
     }
 

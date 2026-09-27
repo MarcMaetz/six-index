@@ -3,7 +3,6 @@ package com.example.indexreviewer.ingest;
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.InputData;
-import com.example.indexreviewer.domain.InputFile;
 import com.example.indexreviewer.domain.SecurityData;
 
 import java.math.BigDecimal;
@@ -48,6 +47,8 @@ public final class InputDataLoader {
     }
 
     /**
+     * Loads one review's input, keeping every warning raised on the way.
+     *
      * @param inputDir folder of one review's input files
      * @param universe universe of the index, which names the universe file
      */
@@ -55,37 +56,31 @@ public final class InputDataLoader {
         if (!Files.isDirectory(inputDir)) {
             throw new InputDataException("Input folder not found: " + inputDir);
         }
-        var warnings = new ArrayList<DataQualityWarning>();
-        var files = new ArrayList<InputFile>();
-        var universeByDate = loadUniverse(read(inputDir.resolve(universeFileName(universe)),
-                List.of(DATE, ID), files, warnings), warnings);
-        var securityData = loadSecurityData(read(inputDir.resolve(SECURITY_DATA_FILE),
-                List.of(ID, DATE, PRICE, FREE_FLOAT, SHARES), files, warnings), warnings);
-        var composition = loadComposition(read(inputDir.resolve(COMPOSITION_FILE),
-                List.of(ID), files, warnings), warnings);
-        return new InputData(universeByDate, securityData, composition, warnings, files);
-    }
+        var universeFile = new FileLoad(inputDir.resolve(universeFileName(universe)), List.of(DATE, ID));
+        var universeByDate = loadUniverse(universeFile);
+        var securityFile = new FileLoad(inputDir.resolve(SECURITY_DATA_FILE),
+                List.of(ID, DATE, PRICE, FREE_FLOAT, SHARES));
+        var securityData = loadSecurityData(securityFile);
+        var compositionFile = new FileLoad(inputDir.resolve(COMPOSITION_FILE), List.of(ID));
+        var composition = loadComposition(compositionFile);
 
-    private static CsvFile.Content read(Path file, List<String> columns, List<InputFile> files,
-                                        List<DataQualityWarning> warnings) {
-        var content = CsvFile.read(file, columns);
-        files.add(content.file());
-        warnings.addAll(content.warnings());
-        return content;
+        var loaded = List.of(universeFile, securityFile, compositionFile);
+        return new InputData(universeByDate, securityData, composition,
+                loaded.stream().flatMap(file -> file.warnings.stream()).toList(),
+                loaded.stream().map(file -> file.content.file()).toList());
     }
 
     /** A1: exact duplicate rows are dropped with one summary warning. */
-    private Map<LocalDate, Set<String>> loadUniverse(CsvFile.Content content, List<DataQualityWarning> warnings) {
+    private Map<LocalDate, Set<String>> loadUniverse(FileLoad file) {
         var universe = new LinkedHashMap<LocalDate, Set<String>>();
         var duplicates = new ArrayList<String>();
-        for (var parsed : parseRows(content, row -> new UniverseMember(parseDate(row, DATE), requireValue(row, ID)),
-                warnings)) {
+        for (var parsed : file.parseRows(row -> new UniverseMember(parseDate(row, DATE), requireValue(row, ID)))) {
             var member = parsed.value();
             if (!universe.computeIfAbsent(member.date(), d -> new LinkedHashSet<>()).add(member.id())) {
                 duplicates.add(member.id());
             }
         }
-        warnDuplicates(content.source(), duplicates, warnings);
+        file.warnDuplicates(duplicates);
         return universe;
     }
 
@@ -93,14 +88,12 @@ public final class InputDataLoader {
      * Rows with values out of range are skipped. Identical duplicates are dropped with one summary warning;
      * conflicting rows for the same security and date are all dropped (A9), since neither can be trusted.
      */
-    private Map<String, Map<LocalDate, SecurityData>> loadSecurityData(CsvFile.Content content, List<DataQualityWarning> warnings) {
-        String source = content.source();
-
+    private Map<String, Map<LocalDate, SecurityData>> loadSecurityData(FileLoad file) {
         var byId = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
         var duplicates = new ArrayList<String>();
         var conflicts = new LinkedHashSet<SecurityData>();
-        for (var parsed : parseRows(content, row -> new SecurityData(requireValue(row, ID), parseDate(row, DATE),
-                parsePrice(row), parseFreeFloat(row), parseShares(row)), warnings)) {
+        for (var parsed : file.parseRows(row -> new SecurityData(requireValue(row, ID), parseDate(row, DATE),
+                parsePrice(row), parseFreeFloat(row), parseShares(row)))) {
             var data = parsed.value();
             var byDate = byId.computeIfAbsent(data.securityId(), id -> new LinkedHashMap<>());
             var existing = byDate.putIfAbsent(data.date(), data);
@@ -111,53 +104,29 @@ public final class InputDataLoader {
                 duplicates.add(data.securityId());
             } else {
                 conflicts.add(existing);
-                warnings.add(new DataQualityWarning(source, parsed.line(), Impact.MISSING_DATA,
+                file.warn(parsed.line(), Impact.MISSING_DATA,
                         "Conflicting data for %s on %s; all rows for that date ignored"
-                                .formatted(data.securityId(), data.date()), List.of(data.securityId())));
+                                .formatted(data.securityId(), data.date()), List.of(data.securityId()));
             }
         }
         for (var conflict : conflicts) {
             byId.get(conflict.securityId()).remove(conflict.date());
         }
         byId.values().removeIf(Map::isEmpty);
-        warnDuplicates(source, duplicates, warnings);
+        file.warnDuplicates(duplicates);
         return byId;
     }
 
-    private Set<String> loadComposition(CsvFile.Content content, List<DataQualityWarning> warnings) {
+    private Set<String> loadComposition(FileLoad file) {
         var composition = new LinkedHashSet<String>();
         var duplicates = new ArrayList<String>();
-        for (var parsed : parseRows(content, row -> requireValue(row, ID), warnings)) {
+        for (var parsed : file.parseRows(row -> requireValue(row, ID))) {
             if (!composition.add(parsed.value())) {
                 duplicates.add(parsed.value());
             }
         }
-        warnDuplicates(content.source(), duplicates, warnings);
+        file.warnDuplicates(duplicates);
         return composition;
-    }
-
-    /**
-     * Parses each row; a row the parser rejects is skipped with a warning, so the load loops only see valid
-     * values. Invalid-row warnings therefore come before the warnings the caller adds while processing.
-     */
-    private static <T> List<ParsedRow<T>> parseRows(CsvFile.Content content, Function<CsvFile.Row, T> parser,
-                                                    List<DataQualityWarning> warnings) {
-        var parsed = new ArrayList<ParsedRow<T>>();
-        for (var row : content.rows()) {
-            try {
-                parsed.add(new ParsedRow<>(row.line(), parser.apply(row)));
-            } catch (InvalidRowException e) {
-                warnings.add(invalidRow(content.source(), row, e));
-            }
-        }
-        return parsed;
-    }
-
-    private static void warnDuplicates(String source, List<String> duplicates, List<DataQualityWarning> warnings) {
-        if (!duplicates.isEmpty()) {
-            warnings.add(new DataQualityWarning(source, null, Impact.NONE,
-                    "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates));
-        }
     }
 
     private static String requireValue(CsvFile.Row row, String column) {
@@ -220,10 +189,47 @@ public final class InputDataLoader {
         }
     }
 
-    private static DataQualityWarning invalidRow(String source, CsvFile.Row row, InvalidRowException e) {
-        String id = row.values().containsKey(ID) ? row.get(ID) : "";
-        return new DataQualityWarning(source, row.line(), Impact.MISSING_DATA, "Row ignored: " + e.getMessage(),
-                id.isEmpty() ? List.of() : List.of(id));
+    /**
+     * One input file while it is loaded: its rows, and every warning about it in the order they arise, starting
+     * with those from reading the CSV.
+     */
+    private static final class FileLoad {
+
+        private final CsvFile.Content content;
+        private final List<DataQualityWarning> warnings;
+
+        FileLoad(Path file, List<String> columns) {
+            this.content = CsvFile.read(file, columns);
+            this.warnings = new ArrayList<>(content.warnings());
+        }
+
+        /**
+         * Parses each row; a row the parser rejects is skipped with a warning, so the load loops only see valid
+         * values. Invalid-row warnings therefore come before the warnings the loader adds while processing.
+         */
+        <T> List<ParsedRow<T>> parseRows(Function<CsvFile.Row, T> parser) {
+            var parsed = new ArrayList<ParsedRow<T>>();
+            for (var row : content.rows()) {
+                try {
+                    parsed.add(new ParsedRow<>(row.line(), parser.apply(row)));
+                } catch (InvalidRowException e) {
+                    String id = row.values().containsKey(ID) ? row.get(ID) : "";
+                    warn(row.line(), Impact.MISSING_DATA, "Row ignored: " + e.getMessage(),
+                            id.isEmpty() ? List.of() : List.of(id));
+                }
+            }
+            return parsed;
+        }
+
+        void warnDuplicates(List<String> duplicates) {
+            if (!duplicates.isEmpty()) {
+                warn(null, Impact.NONE, "%d duplicate row(s) ignored".formatted(duplicates.size()), duplicates);
+            }
+        }
+
+        void warn(Integer line, Impact impact, String message, List<String> securityIds) {
+            warnings.add(new DataQualityWarning(content.source(), line, impact, message, securityIds));
+        }
     }
 
     /** A row's parsed value with its line number, for warnings raised after parsing. */

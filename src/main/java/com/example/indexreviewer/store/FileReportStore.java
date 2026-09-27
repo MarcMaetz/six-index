@@ -35,8 +35,8 @@ public final class FileReportStore implements ReportStore {
     private static final String SUFFIX = ".json";
     /** Chronological: by time, then by suffix as a number, so "…Z" < "…Z-2" < "…Z-10". */
     private static final Comparator<String> RUN_ORDER = Comparator
-            .comparing((String id) -> id.split("-")[0])
-            .thenComparingInt(id -> id.contains("-") ? Integer.parseInt(id.substring(id.indexOf('-') + 1)) : 1);
+            .comparing(FileReportStore::timePart)
+            .thenComparingInt(FileReportStore::suffixNumber);
 
     private final Path root;
     private final JsonMapper mapper;
@@ -129,6 +129,18 @@ public final class FileReportStore implements ReportStore {
             }
         }
         return root.resolve(index).resolve(reviewPeriod);
+    }
+
+    /** The generation time of a run id, e.g. {@code 20260925T201052184Z} for {@code 20260925T201052184Z-2}. */
+    private static String timePart(String id) {
+        int dash = id.indexOf('-');
+        return dash < 0 ? id : id.substring(0, dash);
+    }
+
+    /** The suffix of a run id as a number; 1 for the first run of a millisecond, which has none. */
+    private static int suffixNumber(String id) {
+        int dash = id.indexOf('-');
+        return dash < 0 ? 1 : Integer.parseInt(id.substring(dash + 1));
     }
 
     private static ReportNotFoundException notFound(String index, String reviewPeriod, String id) {

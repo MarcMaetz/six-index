@@ -17,6 +17,6 @@ public record ReviewPeriod(String id, LocalDate cutOffDate, LocalDate reviewDate
         Objects.requireNonNull(cutOffDate, "cut-off date of " + id);
         Objects.requireNonNull(reviewDate, "review date of " + id);
         Validation.require(!cutOffDate.isAfter(reviewDate),
-                "review period %s: cut-off date %s is after review date %s", id, cutOffDate, reviewDate);
+                "review period %s: cut-off date %s is after review date %s".formatted(id, cutOffDate, reviewDate));
     }
 }

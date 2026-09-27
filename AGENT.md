@@ -42,6 +42,8 @@ truly needs no entry, and tell the user why.
 - Index parameters and review dates are business configuration in `config/indices.yml` (D11), not code.
   Technical settings stay in `application.properties`.
 - Input CSVs live in `data/<index>/<review period>/`, e.g. `data/SMI/2026-Q3/` (D12).
+- Error Prone runs on every compile and warnings fail the build (D44). Fix the finding; suppress only with
+  `@SuppressWarnings("CheckName")` and a comment saying why.
 - Code comments explain the code on their own; no decision numbers (`D<n>`) in code, config or tests. Reference
   one only where a comment defends a deliberate choice a reader might otherwise undo, and the reasoning is too
   long for the comment (D35). Assumption numbers (`A<n>`) stay where code applies a rulebook interpretation.

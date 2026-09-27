@@ -74,17 +74,15 @@ final class CsvFile {
             var csv = new CSVReaderBuilder(reader)
                     .withCSVParser(new CSVParserBuilder().withSeparator(SEPARATOR).build())
                     .build();
-            List<String> columns = readHeader(csv, source, requiredColumns);
-            var warnings = new ArrayList<DataQualityWarning>();
-            var rows = readRows(csv, source, columns, warnings);
-            return new Content(inputFile, rows, warnings);
+            return readRows(csv, inputFile, source, readHeader(csv, source, requiredColumns));
         }
     }
 
     /** Data rows after the header; blank lines are skipped, rows with the wrong field count are warned about. */
-    private static List<Row> readRows(CSVReader csv, String source, List<String> columns,
-                                      List<DataQualityWarning> warnings) throws IOException, CsvValidationException {
+    private static Content readRows(CSVReader csv, InputFile inputFile, String source, List<String> columns)
+            throws IOException, CsvValidationException {
         var rows = new ArrayList<Row>();
+        var warnings = new ArrayList<DataQualityWarning>();
         String[] fields;
         while ((fields = csv.readNext()) != null) {
             int line = (int) csv.getLinesRead();
@@ -103,7 +101,7 @@ final class CsvFile {
             }
             rows.add(new Row(line, values));
         }
-        return rows;
+        return new Content(inputFile, rows, warnings);
     }
 
     /** The trimmed column names; fails if the file is empty or a required column is missing. */

@@ -49,11 +49,12 @@ final class WeightCapping {
         Set<String> capped = new LinkedHashSet<>();
         var rounds = new ArrayList<List<String>>();
         var weights = distribute(ffmcapById, capped, caps);
-        List<String> overCap;
-        while (!(overCap = overCap(weights, capped, caps)).isEmpty()) {
+        var overCap = overCap(weights, capped, caps);
+        while (!overCap.isEmpty()) {
             capped.addAll(overCap);
             rounds.add(overCap);
             weights = distribute(ffmcapById, capped, caps);
+            overCap = overCap(weights, capped, caps);
         }
 
         var result = cappedWeights(ffmcapById, weights, capped);

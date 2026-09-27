@@ -54,6 +54,8 @@ decided, why, and what we rejected.
 | 2026-09-27 | Review pipeline steps package-private; accessor chains replaced by named hops and shortcuts (`Outcome.ranked`, `RankedSecurity.eligible`) (D39) |
 | 2026-09-27 | Mutation testing with PIT on `review`: 88% → 98% killed after 7 new tests; one redundant condition removed from `ReviewEngine.leavers` (D40) |
 | 2026-09-27 | `null` only at the edges, `Optional` inside the review logic; stored-report summaries read into a typed record instead of by field-name strings (D41) |
+| 2026-09-27 | Long parameter lists reviewed: report format kept flat, header fields now tested (D42); loader warnings owned per file instead of passed-in lists (D43) |
+| 2026-09-27 | Error Prone in the build with `-Werror`; 6 findings fixed, format strings checked at compile time (D44) |
 
 ## Design decisions
 
@@ -521,7 +523,7 @@ decided, why, and what we rejected.
 - `InputDataLoader`: the three load loops each wrapped their whole body in `try/catch (InvalidRowException)`.
   A generic `parseRows(content, parser, warnings)` now owns the one catch and returns only valid values (with
   their line number); the loops just apply duplicate and conflict logic. The duplicate summary warning, repeated
-  three times, became `warnDuplicates`.
+  three times, became `warnDuplicates`. (Refined by D43: both are now methods of the per-file `FileLoad`.)
 - `CsvFile.read`: a try-with-resources covered about 40 lines of header and row parsing. `read` now only
   translates `IOException`/`CsvValidationException` into `InputDataException`; `parse` and `readHeader` declare
   the checked exceptions.
@@ -620,6 +622,45 @@ decided, why, and what we rejected.
   fields and fails on a missing or `null` one, naming it. A test covers a stored file without `status`.
 - **Rejected:** deserializing the whole `ReviewReport` (an older report may not match today's type, D34);
   keeping an index file next to the reports (a second source of truth for data the report already holds).
+
+### D42 — Long constructor lists kept; the risky part tested instead
+- `ReviewReport` (17 components) and `ReviewResult` (10) have one production constructor call each.
+  `ReviewResult`'s components all have different types, so a mix-up doesn't compile. `ReviewReport` has two
+  same-typed neighbour pairs (`index`/`reviewPeriod`, `cutOffDate`/`reviewDate`) that no test checked, so a
+  swap in `ReportBuilder` would have gone unnoticed. `ReportBuilderTest` now asserts all four.
+- **Rejected:** grouping `ReviewReport` into nested parts (e.g. a `period` object). It is the published JSON
+  format (API responses, stored reports, Postman tests); regrouping would be a breaking format change to fix a
+  single constructor call. A builder for the records was rejected for the same reason: more code for one call.
+
+### D43 — Loader warnings owned per file, not passed around
+- `InputDataLoader` passed one `warnings` list (and a `files` list) through `read`, every `loadX`, `parseRows`
+  and `warnDuplicates`, each appending to it; `CsvFile.readRows` did the same. Now a private `FileLoad` holds one
+  file's content and its warnings (starting with the CSV reader's), and offers `parseRows`, `warnDuplicates`
+  and `warn`. The loaders take a `FileLoad`; `load` concatenates the files' warnings in file order at the end.
+  `CsvFile.readRows` builds and returns its own `Content`.
+- Warning order is unchanged (per file: CSV warnings, invalid rows, then duplicates and conflicts); the
+  existing `containsExactly` tests pass untouched.
+- **Rejected:** returning `(value, warnings)` pairs from every step (more wrapping, same result); an event
+  listener for warnings (indirection for a single consumer).
+
+### D44 — Error Prone at compile time, warnings fail the build
+- `net.ltgt.errorprone` 5.1.1 with Error Prone 2.50.0 on main and test code, plus `-Werror`. The first run found
+  6 warnings, all fixed:
+  - `AnnotateFormatMethod`: `Validation.require(condition, format, args...)`. Annotating it with
+    `@FormatMethod` would put a library annotation into `domain`, which the ArchUnit rule forbids (D30). The
+    callers now pass `"…".formatted(...)`, which Error Prone checks directly; formatting eagerly costs nothing,
+    since the checks run once at startup.
+  - `StringSplitter`: `FileReportStore`'s run order used `id.split("-")[0]`; now `timePart` and
+    `suffixNumber`, named helpers using `indexOf`.
+  - `AssignmentExpression`: the capping loop's `while (!(overCap = …).isEmpty())` (introduced in D37) is a
+    plain loop again.
+  - `MissingSummary` (3): Javadocs with only tags got a summary line.
+- Checked that `-Werror` works: a deliberate `split` made the build fail, then was reverted.
+- **Why in the build, not on demand like PIT (D40):** it is quiet after the fixes and adds little compile
+  time; a warning that only scrolls by is never read. A finding that is wrong in context is suppressed with
+  `@SuppressWarnings("CheckName")` and a comment saying why.
+- **Rejected:** SpotBugs/PMD in addition (overlap with Error Prone, slower, separate reports); `-Werror`
+  only for Error Prone checks (no plugin switch for that; plain javac warnings are worth fixing too).
 
 ## Input data findings
 
