@@ -200,6 +200,17 @@ class InputDataLoaderTest {
     }
 
     @Test
+    void failsOnInvalidUtf8() throws IOException {
+        writeFiles("date;id\n2026-09-21;1\n", "id;date;price;free_float;shares\n", "id\n1\n");
+        // 0xFF never occurs in UTF-8; a lenient decoder would read it as U+FFFD and carry on.
+        Files.write(dir.resolve(InputDataLoader.COMPOSITION_FILE), new byte[]{'i', 'd', '\n', (byte) 0xFF, '\n'});
+
+        assertThatThrownBy(() -> loader.load(dir, "SPI"))
+                .isInstanceOf(InputDataException.class)
+                .hasMessage("composition.csv is not valid UTF-8");
+    }
+
+    @Test
     void failsOnMissingFile() {
         assertThatThrownBy(() -> loader.load(dir, "SPI"))
                 .isInstanceOf(InputDataException.class)
@@ -244,6 +255,6 @@ class InputDataLoaderTest {
     }
 
     private void write(String name, String content) throws IOException {
-        Files.writeString(dir.resolve(name), "﻿" + content, StandardCharsets.UTF_8);
+        Files.writeString(dir.resolve(name), "\uFEFF" + content, StandardCharsets.UTF_8);
     }
 }

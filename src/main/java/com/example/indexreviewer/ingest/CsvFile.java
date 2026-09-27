@@ -12,6 +12,8 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,12 +28,14 @@ import java.util.Map;
 /**
  * Reads a {@code ;}-separated CSV file with a header row into rows addressable by column name. Handles a UTF-8
  * byte order mark and CRLF line endings. Blank lines are skipped; rows with the wrong number of fields are
- * reported as warnings and skipped. The checksum is taken from the same bytes that are parsed.
+ * reported as warnings and skipped. Bytes that are not valid UTF-8 fail the load instead of being replaced
+ * silently, which would turn a corrupted id or number into a wrong one. The checksum is taken from the same
+ * bytes that are parsed.
  */
 final class CsvFile {
 
     private static final char SEPARATOR = ';';
-    private static final int BYTE_ORDER_MARK = '﻿';
+    private static final int BYTE_ORDER_MARK = '\uFEFF';
 
     /** One data row; {@code line} is its line number in the file (the header is line 1). */
     record Row(int line, Map<String, String> values) {
@@ -61,6 +65,8 @@ final class CsvFile {
             byte[] bytes = Files.readAllBytes(file);
             var inputFile = new InputFile(file.toString(), sha256(bytes));
             return parse(file.getFileName().toString(), inputFile, bytes, requiredColumns);
+        } catch (CharacterCodingException e) {
+            throw new InputDataException(file.getFileName() + " is not valid UTF-8", e);
         } catch (IOException | CsvValidationException e) {
             throw new InputDataException("Cannot read " + file + ": " + e.getMessage(), e);
         }
@@ -69,7 +75,9 @@ final class CsvFile {
     private static Content parse(String source, InputFile inputFile, byte[] bytes, List<String> requiredColumns)
             throws IOException, CsvValidationException {
         try (var reader = new BufferedReader(
-                new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8))) {
+                new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8.newDecoder()
+                        .onMalformedInput(CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(CodingErrorAction.REPORT)))) {
             skipByteOrderMark(reader);
             var csv = new CSVReaderBuilder(reader)
                     .withCSVParser(new CSVParserBuilder().withSeparator(SEPARATOR).build())

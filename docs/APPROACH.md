@@ -113,6 +113,10 @@ section 5.12, with definitions in 2 and 4.3.
   meaningful can be computed. A bad or duplicate row is skipped with a warning naming the file, line and
   security: one typo shouldn't block a quarterly review, but it has to stay visible. Rejected: failing on the
   first bad row, and OpenCSV's bean binding, which gives coarse errors instead of per-row warnings.
+- **Strict UTF-8.** A file that is not valid UTF-8 is unusable too (422). Java's default decoding replaces bad
+  bytes with `�` without a word, so a corrupted id or number would pass as a different one or surface as a
+  puzzling row warning. The BOM the delivered files start with is skipped by hand; Commons IO's
+  `BOMInputStream` would do the same with one more dependency.
 - **Each warning has an impact:** `NONE` (nothing lost, e.g. an identical duplicate) or `MISSING_DATA` (a row
   ignored, conflicting rows dropped, a security excluded). Only lost data can affect the review status.
 - **Missing values.** Which values a security needs depends on the date's role (price at cut-off, shares and

@@ -92,8 +92,8 @@ weights add up to 99.999999%, which is expected; the displayed values are never 
 
 Validation happens in two layers:
 
-- **Per file, strict:** a missing file, folder or column stops the review with a 422 response. Nothing
-  meaningful can be computed without it.
+- **Per file, strict:** a missing file, folder or column, or a file that is not valid UTF-8, stops the review
+  with a 422 response. Nothing meaningful can be computed without it.
 - **Per row, lenient:** an invalid row (wrong field count, unparsable or out-of-range value) or a duplicate is
   skipped with a `DataQualityWarning` naming the file, line and security. One bad row doesn't block a quarterly
   review, but it stays visible.
@@ -187,7 +187,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 |---|---|
 | Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a test-only tiered rule, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `RankingTest` (tie-break by id, A8), `RankingStrategiesTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
 | Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`, `ReportFormatTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
-| Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, checksums, empty files, missing files and columns |
+| Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, invalid UTF-8, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, checksums, empty files, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round |
 | Storage | `FileReportStoreTest`: file naming, no overwrite of an existing report, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
