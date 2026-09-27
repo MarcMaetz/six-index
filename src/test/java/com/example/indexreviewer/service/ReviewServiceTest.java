@@ -6,8 +6,8 @@ import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.CsvFolderInputSource;
 import com.example.indexreviewer.report.ReportBuilder;
-import com.example.indexreviewer.report.ReportFormat;
 import com.example.indexreviewer.report.ReviewReport;
+import com.example.indexreviewer.review.Leaver;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.status.ReviewStatus;
 import com.example.indexreviewer.store.FileReportStore;
@@ -46,10 +46,9 @@ class ReviewServiceTest {
         var q3 = new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
         var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
                 "FFMCAP", List.of(q3));
-        var format = new ReportFormat(6, 10, 2);
         var catalog = new IndexCatalog(List.of(smi));
         service = new ReviewService(catalog, new CsvFolderInputSource(Path.of("data")), new ReviewEngine(),
-                new ReportBuilder(format, Clock.fixed(NOW, ZoneOffset.UTC), ReviewReport.Build.UNKNOWN),
+                new ReportBuilder(Clock.fixed(NOW, ZoneOffset.UTC), ReviewReport.Build.UNKNOWN),
                 new FileReportStore(reportsDir, JsonMapper.builder().build()));
     }
 
@@ -59,7 +58,7 @@ class ReviewServiceTest {
 
         assertThat(run.report().status()).isEqualTo(ReviewStatus.COMPLETED_WITH_WARNINGS);
         assertThat(run.report().joiners()).extracting(ReviewReport.Joiner::securityId).containsExactly("177");
-        assertThat(run.report().leavers()).extracting(ReviewReport.Leaver::securityId).containsExactly("103");
+        assertThat(run.report().leavers()).extracting(Leaver::securityId).containsExactly("103");
         assertThat(run.stored().id()).isEqualTo("20260925T201052184000000Z");
         assertThat(service.reports("SMI", "2026-Q3")).containsExactly(run.stored());
         assertThat(service.report("SMI", "2026-Q3", run.stored().id())).isNotEmpty();

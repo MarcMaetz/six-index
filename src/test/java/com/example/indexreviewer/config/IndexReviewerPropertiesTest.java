@@ -1,7 +1,6 @@
 package com.example.indexreviewer.config;
 
 import com.example.indexreviewer.domain.IndexDefinition;
-import com.example.indexreviewer.report.ReportFormat;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -28,6 +27,6 @@ class IndexReviewerPropertiesTest {
     }
 
     private static IndexReviewerProperties properties(List<IndexDefinition> indices) {
-        return new IndexReviewerProperties(Path.of("data"), Path.of("reports"), new ReportFormat(6, 10, 2), indices);
+        return new IndexReviewerProperties(Path.of("data"), Path.of("reports"), indices);
     }
 }

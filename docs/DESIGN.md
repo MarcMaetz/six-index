@@ -150,7 +150,7 @@ ties are broken by id.
   reject a missing rulebook version, a buffer end below the constituent count, a cap outside (0, 1], or a cap
   too small for the weights to reach 100%. `IndexCatalog` rejects an unknown ranking strategy.
 - **Input** lives in one folder per index and review period, so past reviews can be re-run.
-- **Technical settings** (data folder, display precision) stay in `application.properties`.
+- **Technical settings** (data and report folders) stay in `application.properties`.
 
 | Change | What to do |
 |---|---|
@@ -186,7 +186,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Level | Tests |
 |---|---|
 | Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a weight exactly at the cap, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, incumbents outnumbering slots), `RankingTest` (tie-break by id, A8), `RankingStrategiesTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
-| Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`, `ReportFormatTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
+| Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
 | Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, invalid UTF-8, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, files read, empty files, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round, and fails a review with too few rankable securities (A12) |
 | Storage | `FileReportStoreTest`: file naming, no overwrite of an existing report, chronological listing, unknown and unsafe ids |

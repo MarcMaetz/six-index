@@ -1,7 +1,8 @@
 package com.example.indexreviewer.report;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
-import com.example.indexreviewer.review.Leaver.LeaveReason;
+import com.example.indexreviewer.review.Exclusion;
+import com.example.indexreviewer.review.Leaver;
 import com.example.indexreviewer.review.SelectionDecision;
 import com.example.indexreviewer.review.status.ReviewStatus;
 import com.example.indexreviewer.review.status.StatusReason;
@@ -57,17 +58,6 @@ public record ReviewReport(
     }
 
     public record Joiner(String securityId, int rank, SelectionDecision selection) {
-    }
-
-    /**
-     * A current constituent that is not in the new composition.
-     *
-     * @param rank its rank, or {@code null} if it could not be ranked
-     */
-    public record Leaver(String securityId, Integer rank, LeaveReason reason, String detail) {
-    }
-
-    public record Exclusion(String securityId, String reason) {
     }
 
     /**

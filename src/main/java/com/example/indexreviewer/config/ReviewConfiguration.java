@@ -44,7 +44,7 @@ public class ReviewConfiguration {
     ReportBuilder reportBuilder(IndexReviewerProperties properties, Clock clock,
                                 ObjectProvider<BuildProperties> buildProperties,
                                 ObjectProvider<GitProperties> gitProperties) {
-        return new ReportBuilder(properties.report(), clock,
+        return new ReportBuilder(clock,
                 build(buildProperties.getIfAvailable(), gitProperties.getIfAvailable()));
     }
 

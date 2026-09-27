@@ -1,5 +1,6 @@
 package com.example.indexreviewer.api;
 
+import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.service.ReviewService;
 import com.example.indexreviewer.store.StoredReport;
@@ -31,8 +32,8 @@ public class IndexController {
 
     @Operation(summary = "List the configured indices and their review periods")
     @GetMapping
-    public List<IndexResponse> indices() {
-        return service.indices().stream().map(IndexResponse::of).toList();
+    public List<IndexDefinition> indices() {
+        return service.indices();
     }
 
     @Operation(summary = "Load and validate the input of a review without running it",

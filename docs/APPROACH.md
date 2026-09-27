@@ -16,8 +16,9 @@ It is written in hindsight and ordered by topic; the commit history has the orde
   found real gaps in the tests, all closed. The requirements were rechecked end to end on the packaged jar. A
   last full scan recomputed the Q3 result separately (same answer) and found that an index with too few
   rankable securities crashed in capping instead of being flagged; such a review now stops with a 422 (A12).
-  A simplification pass then removed what served no current need: input file checksums and the capping
-  interface, whose only second implementation was in a test.
+  A simplification pass then removed what served no current need: input file checksums, the capping
+  interface (its only second implementation was in a test), records that copied others field for field, and
+  configurable display precision.
 
 ## Starting point: the data and the rulebook
 
@@ -167,7 +168,8 @@ section 5.12, with definitions in 2 and 4.3.
 - **Full precision, rounding only for display.** `BigDecimal` with 34 significant digits and no intermediate
   rounding, since iterative capping divides repeatedly and rounding would compound. The weights are checked to
   add up to 1 and to stay within their caps. Displayed weights are not forced to 100%: for Q3 they add up to
-  99.999999%, which is correct.
+  99.999999%, which is correct. The display precision (weights 6 decimals in percent, capping factors 10,
+  FFMCAP 2) is fixed in `ReportBuilder`; it used to be three settings nobody would change.
 
 ## Review status
 
@@ -240,12 +242,17 @@ section 5.12, with definitions in 2 and 4.3.
 
 After the features were complete, the code was scanned smell by smell:
 
+- **A record only where the shape differs.** The API returns `IndexDefinition` itself, and the report uses the
+  review's `Leaver` and `Exclusion`; their former copies matched field for field. Own records remain where the
+  shape really differs: the report rounds values (`Constituent`, `RankingEntry`), and `Joiner` and `WarningRef`
+  leave fields out (a reason's `WarningRef` drops the warning's id list, which would otherwise repeat 204 ids in
+  each of 204 reasons).
 - **Try blocks** wrap only the call whose exception they translate; a wide try can swallow a bug as an
   "invalid row".
-- **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping: caps →
+- **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping:
   distribute → over the cap? → repeat → factors). Single loops that read top to bottom were left alone.
 - **Shared state in an object.** Where the steps of one calculation all need the same data (`WeightCapping`:
-  FFMCAP, caps, the growing capped set; `StatusAssessment`: the result and its rank lookup), a static entry
+  FFMCAP, the cap, the growing capped set; `StatusAssessment`: the result and its rank lookup), a static entry
   point creates a private instance that holds it, instead of passing three parameters to every step. Steps
   without shared state (`Eligibility`, `Ranking`, `Selection`) stay static, with a private constructor and
   `final` so they can't be instantiated or extended.

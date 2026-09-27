@@ -3,6 +3,7 @@ package com.example.indexreviewer.report;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
+import com.example.indexreviewer.review.Exclusion;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.SelectionDecision;
@@ -37,7 +38,7 @@ class ReportBuilderTest {
         var input = new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI");
         var result = new ReviewEngine().run(SMI, Q3, input);
 
-        var report = new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(NOW, ZoneOffset.UTC), BUILD)
+        var report = new ReportBuilder(Clock.fixed(NOW, ZoneOffset.UTC), BUILD)
                 .build(result);
 
         // Positional constructor with same-typed neighbours: each header field must land in its own place.
@@ -71,7 +72,7 @@ class ReportBuilderTest {
             assertThat(l.securityId()).isEqualTo("103");
             assertThat(l.reason()).isEqualTo(LeaveReason.BELOW_BUFFER);
         });
-        assertThat(report.excluded()).extracting(ReviewReport.Exclusion::securityId).containsExactly("166");
+        assertThat(report.excluded()).extracting(Exclusion::securityId).containsExactly("166");
         assertThat(report.ranking()).hasSize(204);
         // Each FFMCAP can be recomputed from the entry: 165.7 × 45867891 × 1 for the leaver 103.
         assertThat(report.ranking()).filteredOn(e -> e.securityId().equals("103")).singleElement().satisfies(e -> {

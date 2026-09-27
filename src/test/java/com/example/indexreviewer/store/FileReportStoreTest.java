@@ -4,7 +4,6 @@ import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
 import com.example.indexreviewer.report.ReportBuilder;
-import com.example.indexreviewer.report.ReportFormat;
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.ReviewResult;
@@ -51,7 +50,7 @@ class FileReportStoreTest {
     }
 
     private static ReviewReport withTime(Instant generatedAt) {
-        return new ReportBuilder(new ReportFormat(6, 10, 2), Clock.fixed(generatedAt, ZoneOffset.UTC), BUILD)
+        return new ReportBuilder(Clock.fixed(generatedAt, ZoneOffset.UTC), BUILD)
                 .build(result);
     }
 

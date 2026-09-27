@@ -1,6 +1,7 @@
 package com.example.indexreviewer.api;
 
 import com.example.indexreviewer.report.ReviewReport;
+import com.example.indexreviewer.review.Leaver;
 import com.example.indexreviewer.review.status.ReviewStatus;
 import com.example.indexreviewer.review.status.StatusReason;
 import com.example.indexreviewer.store.StoredReport;
@@ -27,7 +28,7 @@ public record ReviewSummaryResponse(
         List<StatusReason> statusReasons,
         List<Constituent> constituents,
         List<ReviewReport.Joiner> joiners,
-        List<ReviewReport.Leaver> leavers) {
+        List<Leaver> leavers) {
 
     /** A security in the new composition; weights are in percent. */
     public record Constituent(int rank, String securityId, boolean joiner, BigDecimal weightPercent,

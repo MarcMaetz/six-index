@@ -9,15 +9,20 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.util.List;
 
-/** Turns a {@link ReviewResult} into a {@link ReviewReport}, rounding values for display only. */
+/**
+ * Turns a {@link ReviewResult} into a {@link ReviewReport}, rounding values for display only: weights to 6
+ * decimals in percent, capping factors to 10, FFMCAP to 2.
+ */
 public final class ReportBuilder {
 
-    private final ReportFormat format;
+    private static final int WEIGHT_DECIMALS = 6;
+    private static final int CAPPING_FACTOR_DECIMALS = 10;
+    private static final int FFMCAP_DECIMALS = 2;
+
     private final Clock clock;
     private final ReviewReport.Build build;
 
-    public ReportBuilder(ReportFormat format, Clock clock, ReviewReport.Build build) {
-        this.format = format;
+    public ReportBuilder(Clock clock, ReviewReport.Build build) {
         this.clock = clock;
         this.build = build;
     }
@@ -30,16 +35,10 @@ public final class ReportBuilder {
         var joiners = result.joiners().stream()
                 .map(c -> new ReviewReport.Joiner(c.securityId(), c.rank(), c.decision()))
                 .toList();
-        var leavers = result.leavers().stream()
-                .map(l -> new ReviewReport.Leaver(l.securityId(), l.rank(), l.reason(), l.detail()))
-                .toList();
-        var excluded = result.excluded().stream()
-                .map(e -> new ReviewReport.Exclusion(e.securityId(), e.reason()))
-                .toList();
 
         return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
                 clock.instant(), build, status.status(), status.reasons(), parameters(index), constituents(result),
-                joiners, leavers, excluded, ranking(result), result.cappingRounds(), result.input().files(),
+                joiners, result.leavers(), result.excluded(), ranking(result), result.cappingRounds(), result.input().files(),
                 result.warnings());
     }
 
@@ -47,7 +46,7 @@ public final class ReportBuilder {
         return result.constituents().stream()
                 .map(c -> new ReviewReport.Constituent(c.rank(), c.securityId(), c.decision(), c.joiner(),
                         ffmcap(c.weight().ffmcap()), percent(c.weight().rawWeight()), percent(c.weight().weight()),
-                        round(c.weight().cappingFactor(), format.cappingFactorDecimals()), c.weight().capped()))
+                        round(c.weight().cappingFactor(), CAPPING_FACTOR_DECIMALS), c.weight().capped()))
                 .toList();
     }
 
@@ -68,11 +67,11 @@ public final class ReportBuilder {
     }
 
     private BigDecimal percent(BigDecimal fraction) {
-        return round(fraction.movePointRight(2), format.weightDecimals());
+        return round(fraction.movePointRight(2), WEIGHT_DECIMALS);
     }
 
     private BigDecimal ffmcap(BigDecimal ffmcap) {
-        return round(ffmcap, format.ffmcapDecimals());
+        return round(ffmcap, FFMCAP_DECIMALS);
     }
 
     private static BigDecimal round(BigDecimal value, int decimals) {
