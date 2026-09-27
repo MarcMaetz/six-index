@@ -193,7 +193,8 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 | Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages with `config` outermost, plain-Java review logic, Spring only in `config`, `service` and `api`, no package cycles |
 | Manual | Postman test scripts for the same expected results |
 
-Three checks look at the tests and the code themselves:
+Three checks look at the tests and the code themselves, next to formatting (Spotless with palantir-java-format,
+checked in the build):
 
 - **Error Prone** runs on every compile; its warnings fail the build.
 - **Mutation testing** (`./gradlew pitest`) plants small bugs in `review` and checks that a test catches each:

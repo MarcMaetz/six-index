@@ -282,6 +282,12 @@ After the features were complete, the code was scanned smell by smell:
 - **Warnings** are collected per input file instead of in one list passed through every method.
 - **Dead code:** one unused import, plus two conditions that were always true, found by the tools below.
 
+- **Formatting by a tool.** Spotless with palantir-java-format (4 spaces, 120 columns, the closest standard
+  formatter to the hand-written style); `spotlessCheck` runs in the build, so formatting never comes up in
+  review. Google's formatter was rejected: 2 spaces and 100 columns would have changed nearly every line. The
+  reformat is one commit with nothing else in it, listed in `.git-blame-ignore-revs` so `git blame` still shows
+  who wrote each line. It was added last, after the code was stable.
+
 Three tools check the code and the tests themselves. None of them is a percentage gate: a threshold rewards
 tests written for the number, and the value is in reading what they find.
 

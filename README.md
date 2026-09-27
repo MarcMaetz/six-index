@@ -27,7 +27,8 @@ You need a JDK 17 or newer on the `PATH` to start Gradle. Gradle downloads the J
 compiles with, so no JDK 25 install is needed.
 
 ```bash
-./gradlew build      # compile and run all tests
+./gradlew build      # compile, check formatting, run all tests
+./gradlew spotlessApply   # format the code (palantir-java-format); the build fails on unformatted code
 ./gradlew bootRun    # start the API on http://localhost:8080
 ./gradlew pitest     # mutation tests of the review logic, report in build/reports/pitest
 ./gradlew test jacocoTestReport   # line and branch coverage, report in build/reports/jacoco

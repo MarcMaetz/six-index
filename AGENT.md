@@ -32,7 +32,8 @@ update, and tell the user why.
 ## Build
 
 ```bash
-./gradlew build     # compile + tests
+./gradlew build     # compile + formatting check + tests
+./gradlew spotlessApply   # format; run before committing, the build fails on unformatted code
 ./gradlew bootRun   # http://localhost:8080, Swagger UI at /swagger-ui.html
 ./gradlew pitest    # mutation tests of review logic (not part of build); expect the 3 accepted survivors
 ./gradlew test jacocoTestReport   # coverage; the known uncovered lines are listed in APPROACH.md
@@ -44,6 +45,8 @@ update, and tell the user why.
 - Index parameters and review dates are business configuration in `config/indices.yml`, not code.
   Technical settings stay in `application.properties`.
 - Input CSVs live in `data/<index>/<review period>/`, e.g. `data/SMI/2026-Q3/`.
+- Formatting is palantir-java-format via Spotless; run `./gradlew spotlessApply`, don't format by hand. A future
+  mass reformat goes in its own commit, added to `.git-blame-ignore-revs`.
 - Error Prone runs on every compile and warnings fail the build. Fix the finding; suppress only with
   `@SuppressWarnings("CheckName")` and a comment saying why.
 - Code comments explain the code on their own. Where a comment defends a deliberate choice a reader might

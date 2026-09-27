@@ -1,0 +1,5 @@
+# Formatting-only commits, skipped by git blame so it shows who wrote each line.
+# GitHub applies this file automatically; locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Format all Java with palantir-java-format via Spotless
+623cfe1a836f0d1c5a55339d4fdd37f6d4b6f72d
