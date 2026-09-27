@@ -13,7 +13,9 @@ It is written in hindsight and ordered by topic; the commit history has the orde
   against the SLI (three sections after the SMI in the same rulebook) showed that the first version hard-coded
   the methodology; it got the seams described below. A Spring conventions pass and more traceability followed.
 - **Day 3 (2026-09-27).** Code-quality passes, then static analysis, mutation testing and coverage. Each tool
-  found real gaps in the tests, all closed. The requirements were rechecked end to end on the packaged jar.
+  found real gaps in the tests, all closed. The requirements were rechecked end to end on the packaged jar. A
+  last full scan recomputed the Q3 result separately (same answer) and found that an index with too few
+  rankable securities crashed in capping instead of being flagged; such a review now stops with a 422 (A12).
 
 ## Starting point: the data and the rulebook
 
@@ -123,6 +125,11 @@ section 5.12, with definitions in 2 and 4.3.
   free float at the review date), which only the review knows. So the loader keeps empty values as missing, and
   `166` becomes an eligibility question for the review, not a load error. `null` stands for "missing" only in
   these input and report records; inside the review logic values are `Optional`.
+- **Too few rankable securities stop the review (A12).** If fewer securities can be ranked than the index has
+  constituents, the review fails with a 422 naming both counts, and no report is stored. An SMI of 15 is not the
+  SMI, and its caps might not add up to 100% (5 × 18% = 90%). The first version selected all it had and flagged
+  the status, but that crashed in capping below 6 securities; the input is the problem, so it is treated like
+  unusable input.
 - **An input check before the review.** `GET .../reviews/{period}/input` loads and validates a quarter's files
   without running the review, so operations can check the data first. Unknown index or period: 404. Unusable
   input: 422, since the request is valid but the data isn't.
@@ -163,7 +170,7 @@ section 5.12, with definitions in 2 and 4.3.
 
 - **Why a status.** With lenient loading alone, a typo in a top constituent's row would silently make it a
   leaver. The status says whether data problems could have changed the result: `COMPLETED`,
-  `COMPLETED_WITH_WARNINGS` (they couldn't) or `REQUIRES_ATTENTION` (they could, or the index is incomplete, A12).
+  `COMPLETED_WITH_WARNINGS` (they couldn't) or `REQUIRES_ATTENTION` (they could).
 - **Judged by impact and position.** Missing data matters on a current constituent, on a security ranked within
   the buffer, or on an unknown security. The first version flagged Q3 because the duplicate-row warning names 204
   ids; the warning's impact fixed that.
@@ -300,7 +307,7 @@ Where the brief or rulebook is ambiguous, the assumption is recorded here and re
 | A9 | Conflicting rows in `sec_data.csv` (same id and date, different values) are all dropped with a warning; identical ones are de-duplicated. | Neither row can be trusted; the security becomes ineligible, visibly, instead of one row being picked silently. |
 | A10 | Rows with out-of-range values (price or shares not positive, fractional shares, free float outside (0, 1]) are skipped with a warning. | Such values can't be real and would distort FFMCAP. |
 | A11 | Capping factors are normalised so the largest is 1: uncapped constituents have 1, capped ones less. | Only the ratios matter; this is the usual published form. The brief's "weighting factors" is read as capping factors; final weights are reported too. |
-| A12 | If fewer securities can be ranked than the index needs, all are selected and the status is `REQUIRES_ATTENTION` (`INDEX_INCOMPLETE`). | The rulebook doesn't cover it; a smaller index with a visible warning beats inventing a fill rule. |
+| A12 | If fewer securities can be ranked than the index needs, the review fails (422) and no report is stored. | The rulebook doesn't cover it. An index with fewer constituents than defined isn't a valid composition, and inventing a fill rule would be worse; the input has to be fixed. |
 | A13 | For the review status, an unranked security's ranking value is estimated with data from either date (price preferably from the cut-off, shares and free float preferably from the review date). It counts as harmless only below **half** the value at the buffer end. | Only judges whether missing data could matter, never selects or weights. The margin covers the borrowed data (17 ids change shares, 41 free float between the dates). |
 | A14 | Capping is iterative: a security pushed above the cap by redistribution is capped too. | No published weight exceeds the cap; the rulebook's wording only names components above 18% of the total. |
 | A15 | Market data is looked up for the exact cut-off or review date. There is no fallback to the latest earlier value; a security without a row for the date is ineligible, with a warning. | The brief ties each value to one date; an older value would silently mix in stale data. Both dates are delivered for every id except `166` (A2). |
@@ -319,6 +326,7 @@ can be changed in one place.
   (15.4bn), so the status stays `COMPLETED_WITH_WARNINGS` (A13).
 - **Full precision, rounding only for display; capping factors scaled so the largest is 1 (A11).**
 - **The 18% cap is applied iteratively (A14).** For Q3 a single pass gives the same result.
+- **Too few rankable securities fail the review (A12).** Not the case for Q3: 204 of 205 can be ranked.
 - **Market data only for the exact date (A15).** No fallback to an earlier day; for Q3 only `166` lacks a row.
 
 ## Interview talking points

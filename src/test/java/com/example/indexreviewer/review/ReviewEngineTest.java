@@ -16,6 +16,7 @@ import java.util.Set;
 
 import static com.example.indexreviewer.review.SecurityDataFixtures.securityData;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.within;
 
@@ -117,6 +118,24 @@ class ReviewEngineTest {
         assertThat(result.leavers()).filteredOn(l -> l.securityId().equals("B")).singleElement()
                 .satisfies(l -> assertThat(l.detail())
                         .isEqualTo("Missing shares on review date 2026-09-21, free float on review date 2026-09-21"));
+    }
+
+    @Test
+    void failsWhenFewerSecuritiesAreRankedThanTheIndexNeeds() {
+        // Two constituents needed, but only A can be ranked: B lacks review-date data (A12).
+        var input = new InputData(
+                Map.of(REVIEW, Set.of("A", "B")),
+                Map.of("A", Map.of(CUT_OFF, securityData("A", CUT_OFF, "10", null, null),
+                                REVIEW, securityData("A", REVIEW, null, "1", 100L)),
+                        "B", Map.of(CUT_OFF, securityData("B", CUT_OFF, "10", null, null))),
+                Set.of("A", "B"), List.of(), List.of());
+        var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 2, BigDecimal.ONE,
+                "FFMCAP", List.of(Q3));
+
+        assertThatExceptionOfType(IncompleteIndexException.class)
+                .isThrownBy(() -> engine.run(index, Q3, input))
+                .withMessage("TEST needs 2 constituents, but only 1 securities could be ranked; "
+                        + "1 universe securities were excluded for missing data");
     }
 
     @Test

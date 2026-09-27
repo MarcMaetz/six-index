@@ -4,12 +4,12 @@ import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 
 /**
- * Why the review has its status: one entry per warning and affected security, or for an incomplete index.
+ * Why the review has its status: one entry per warning and affected security.
  *
  * @param securityId  affected security, or {@code null} if the reason names none
  * @param relevance   whether and why it can change the result; decides the status
  * @param explanation the same, as a sentence for people
- * @param warning     the warning this reason comes from, or {@code null} for {@link Relevance#INDEX_INCOMPLETE}
+ * @param warning     the warning this reason comes from
  */
 public record StatusReason(String securityId, Relevance relevance, String explanation, WarningRef warning) {
 
@@ -26,8 +26,6 @@ public record StatusReason(String securityId, Relevance relevance, String explan
         BUFFER_NOT_FULL(true),
         /** A warning with missing data that names no security. */
         SECURITY_UNKNOWN(true),
-        /** Fewer constituents could be selected than the index needs (A12). */
-        INDEX_INCOMPLETE(true),
         /** The warning lost no data, e.g. an identical duplicate row. */
         NO_DATA_LOST(false),
         /** Missing data on a security ranked below the buffer end. */

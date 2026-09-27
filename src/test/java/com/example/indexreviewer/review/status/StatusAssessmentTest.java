@@ -159,23 +159,6 @@ class StatusAssessmentTest {
         assertThat(status.reasons()).extracting(StatusReason::relevance).containsExactly(Relevance.BUFFER_NOT_FULL);
     }
 
-    @Test
-    void incompleteIndexNeedsAttention() {
-        // 5 constituents needed, but D can't be ranked, so only 4 are selected (A12).
-        var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 5, 3, 5, BigDecimal.ONE,
-                "FFMCAP", List.of(PERIOD));
-        var data = fullData();
-        data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
-
-        var status = assess(index, data, List.of());
-
-        assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(status.reasons()).extracting(StatusReason::relevance)
-                .containsExactly(Relevance.BUFFER_NOT_FULL, Relevance.INDEX_INCOMPLETE);
-        assertThat(status.reasons().getLast().explanation()).isEqualTo("Only 4 securities could be selected, 5 needed");
-        assertThat(status.reasons().getLast().warning()).isNull();
-    }
-
     private static StatusAssessment.Result assess(Map<String, Map<LocalDate, SecurityData>> data,
                                                   List<DataQualityWarning> inputWarnings) {
         return assess(INDEX, data, inputWarnings);

@@ -93,7 +93,8 @@ weights add up to 99.999999%, which is expected; the displayed values are never 
 Validation happens in two layers:
 
 - **Per file, strict:** a missing file, folder or column, or a file that is not valid UTF-8, stops the review
-  with a 422 response. Nothing meaningful can be computed without it.
+  with a 422 response. Nothing meaningful can be computed without it. The same goes for a review where fewer
+  securities can be ranked than the index has constituents (A12): it stops with a 422 and stores no report.
 - **Per row, lenient:** an invalid row (wrong field count, unparsable or out-of-range value) or a duplicate is
   skipped with a `DataQualityWarning` naming the file, line and security. One bad row doesn't block a quarterly
   review, but it stays visible.
@@ -108,14 +109,13 @@ it from the result (`StatusAssessment.assess(result)`, called by `ReportBuilder`
 |---|---|
 | `COMPLETED` | No warnings. |
 | `COMPLETED_WITH_WARNINGS` | Only warnings that can't change the result. |
-| `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated ranking value is not below half the value at the buffer end rank (A13), or on an unknown security; or fewer constituents than needed (A12). |
+| `REQUIRES_ATTENTION` | Missing data on a current constituent, on a security ranked within the buffer end, on an unranked security whose estimated ranking value is not below half the value at the buffer end rank (A13), or on an unknown security. |
 
 The estimate (`UnrankedEstimate`) fills the gaps from the other date, so it gets a safety margin: 17 ids change shares and 41 change
 free float between the two dates.
 
-Every status comes with structured reasons: one per warning and affected security, plus one if the index
-is incomplete. Each has a `relevance` value that decides the status, and a sentence for people. All reasons are
-kept, harmless ones too. For Q3:
+Every status comes with structured reasons: one per warning and affected security. Each has a `relevance`
+value that decides the status, and a sentence for people. All reasons are kept, harmless ones too. For Q3:
 
 ```json
 { "securityId": "166", "relevance": "ESTIMATED_FAR_BELOW_BUFFER",

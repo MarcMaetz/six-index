@@ -50,12 +50,6 @@ class SelectionTest {
                 NOT_SELECTED_BUFFER_FULL);
     }
 
-    @Test
-    void takesAllRankedWhenFewerThanNeeded() {
-        assertThat(decisions(4, Set.of())).containsExactly(
-                SELECTED_DIRECT, SELECTED_DIRECT, SELECTED_DIRECT, SELECTED_BUFFER_NEW);
-    }
-
     private static List<SelectionDecision> decisions(int count, Set<Integer> incumbentRanks) {
         return Selection.select(ranked(count, incumbentRanks), INDEX).stream()
                 .map(Selection.Outcome::decision).toList();

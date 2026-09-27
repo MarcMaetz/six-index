@@ -2,6 +2,7 @@ package com.example.indexreviewer.api;
 
 import com.example.indexreviewer.catalog.NotConfiguredException;
 import com.example.indexreviewer.ingest.InputDataException;
+import com.example.indexreviewer.review.IncompleteIndexException;
 import com.example.indexreviewer.store.ReportNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,13 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail unusableInput(InputDataException e) {
         LOG.warn("Unusable input data: {}", e.getMessage());
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, "Unusable input data", e.getMessage());
+    }
+
+    /** The input is readable, but too few securities could be ranked to build the index (A12). */
+    @ExceptionHandler
+    ProblemDetail incompleteIndex(IncompleteIndexException e) {
+        LOG.warn("Review stopped: {}", e.getMessage());
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "Too few eligible securities", e.getMessage());
     }
 
     /** A bug or an I/O failure: logged with its stack trace, but no internals (paths, messages) in the response. */

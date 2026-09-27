@@ -62,7 +62,7 @@ are two ways to reach it:
 - Postman: import [`postman/six-index-reviewer.postman_collection.json`](postman/six-index-reviewer.postman_collection.json)
   and run the *Indices* folder. Each request has test scripts that check the expected Q3 results.
 - Errors are RFC 9457 problem responses: an unknown index, period or stored report returns 404, and missing or
-  unusable input files return 422.
+  unusable input files return 422, as does a review where fewer securities can be ranked than the index needs.
 
 ### IntelliJ IDEA
 

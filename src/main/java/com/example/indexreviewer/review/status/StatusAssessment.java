@@ -18,8 +18,7 @@ import java.util.stream.Collectors;
  * Derives the review status from the warnings. Every warning yields a {@link StatusReason} per
  * affected security, with a {@link Relevance}: missing data matters when it names no security, or a security
  * that could change the result: a current constituent, a security ranked within the buffer end, or an unranked
- * security that could rank there ({@link UnrankedEstimate}, A13). An index with fewer constituents than needed
- * always needs attention (A12).
+ * security that could rank there ({@link UnrankedEstimate}, A13).
  * <p>
  * Part of the review, not the report: it judges the result using the index's buffer and ranking strategy.
  */
@@ -51,12 +50,6 @@ public final class StatusAssessment {
         var reasons = new ArrayList<StatusReason>();
         for (var warning : result.warnings()) {
             reasons.addAll(reasons(warning));
-        }
-        int selected = result.constituents().size();
-        int needed = result.index().constituentCount();
-        if (selected < needed) {
-            reasons.add(new StatusReason(null, Relevance.INDEX_INCOMPLETE,
-                    "Only %d securities could be selected, %d needed".formatted(selected, needed), null));
         }
         return new Result(ReviewStatus.of(reasons), reasons);
     }

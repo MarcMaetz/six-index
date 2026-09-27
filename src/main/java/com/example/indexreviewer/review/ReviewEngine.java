@@ -31,6 +31,7 @@ public final class ReviewEngine {
 
         var strategy = RankingStrategies.byName(index.rankingStrategy());
         var ranked = Ranking.rank(eligibility.eligible(), strategy, input.currentComposition());
+        requireEnoughRanked(index, ranked.size(), eligibility.excluded().size());
         var selection = Selection.select(ranked, index);
         var selected = selection.stream().filter(o -> o.decision().selected()).toList();
 
@@ -46,6 +47,18 @@ public final class ReviewEngine {
 
         return new ReviewResult(index, period, strategy, input, eligibility.excluded(), selection, constituents,
                 leavers(input, period, eligibility, selection), capping.rounds(), warnings);
+    }
+
+    /**
+     * A12: an index with fewer constituents than its definition is not that index, and its caps might not even add
+     * up to 100%, so the review stops instead of publishing it.
+     */
+    private static void requireEnoughRanked(IndexDefinition index, int ranked, int excluded) {
+        if (ranked < index.constituentCount()) {
+            throw new IncompleteIndexException(("%s needs %d constituents, but only %d securities could be ranked; "
+                    + "%d universe securities were excluded for missing data")
+                    .formatted(index.name(), index.constituentCount(), ranked, excluded));
+        }
     }
 
     /**

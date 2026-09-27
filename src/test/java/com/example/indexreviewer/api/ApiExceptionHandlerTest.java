@@ -1,6 +1,7 @@
 package com.example.indexreviewer.api;
 
 import com.example.indexreviewer.ingest.InputDataException;
+import com.example.indexreviewer.review.IncompleteIndexException;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -18,6 +19,16 @@ class ApiExceptionHandlerTest {
         assertThat(problem.getStatus()).isEqualTo(422);
         assertThat(problem.getTitle()).isEqualTo("Unusable input data");
         assertThat(problem.getDetail()).isEqualTo("sec_data.csv is missing column(s) [free_float], found [id, date]");
+    }
+
+    @Test
+    void tooFewEligibleSecuritiesIsA422WithTheReason() {
+        var problem = new ApiExceptionHandler().incompleteIndex(
+                new IncompleteIndexException("SMI needs 20 constituents, but only 4 securities could be ranked"));
+
+        assertThat(problem.getStatus()).isEqualTo(422);
+        assertThat(problem.getTitle()).isEqualTo("Too few eligible securities");
+        assertThat(problem.getDetail()).isEqualTo("SMI needs 20 constituents, but only 4 securities could be ranked");
     }
 
     @Test
