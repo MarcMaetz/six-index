@@ -35,14 +35,27 @@ public final class StatusAssessment {
     public record Result(ReviewStatus status, List<StatusReason> reasons) {
     }
 
-    private StatusAssessment() {
+    private final ReviewResult result;
+    private final int bufferEnd;
+    private final List<RankedSecurity> ranked;
+    private final Map<String, RankedSecurity> rankedById;
+
+    private StatusAssessment(ReviewResult result) {
+        this.result = result;
+        this.bufferEnd = result.index().bufferEndRank();
+        this.ranked = result.selection().stream().map(Selection.Outcome::ranked).toList();
+        this.rankedById = ranked.stream()
+                .collect(Collectors.toMap(RankedSecurity::securityId, Function.identity()));
     }
 
     static Result assess(ReviewResult result) {
-        var context = new Context(result);
+        return new StatusAssessment(result).assess();
+    }
+
+    private Result assess() {
         var reasons = new ArrayList<StatusReason>();
         for (var warning : result.warnings()) {
-            reasons.addAll(reasons(warning, context));
+            reasons.addAll(reasons(warning));
         }
         int selected = result.constituents().size();
         int needed = result.index().constituentCount();
@@ -54,7 +67,7 @@ public final class StatusAssessment {
     }
 
     /** One reason per affected security, or one without a security if the warning names none. */
-    private static List<StatusReason> reasons(DataQualityWarning warning, Context context) {
+    private List<StatusReason> reasons(DataQualityWarning warning) {
         var ref = WarningRef.of(warning);
         if (warning.impact() == Impact.NONE) {
             return List.of(new StatusReason(null, Relevance.NO_DATA_LOST, "No data lost", ref));
@@ -63,7 +76,7 @@ public final class StatusAssessment {
             return List.of(new StatusReason(null, Relevance.SECURITY_UNKNOWN,
                     "Data is missing, but the affected security is unknown", ref));
         }
-        return warning.securityIds().stream().map(id -> context.assess(id, ref)).toList();
+        return warning.securityIds().stream().map(id -> reason(id, ref)).toList();
     }
 
     private static ReviewStatus status(List<StatusReason> reasons) {
@@ -73,96 +86,79 @@ public final class StatusAssessment {
         return reasons.isEmpty() ? ReviewStatus.COMPLETED : ReviewStatus.COMPLETED_WITH_WARNINGS;
     }
 
-    private static final class Context {
-        private final ReviewResult result;
-        private final Map<String, RankedSecurity> rankedById;
-        private final List<RankedSecurity> ranked;
-
-        Context(ReviewResult result) {
-            this.result = result;
-            this.ranked = result.selection().stream().map(Selection.Outcome::ranked).toList();
-            this.rankedById = ranked.stream()
-                    .collect(Collectors.toMap(RankedSecurity::securityId, Function.identity()));
+    /** How missing data on one security relates to the result. */
+    private StatusReason reason(String id, WarningRef warning) {
+        if (result.input().currentComposition().contains(id)) {
+            return new StatusReason(id, Relevance.CURRENT_CONSTITUENT, "Current constituent", warning);
         }
-
-        /** How missing data on one security relates to the result. */
-        StatusReason assess(String id, WarningRef warning) {
-            int bufferEnd = result.index().bufferEndRank();
-            if (result.input().currentComposition().contains(id)) {
-                return new StatusReason(id, Relevance.CURRENT_CONSTITUENT, "Current constituent", warning);
-            }
-            var rankedSecurity = rankedById.get(id);
-            if (rankedSecurity != null) {
-                int rank = rankedSecurity.rank();
-                return rank <= bufferEnd
-                        ? new StatusReason(id, Relevance.RANKED_WITHIN_BUFFER,
-                                "Ranked %d, within buffer end %d".formatted(rank, bufferEnd), warning)
-                        : new StatusReason(id, Relevance.RANKED_BELOW_BUFFER,
-                                "Ranked %d, below buffer end %d".formatted(rank, bufferEnd), warning);
-            }
-            return unranked(id, warning);
+        var rankedSecurity = rankedById.get(id);
+        if (rankedSecurity != null) {
+            int rank = rankedSecurity.rank();
+            return rank <= bufferEnd
+                    ? new StatusReason(id, Relevance.RANKED_WITHIN_BUFFER,
+                            "Ranked %d, within buffer end %d".formatted(rank, bufferEnd), warning)
+                    : new StatusReason(id, Relevance.RANKED_BELOW_BUFFER,
+                            "Ranked %d, below buffer end %d".formatted(rank, bufferEnd), warning);
         }
+        return unranked(id, warning);
+    }
 
-        /** An unranked security, judged by its estimated ranking value against the buffer end (A13). */
-        private StatusReason unranked(String id, WarningRef warning) {
-            int bufferEnd = result.index().bufferEndRank();
-            var estimate = estimatedValue(id);
-            if (estimate.isEmpty()) {
-                return new StatusReason(id, Relevance.NOT_ESTIMABLE,
-                        "Not ranked, and too little data to estimate its ranking value", warning);
-            }
-            var threshold = harmlessBelow();
-            if (threshold.isEmpty()) {
-                return new StatusReason(id, Relevance.BUFFER_NOT_FULL, ("Not ranked, and fewer than %d securities are "
-                        + "ranked, so it could reach the buffer").formatted(bufferEnd), warning);
-            }
-            return estimate.get().compareTo(threshold.get()) < 0
-                    ? new StatusReason(id, Relevance.ESTIMATED_FAR_BELOW_BUFFER,
-                            "Not ranked, " + comparedToBufferEnd(estimate.get(), "is below"), warning)
-                    : new StatusReason(id, Relevance.ESTIMATED_NEAR_BUFFER,
-                            "Not ranked, " + comparedToBufferEnd(estimate.get(), "is not below"), warning);
+    /** An unranked security, judged by its estimated ranking value against the buffer end (A13). */
+    private StatusReason unranked(String id, WarningRef warning) {
+        var estimate = estimatedValue(id);
+        if (estimate.isEmpty()) {
+            return new StatusReason(id, Relevance.NOT_ESTIMABLE,
+                    "Not ranked, and too little data to estimate its ranking value", warning);
         }
+        var threshold = harmlessBelow();
+        if (threshold.isEmpty()) {
+            return new StatusReason(id, Relevance.BUFFER_NOT_FULL, ("Not ranked, and fewer than %d securities are "
+                    + "ranked, so it could reach the buffer").formatted(bufferEnd), warning);
+        }
+        return estimate.get().compareTo(threshold.get()) < 0
+                ? new StatusReason(id, Relevance.ESTIMATED_FAR_BELOW_BUFFER,
+                        "Not ranked, " + comparedToBufferEnd(estimate.get(), "is below"), warning)
+                : new StatusReason(id, Relevance.ESTIMATED_NEAR_BUFFER,
+                        "Not ranked, " + comparedToBufferEnd(estimate.get(), "is not below"), warning);
+    }
 
-        /**
-         * A13: an unranked security is harmless only if its estimate is well below the buffer: below
-         * {@link #HARMLESS_SHARE_OF_BUFFER_END} of the ranking value at the buffer end rank. The margin covers the
-         * data the estimate borrows from the other date. Empty if fewer securities are ranked than the buffer end.
-         */
-        private Optional<BigDecimal> harmlessBelow() {
-            int bufferEnd = result.index().bufferEndRank();
-            return ranked.size() < bufferEnd
-                    ? Optional.empty()
-                    : Optional.of(ranked.get(bufferEnd - 1).rankingValue().multiply(HARMLESS_SHARE_OF_BUFFER_END));
-        }
+    /**
+     * A13: an unranked security is harmless only if its estimate is well below the buffer: below
+     * {@link #HARMLESS_SHARE_OF_BUFFER_END} of the ranking value at the buffer end rank. The margin covers the
+     * data the estimate borrows from the other date. Empty if fewer securities are ranked than the buffer end.
+     */
+    private Optional<BigDecimal> harmlessBelow() {
+        return ranked.size() < bufferEnd
+                ? Optional.empty()
+                : Optional.of(ranked.get(bufferEnd - 1).rankingValue().multiply(HARMLESS_SHARE_OF_BUFFER_END));
+    }
 
-        private String comparedToBufferEnd(BigDecimal estimate, String comparison) {
-            int bufferEnd = result.index().bufferEndRank();
-            return "estimated %s %s %s half the value at buffer end rank %d (%s)".formatted(
-                    result.index().rankingStrategy(), plain(estimate), comparison, bufferEnd,
-                    plain(ranked.get(bufferEnd - 1).rankingValue()));
-        }
+    private String comparedToBufferEnd(BigDecimal estimate, String comparison) {
+        return "estimated %s %s %s half the value at buffer end rank %d (%s)".formatted(
+                result.index().rankingStrategy(), plain(estimate), comparison, bufferEnd,
+                plain(ranked.get(bufferEnd - 1).rankingValue()));
+    }
 
-        private static String plain(BigDecimal value) {
-            return value.setScale(0, RoundingMode.HALF_EVEN).toPlainString();
-        }
+    private static String plain(BigDecimal value) {
+        return value.setScale(0, RoundingMode.HALF_EVEN).toPlainString();
+    }
 
-        /**
-         * Ranking value an unranked security would get with the values it has on either date: price preferably
-         * from the cut-off date, shares and free float preferably from the review date.
-         */
-        private Optional<BigDecimal> estimatedValue(String id) {
-            var input = result.input();
-            var period = result.period();
-            var cutOff = input.securityData(id, period.cutOffDate());
-            var review = input.securityData(id, period.reviewDate());
-            var price = cutOff.map(SecurityData::price).or(() -> review.map(SecurityData::price));
-            var shares = review.map(SecurityData::shares).or(() -> cutOff.map(SecurityData::shares));
-            var freeFloat = review.map(SecurityData::freeFloat).or(() -> cutOff.map(SecurityData::freeFloat));
-            if (price.isEmpty() || shares.isEmpty() || freeFloat.isEmpty()) {
-                return Optional.empty();
-            }
-            return Optional.of(result.rankingStrategy()
-                    .rankingValue(EligibleSecurity.of(id, price.get(), shares.get(), freeFloat.get())));
+    /**
+     * Ranking value an unranked security would get with the values it has on either date: price preferably
+     * from the cut-off date, shares and free float preferably from the review date.
+     */
+    private Optional<BigDecimal> estimatedValue(String id) {
+        var input = result.input();
+        var period = result.period();
+        var cutOff = input.securityData(id, period.cutOffDate());
+        var review = input.securityData(id, period.reviewDate());
+        var price = cutOff.map(SecurityData::price).or(() -> review.map(SecurityData::price));
+        var shares = review.map(SecurityData::shares).or(() -> cutOff.map(SecurityData::shares));
+        var freeFloat = review.map(SecurityData::freeFloat).or(() -> cutOff.map(SecurityData::freeFloat));
+        if (price.isEmpty() || shares.isEmpty() || freeFloat.isEmpty()) {
+            return Optional.empty();
         }
+        return Optional.of(result.rankingStrategy()
+                .rankingValue(EligibleSecurity.of(id, price.get(), shares.get(), freeFloat.get())));
     }
 }

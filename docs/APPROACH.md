@@ -173,6 +173,9 @@ section 5.12, with definitions in 2 and 4.3.
 - **Part of the review, not the report.** The status applies review rules (buffer end, ranking strategy), so it
   lives in `review` and is read from the result; in the report package it would hide a business rule in the
   formatting layer.
+- **One object per assessment.** `StatusAssessment.assess(result)` builds a private instance holding the
+  result and its rank lookup, so the rules are plain methods on one class. A nested helper class for that state,
+  next to a static-only outer class, was folded in: two classes for one job.
 - **Rejected:** a warning-count threshold (says nothing about impact), treating every unranked security as
   relevant, and failing the load on any bad row.
 
