@@ -155,18 +155,14 @@ public final class StatusAssessment {
             var period = result.period();
             var cutOff = input.securityData(id, period.cutOffDate());
             var review = input.securityData(id, period.reviewDate());
-            BigDecimal price = first(cutOff.map(SecurityData::price), review.map(SecurityData::price));
-            Long shares = first(review.map(SecurityData::shares), cutOff.map(SecurityData::shares));
-            BigDecimal freeFloat = first(review.map(SecurityData::freeFloat), cutOff.map(SecurityData::freeFloat));
-            if (price == null || shares == null || freeFloat == null) {
+            var price = cutOff.map(SecurityData::price).or(() -> review.map(SecurityData::price));
+            var shares = review.map(SecurityData::shares).or(() -> cutOff.map(SecurityData::shares));
+            var freeFloat = review.map(SecurityData::freeFloat).or(() -> cutOff.map(SecurityData::freeFloat));
+            if (price.isEmpty() || shares.isEmpty() || freeFloat.isEmpty()) {
                 return Optional.empty();
             }
             return Optional.of(result.rankingStrategy()
-                    .rankingValue(EligibleSecurity.of(id, price, shares, freeFloat)));
-        }
-
-        private static <T> T first(Optional<T> preferred, Optional<T> fallback) {
-            return preferred.or(() -> fallback).orElse(null);
+                    .rankingValue(EligibleSecurity.of(id, price.get(), shares.get(), freeFloat.get())));
         }
     }
 }

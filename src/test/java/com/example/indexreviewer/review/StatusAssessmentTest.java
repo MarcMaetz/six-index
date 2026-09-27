@@ -123,6 +123,16 @@ class StatusAssessmentTest {
     }
 
     @Test
+    void unrankedSecurityEstimateTakesThePriceFromTheReviewDateIfTheCutOffHasNone() {
+        // D has only a review-date row, price included: its estimate is 1 × 100 × 1, far below the buffer.
+        var data = fullData();
+        data.put("D", Map.of(REVIEW, securityData("D", REVIEW, "1", "1", 100L)));
+
+        assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
+                .containsExactly(Relevance.ESTIMATED_FAR_BELOW_BUFFER);
+    }
+
+    @Test
     void bufferEndReachedExactlyGivesAThreshold() {
         // Buffer end 4 and exactly 4 ranked (A, B, C, E): the buffer end value is E's 100, so D's 1 is harmless.
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 4, BigDecimal.ONE,

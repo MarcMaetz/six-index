@@ -53,6 +53,7 @@ decided, why, and what we rejected.
 | 2026-09-27 | Dead-code sweep (unreferenced declarations, enum constants, main code used only by tests, unused parameters, imports, test helpers, tracked files): only one unused import found and removed |
 | 2026-09-27 | Review pipeline steps package-private; accessor chains replaced by named hops and shortcuts (`Outcome.ranked`, `RankedSecurity.eligible`) (D39) |
 | 2026-09-27 | Mutation testing with PIT on `review`: 88% → 98% killed after 7 new tests; one redundant condition removed from `ReviewEngine.leavers` (D40) |
+| 2026-09-27 | `null` only at the edges, `Optional` inside the review logic; stored-report summaries read into a typed record instead of by field-name strings (D41) |
 
 ## Design decisions
 
@@ -598,6 +599,27 @@ decided, why, and what we rejected.
   `!capped.contains` (capped weights equal their cap exactly, so the check is redundant but states intent).
 - **Rejected:** mutating `ingest`/`report` too (mostly mapping and parsing, covered by example tests; can be
   added by widening `targetClasses`); a mutation threshold in the build (would make a slow tool a gate).
+
+### D41 — `null` only at the edges; stored summaries read as a typed record
+- **Missing values.** A scan of every `null` in `src/main` showed one pattern: `null` means "missing" in
+  records that mirror the input or become JSON (`SecurityData` values, `DataQualityWarning.line`,
+  `Leaver.rank`, `StatusReason.securityId`/`warning`), each documented in its Javadoc; and it comes back from
+  library or framework calls (map lookups, `csv.readNext()`, `ObjectProvider.getIfAvailable()`). Two places
+  broke the pattern: `Eligibility.check` and `StatusAssessment.estimatedValue` turned `Optional`s back into
+  `null` and then null-checked them. Both now stay with `Optional` until the values are used.
+  `ReviewReport.Leaver.rank` now documents its `null` like `review.Leaver` does.
+  Rerunning PIT (D40) after the rewrite exposed one more untested rule: the estimate's price fallback to the
+  review date (A13), which had been hidden in a shared helper. It has a test now; 169/172 killed, the same 3
+  accepted survivors.
+- **Rejected:** `Optional` as record components or JSON fields (not what `Optional` is for, and Jackson would
+  need extra configuration); `Optional`-returning accessors on `SecurityData` (a record's accessors can't change
+  type, and extra getters would duplicate every field).
+- **Stored-report summaries.** `FileReportStore.summary` read `"generatedAt"` and `"status"` from a JSON tree by
+  name; a renamed report field would have shown up as a `NullPointerException`. It now reads a private
+  `Summary(Instant generatedAt, ReviewStatus status)` record with an `ObjectReader` that ignores the other
+  fields and fails on a missing or `null` one, naming it. A test covers a stored file without `status`.
+- **Rejected:** deserializing the whole `ReviewReport` (an older report may not match today's type, D34);
+  keeping an index file next to the reports (a second source of truth for data the report already holds).
 
 ## Input data findings
 

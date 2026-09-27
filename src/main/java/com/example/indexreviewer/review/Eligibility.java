@@ -4,7 +4,6 @@ import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.domain.SecurityData;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,23 +30,23 @@ final class Eligibility {
         var eligible = new ArrayList<EligibleSecurity>();
         var excluded = new ArrayList<Exclusion>();
         for (String id : data.universe(period.reviewDate())) {
-            BigDecimal price = data.securityData(id, period.cutOffDate()).map(SecurityData::price).orElse(null);
+            var price = data.securityData(id, period.cutOffDate()).map(SecurityData::price);
             var review = data.securityData(id, period.reviewDate());
-            Long shares = review.map(SecurityData::shares).orElse(null);
-            BigDecimal freeFloat = review.map(SecurityData::freeFloat).orElse(null);
+            var shares = review.map(SecurityData::shares);
+            var freeFloat = review.map(SecurityData::freeFloat);
 
             var missing = new ArrayList<String>();
-            if (price == null) {
+            if (price.isEmpty()) {
                 missing.add("price on cut-off date " + period.cutOffDate());
             }
-            if (shares == null) {
+            if (shares.isEmpty()) {
                 missing.add("shares on review date " + period.reviewDate());
             }
-            if (freeFloat == null) {
+            if (freeFloat.isEmpty()) {
                 missing.add("free float on review date " + period.reviewDate());
             }
             if (missing.isEmpty()) {
-                eligible.add(EligibleSecurity.of(id, price, shares, freeFloat));
+                eligible.add(EligibleSecurity.of(id, price.get(), shares.get(), freeFloat.get()));
             } else {
                 excluded.add(new Exclusion(id, "Missing " + String.join(", ", missing)));
             }

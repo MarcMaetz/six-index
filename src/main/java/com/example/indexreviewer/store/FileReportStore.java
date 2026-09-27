@@ -2,6 +2,8 @@ package com.example.indexreviewer.store;
 
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewStatus;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -38,10 +40,15 @@ public final class FileReportStore implements ReportStore {
 
     private final Path root;
     private final JsonMapper mapper;
+    /** Reads only the summary fields; a report without them fails instead of listing with gaps. */
+    private final ObjectReader summaryReader;
 
     public FileReportStore(Path root, JsonMapper mapper) {
         this.root = root;
         this.mapper = mapper;
+        this.summaryReader = mapper.readerFor(Summary.class)
+                .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .with(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES);
     }
 
     @Override
@@ -107,9 +114,12 @@ public final class FileReportStore implements ReportStore {
     }
 
     private StoredReport summary(String index, String reviewPeriod, String id) {
-        var json = mapper.readTree(read(index, reviewPeriod, id));
-        return new StoredReport(id, index, reviewPeriod, Instant.parse(json.get("generatedAt").asString()),
-                ReviewStatus.valueOf(json.get("status").asString()));
+        Summary summary = summaryReader.readValue(read(index, reviewPeriod, id));
+        return new StoredReport(id, index, reviewPeriod, summary.generatedAt(), summary.status());
+    }
+
+    /** The fields of a stored {@link ReviewReport} a listing shows; named like the report's components. */
+    private record Summary(Instant generatedAt, ReviewStatus status) {
     }
 
     private Path folder(String index, String reviewPeriod) {
