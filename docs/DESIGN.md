@@ -30,7 +30,6 @@ flowchart TB
     spring -- "one review run" --> plain
     subgraph plain [Plain Java]
         direction LR
-        catalog["catalog<br/>index lookup"]
         csv[(input CSVs)] --> ingest["ingest<br/>CSV → InputData"] --> review["review<br/>rank, select, cap, status"] --> report["report<br/>ReviewReport"] --> store["store<br/>save as JSON"] --> json[(stored reports)]
     end
 ```
@@ -47,13 +46,12 @@ in `domain` (input model and index definitions), which is left out of the diagra
 | `review.status` | The review status, derived from a finished `ReviewResult` (`StatusAssessment`). The review never depends on it. |
 | `report` | Renders a `ReviewResult` as the `ReviewReport`, rounding for display only. |
 | `store` | `ReportStore` keeps every report as written; `FileReportStore` writes one JSON file per run. |
-| `catalog` | `IndexCatalog` looks up configured indices and review periods; unknown ones raise `NotConfiguredException` (404). Framework-free. |
 | `config` | Spring wiring, outermost: binds `config/indices.yml` and `application.properties`, and exposes the catalog, input source, engine, report builder and report store as beans. Nothing depends on it. |
-| `service` | `ReviewService`: the use cases (list indices, check input, run and store a review, read stored reports). Chains load → review → report → store. |
+| `service` | `ReviewService`: the use cases (list indices, check input, run and store a review, read stored reports). Chains load → review → report → store. `IndexCatalog` looks up configured indices and review periods; unknown ones raise `NotConfiguredException` (404). |
 | `api` | `IndexController` and RFC 9457 error mapping for every error, including Spring MVC's own and a generic 500. The controller only maps HTTP to `ReviewService`. |
 
 Only `config`, `service` and `api` depend on Spring; `service` only for its `@Service` annotation.
-`domain`, `review`, `report` and `catalog` use only the JDK; `ingest` uses OpenCSV and `store` Jackson, nothing
+`domain`, `review` and `report` use only the JDK; `ingest` uses OpenCSV and `store` Jackson, nothing
 else. Logging (SLF4J) sits in `service` and `api`: every stored run is logged at INFO, unexpected errors at ERROR.
 `ArchitectureTest` enforces this, the direction of the dependencies in the diagram, and that packages have no
 cycles, so a violation fails the build.
@@ -130,7 +128,7 @@ A report answers "why is this security in or out, and with what weight?" without
 - the index parameters the review ran with, including the rulebook version and section they follow;
 - the full ranking, with a selection decision for every security and the price, shares and free float its
   FFMCAP was calculated from, so every value can be recomputed by hand;
-- exclusions and leavers with reasons;
+- leavers with reasons; securities excluded from ranking appear as warnings with their reason;
 - each constituent's raw weight, final weight and capping factor, and the capping rounds;
 - the paths of the input files read;
 - all data-quality warnings, and the reasons behind the status;
@@ -147,8 +145,8 @@ ties are broken by id.
 
 - **Business parameters** live in `config/indices.yml`. A default copy is packaged in the jar, and a file
   in the working directory overrides it. Inconsistent values stop the app at startup. The records it binds to
-  reject a missing rulebook version, a buffer end below the constituent count, a cap outside (0, 1], or a cap
-  too small for the weights to reach 100%. An unknown ranking strategy fails when the YAML is bound to the enum.
+  reject a missing rulebook version, a buffer end below the constituent count, a cap outside (0, 1], a cap
+  too small for the weights to reach 100%, or an index name or period id that can't be a folder name. An unknown ranking strategy fails when the YAML is bound to the enum.
 - **Input** lives in one folder per index and review period, so past reviews can be re-run.
 - **Technical settings** (data and report folders) stay in `application.properties`.
 

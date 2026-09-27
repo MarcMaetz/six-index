@@ -2,7 +2,6 @@ package com.example.indexreviewer.report;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.RankingStrategy;
-import com.example.indexreviewer.review.Exclusion;
 import com.example.indexreviewer.review.Leaver;
 import com.example.indexreviewer.review.SelectionDecision;
 import com.example.indexreviewer.review.status.ReviewStatus;
@@ -31,7 +30,6 @@ public record ReviewReport(
         List<Constituent> constituents,
         List<Joiner> joiners,
         List<Leaver> leavers,
-        List<Exclusion> excluded,
         List<RankingEntry> ranking,
         List<List<String>> cappingRounds,
         List<String> inputFiles,

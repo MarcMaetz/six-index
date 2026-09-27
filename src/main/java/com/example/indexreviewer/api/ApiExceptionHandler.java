@@ -1,8 +1,8 @@
 package com.example.indexreviewer.api;
 
-import com.example.indexreviewer.catalog.NotConfiguredException;
 import com.example.indexreviewer.ingest.InputDataException;
 import com.example.indexreviewer.review.IncompleteIndexException;
+import com.example.indexreviewer.service.NotConfiguredException;
 import com.example.indexreviewer.store.ReportNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

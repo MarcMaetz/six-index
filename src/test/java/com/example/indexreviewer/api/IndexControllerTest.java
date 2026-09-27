@@ -102,7 +102,7 @@ class IndexControllerTest {
             assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
             assertThat(json).extractingPath("$.joiners[0].securityId").isEqualTo("177");
             assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
-            assertThat(json).extractingPath("$.excluded[0].securityId").isEqualTo("166");
+            assertThat(json).extractingPath("$.warnings[1].securityIds").isEqualTo(List.of("166"));
             assertThat(json).extractingPath("$.parameters.methodology").asString().contains("v3.40");
             assertThat(json).extractingPath("$.build.version").isEqualTo("0.0.1-SNAPSHOT");
             assertThat(json).extractingPath("$.build.revision").asString().matches("[0-9a-f]{7,}(-dirty)?");

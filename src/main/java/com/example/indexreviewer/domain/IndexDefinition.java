@@ -32,7 +32,7 @@ public record IndexDefinition(
         List<ReviewPeriod> reviewPeriods) {
 
     public IndexDefinition {
-        Validation.requireText(name, "index name");
+        Validation.requireFolderName(name, "index name");
         Validation.requireText(methodology, "methodology of " + name);
         Validation.requireText(universe, "universe of " + name);
         Objects.requireNonNull(rankingStrategy, "ranking strategy of " + name);

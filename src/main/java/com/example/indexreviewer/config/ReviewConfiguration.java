@@ -1,11 +1,11 @@
 package com.example.indexreviewer.config;
 
-import com.example.indexreviewer.catalog.IndexCatalog;
 import com.example.indexreviewer.ingest.CsvFolderInputSource;
 import com.example.indexreviewer.ingest.InputSource;
 import com.example.indexreviewer.report.ReportBuilder;
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
+import com.example.indexreviewer.service.IndexCatalog;
 import com.example.indexreviewer.store.FileReportStore;
 import com.example.indexreviewer.store.ReportStore;
 import org.springframework.beans.factory.ObjectProvider;

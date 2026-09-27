@@ -20,7 +20,7 @@ class ArchitectureTest {
     private static final String ROOT = "com.example.indexreviewer";
 
     /**
-     * Dependencies point inwards: HTTP → use cases → catalog and pipeline → domain. {@code config} is the Spring
+     * Dependencies point inwards: HTTP → use cases → pipeline → domain. {@code config} is the Spring
      * wiring, outermost, and nothing depends on it.
      */
     @ArchTest
@@ -28,7 +28,6 @@ class ArchitectureTest {
             .layer("config").definedBy(ROOT + ".config..")
             .layer("api").definedBy(ROOT + ".api..")
             .layer("service").definedBy(ROOT + ".service..")
-            .layer("catalog").definedBy(ROOT + ".catalog..")
             .layer("store").definedBy(ROOT + ".store..")
             .layer("report").definedBy(ROOT + ".report..")
             .layer("review").definedBy(ROOT + ".review..")
@@ -36,11 +35,10 @@ class ArchitectureTest {
             .layer("domain").definedBy(ROOT + ".domain..")
             .whereLayer("config").mayNotBeAccessedByAnyLayer()
             .whereLayer("api").mayNotBeAccessedByAnyLayer()
-            .whereLayer("service").mayOnlyBeAccessedByLayers("api")
-            .whereLayer("catalog").mayOnlyBeAccessedByLayers("service", "api", "config")
+            .whereLayer("service").mayOnlyBeAccessedByLayers("api", "config")
             .whereLayer("store").mayOnlyBeAccessedByLayers("service", "api", "config")
             .whereLayer("report").mayOnlyBeAccessedByLayers("store", "service", "api", "config")
-            .whereLayer("review").mayOnlyBeAccessedByLayers("catalog", "report", "store", "service", "api", "config")
+            .whereLayer("review").mayOnlyBeAccessedByLayers("report", "store", "service", "api", "config")
             .whereLayer("ingest").mayOnlyBeAccessedByLayers("service", "api", "config");
 
     /** The review logic and its model are plain Java: no framework or library at all. */

@@ -72,16 +72,17 @@ section 5.12, with definitions in 2 and 4.3.
 
 ## Architecture
 
-- **Packages by responsibility:** `domain`, `ingest`, `review`, `report`, `store`, `catalog`, `service`, `api`,
-  `config`. The review logic uses only the JDK, so it is unit-testable in isolation and a new rule goes into
+- **Packages by responsibility:** `domain`, `ingest`, `review`, `report`, `store`, `service`, `api`, `config`. The review logic uses only the JDK, so it is unit-testable in isolation and a new rule goes into
   `review` alone. `ingest` adds only OpenCSV and `store` only Jackson. Spring appears only in `config`,
   `service` and `api`, and `config` is pure wiring that nothing depends on.
 - **Enforced by ArchUnit.** A convention written in the docs erodes one import at a time, especially with
   AI-assisted changes; as a test it holds on its own. `ArchitectureTest` checks the dependency direction, the
   plain-Java core, where Spring may appear, and that packages have no cycles; a deliberate violation made it
-  fail. Rejected: Spring Modulith and Java modules per package, both far heavier than this size needs.
-- **Use cases in `ReviewService`.** The controller only maps HTTP. The service chains catalog → input → review
-  → report → store and is tested without Spring, so a scheduler or command-line entry point would reuse it
+  fail. Rejected: Spring Modulith and Java modules per package, both far heavier than this size needs. The
+  lookup of configured indices (`IndexCatalog`) lives in `service`, its only user: it once had its own package,
+  which held just the lookup and its not-found exception.
+- **Use cases in `ReviewService`.** The controller only maps HTTP. The service looks up the index and period, then
+  chains input → review → report → store and is tested without Spring, so a scheduler or command-line entry point would reuse it
   instead of copying the sequence. No interface: there is nothing to swap.
 - **Input and storage behind interfaces** (`InputSource`, `ReportStore`). At SIX the data would come from a
   market-data system and reports would go to a database; each is then one new class and one bean. The input
@@ -104,7 +105,9 @@ section 5.12, with definitions in 2 and 4.3.
 - **Validated at startup.** Spring binds the file straight into `IndexDefinition` and `ReviewPeriod`, which
   check themselves when constructed, so a bad file stops the application with a clear reason and the rules live
   in one framework-free place. Bean Validation annotations would duplicate those checks. Indices and periods are
-  lists with a `name`/`id`, not maps: Spring's relaxed binding mangles keys such as `2026-Q3`.
+  lists with a `name`/`id`, not maps: Spring's relaxed binding mangles keys such as `2026-Q3`. Index names and
+  period ids must be folder names (letters, digits, `_`, `.`, `-`), since they name the input and report folders;
+  before, a name like `SMI Q3` passed startup and every review of it failed with a 500 when the report was saved.
 - **Rulebook version per index.** Each index must state which rulebook version and section it follows, and every
   report repeats it: SIX revises the rulebook, and a v3.40 report must stay explainable after v3.41. There is no
   default, because a new index must state its rules.
@@ -212,8 +215,9 @@ section 5.12, with definitions in 2 and 4.3.
 
 - **The report explains itself.** It holds the parameters with the rulebook version, the full ranking with the
   price, shares and free float behind each FFMCAP (so `103` = 165.7 × 45,867,891 × 1 can be recomputed by hand),
-  exclusions and leavers with reasons, weights and capping factors, the capping rounds, the input files read,
-  all warnings and the status reasons.
+  leavers with reasons, weights and capping factors, the capping rounds, the input files read,
+  all warnings and the status reasons. A security excluded from ranking is recorded once, as a warning with its
+  reason: the status is built from warnings, and a separate `excluded` list only repeated them.
 - **The input values are the audit trail, not file checksums.** The ranking records every price, shares and free
   float the result was computed from, so the report can be rechecked on its own. SHA-256 checksums of the input
   files were dropped: they add little over those values, and they tied a CSV detail into the domain. In

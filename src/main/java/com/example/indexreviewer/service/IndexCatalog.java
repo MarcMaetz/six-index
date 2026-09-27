@@ -1,4 +1,4 @@
-package com.example.indexreviewer.catalog;
+package com.example.indexreviewer.service;
 
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;

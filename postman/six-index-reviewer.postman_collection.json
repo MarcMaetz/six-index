@@ -323,7 +323,7 @@
                   "    ['160', 'SELECTED_BUFFER_INCUMBENT'], ['81', 'SELECTED_BUFFER_INCUMBENT']]);",
                   "});",
                   "pm.test('155 and 205 capped in one round', () => pm.expect(r.cappingRounds).to.eql([['155', '205']]));",
-                  "pm.test('166 excluded (no review-date data)', () => pm.expect(r.excluded.map(e => e.securityId)).to.eql(['166']));",
+                  "pm.test('166 excluded (no review-date data): a review warning', () => pm.expect(r.warnings.filter(w => w.source === 'review').flatMap(w => w.securityIds)).to.eql(['166']));",
                   "pm.test('rulebook version recorded in the parameters', () => pm.expect(r.parameters.methodology).to.include('v3.40'));",
                   "pm.test('build version and revision recorded', () => {",
                   "  pm.expect(r.build.version).to.be.a('string').and.not.empty;",
@@ -346,7 +346,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "indices", "SMI", "reviews", "2026-Q3", "reports", "{{reportId}}"]
             },
-            "description": "Returns one stored report exactly as it was written: the full result with the audit trail (parameters, full ranking with a decision per security, capping rounds, exclusions, input files, warnings, build). `reportId` is set by \"Run review (SMI 2026-Q3)\" from its Location header."
+            "description": "Returns one stored report exactly as it was written: the full result with the audit trail (parameters, full ranking with a decision per security, capping rounds, input files, warnings including exclusions, build). `reportId` is set by \"Run review (SMI 2026-Q3)\" from its Location header."
           },
           "response": []
         },

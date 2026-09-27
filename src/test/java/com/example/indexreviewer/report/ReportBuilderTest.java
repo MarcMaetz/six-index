@@ -4,7 +4,6 @@ import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.RankingStrategy;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
-import com.example.indexreviewer.review.Exclusion;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.SelectionDecision;
@@ -74,7 +73,12 @@ class ReportBuilderTest {
             assertThat(l.securityId()).isEqualTo("103");
             assertThat(l.reason()).isEqualTo(LeaveReason.BELOW_BUFFER);
         });
-        assertThat(report.excluded()).extracting(Exclusion::securityId).containsExactly("166");
+        // 166 is excluded from ranking (A2); the warning is the report's only record of it.
+        assertThat(report.warnings().getLast()).satisfies(w -> {
+            assertThat(w.source()).isEqualTo("review");
+            assertThat(w.message()).startsWith("Excluded from ranking: Missing shares on review date");
+            assertThat(w.securityIds()).containsExactly("166");
+        });
         assertThat(report.ranking()).hasSize(204);
         // Each FFMCAP can be recomputed from the entry: 165.7 × 45867891 × 1 for the leaver 103.
         assertThat(report.ranking()).filteredOn(e -> e.securityId().equals("103")).singleElement().satisfies(e -> {

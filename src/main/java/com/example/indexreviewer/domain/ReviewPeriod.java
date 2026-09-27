@@ -13,7 +13,7 @@ import java.util.Objects;
 public record ReviewPeriod(String id, LocalDate cutOffDate, LocalDate reviewDate) {
 
     public ReviewPeriod {
-        Validation.requireText(id, "review period id");
+        Validation.requireFolderName(id, "review period id");
         Objects.requireNonNull(cutOffDate, "cut-off date of " + id);
         Objects.requireNonNull(reviewDate, "review date of " + id);
         Validation.require(!cutOffDate.isAfter(reviewDate),

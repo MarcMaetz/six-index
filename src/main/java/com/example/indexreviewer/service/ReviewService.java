@@ -1,6 +1,5 @@
 package com.example.indexreviewer.service;
 
-import com.example.indexreviewer.catalog.IndexCatalog;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;

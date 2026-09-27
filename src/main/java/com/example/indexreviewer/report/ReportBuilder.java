@@ -38,7 +38,7 @@ public final class ReportBuilder {
 
         return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
                 clock.instant(), build, status.status(), status.reasons(), parameters(index), constituents(result),
-                joiners, result.leavers(), result.excluded(), ranking(result), result.cappingRounds(),
+                joiners, result.leavers(), ranking(result), result.cappingRounds(),
                 result.input().files(), result.warnings());
     }
 

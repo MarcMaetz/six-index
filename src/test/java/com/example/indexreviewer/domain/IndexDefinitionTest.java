@@ -23,6 +23,17 @@ class IndexDefinitionTest {
     }
 
     @Test
+    void rejectsNamesThatCannotBeFolders() {
+        // Index names and period ids name the folders of the input data and the stored reports.
+        assertThatIllegalArgumentException().isThrownBy(() -> new IndexDefinition("SMI Q3", "Rulebook v3.40",
+                        "SPI", 20, 18, 22, new BigDecimal("0.18"), RankingStrategy.FFMCAP, List.of()))
+                .withMessageStartingWith("index name 'SMI Q3' is used as a folder name");
+        assertThatIllegalArgumentException().isThrownBy(() -> new ReviewPeriod("../2026-Q3",
+                        LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21")))
+                .withMessageStartingWith("review period id '../2026-Q3' is used as a folder name");
+    }
+
+    @Test
     void rejectsInconsistentRanks() {
         assertThatIllegalArgumentException().isThrownBy(() -> smi(20, 21, 22, "0.18", List.of()))
                 .withMessageContaining("direct selection rank 21");

@@ -110,9 +110,8 @@ src/main/java/com/example/indexreviewer/
   review/            eligibility, ranking, buffer selection, weight capping, review status (framework-free)
   report/            review report, rounded for display (framework-free)
   store/             stored review reports, one JSON file per run
-  catalog/           lookup of configured indices and review periods
   config/            Spring wiring and configuration binding
-  service/           use cases: check input, run and store a review, read reports
+  service/           use cases: check input, run and store a review, read reports; index lookup
   api/               REST controllers and error handling
 ```
 
