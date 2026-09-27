@@ -1,11 +1,10 @@
 package com.example.indexreviewer.domain;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class SecurityDataTest {
 
@@ -21,11 +20,16 @@ class SecurityDataTest {
         assertThat(data.sameValuesAs(data("1", DATE, "1.6", null, 100L))).isFalse();
         assertThat(data.sameValuesAs(data("1", DATE, "1.5", null, 101L))).isFalse();
         assertThat(data.sameValuesAs(data("2", DATE, "1.5", null, 100L))).isFalse();
-        assertThat(data.sameValuesAs(data("1", DATE.plusDays(1), "1.5", null, 100L))).isFalse();
+        assertThat(data.sameValuesAs(data("1", DATE.plusDays(1), "1.5", null, 100L)))
+                .isFalse();
     }
 
     private static SecurityData data(String id, LocalDate date, String price, String freeFloat, Long shares) {
-        return new SecurityData(id, date, price == null ? null : new BigDecimal(price),
-                freeFloat == null ? null : new BigDecimal(freeFloat), shares);
+        return new SecurityData(
+                id,
+                date,
+                price == null ? null : new BigDecimal(price),
+                freeFloat == null ? null : new BigDecimal(freeFloat),
+                shares);
     }
 }

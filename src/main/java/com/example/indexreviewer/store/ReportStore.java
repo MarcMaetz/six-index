@@ -1,7 +1,6 @@
 package com.example.indexreviewer.store;
 
 import com.example.indexreviewer.report.ReviewReport;
-
 import java.util.List;
 
 /**

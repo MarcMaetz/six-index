@@ -48,6 +48,7 @@ public record InputData(
 
     /** Market data of a security on exactly this date, if delivered; no fallback to an earlier date (A15). */
     public Optional<SecurityData> securityData(String securityId, LocalDate date) {
-        return Optional.ofNullable(securityDataById.getOrDefault(securityId, Map.of()).get(date));
+        return Optional.ofNullable(
+                securityDataById.getOrDefault(securityId, Map.of()).get(date));
     }
 }

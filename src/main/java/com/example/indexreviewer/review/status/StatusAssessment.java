@@ -7,7 +7,6 @@ import com.example.indexreviewer.review.ReviewResult;
 import com.example.indexreviewer.review.Selection;
 import com.example.indexreviewer.review.status.StatusReason.Relevance;
 import com.example.indexreviewer.review.status.StatusReason.WarningRef;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +24,7 @@ import java.util.stream.Collectors;
 public final class StatusAssessment {
 
     /** The review status and every reason behind it, harmless ones included. */
-    public record Result(ReviewStatus status, List<StatusReason> reasons) {
-    }
+    public record Result(ReviewStatus status, List<StatusReason> reasons) {}
 
     private final ReviewResult result;
     private final int bufferEnd;
@@ -37,8 +35,7 @@ public final class StatusAssessment {
         this.result = result;
         this.bufferEnd = result.index().bufferEndRank();
         var ranked = result.selection().stream().map(Selection.Outcome::ranked).toList();
-        this.rankedById = ranked.stream()
-                .collect(Collectors.toMap(RankedSecurity::securityId, Function.identity()));
+        this.rankedById = ranked.stream().collect(Collectors.toMap(RankedSecurity::securityId, Function.identity()));
         this.unranked = new UnrankedEstimate(result, ranked);
     }
 
@@ -61,8 +58,8 @@ public final class StatusAssessment {
             return List.of(new StatusReason(null, Relevance.NO_DATA_LOST, "No data lost", ref));
         }
         if (warning.securityIds().isEmpty()) {
-            return List.of(new StatusReason(null, Relevance.SECURITY_UNKNOWN,
-                    "Data is missing, but the affected security is unknown", ref));
+            return List.of(new StatusReason(
+                    null, Relevance.SECURITY_UNKNOWN, "Data is missing, but the affected security is unknown", ref));
         }
         return warning.securityIds().stream().map(id -> reason(id, ref)).toList();
     }
@@ -80,9 +77,15 @@ public final class StatusAssessment {
     private StatusReason ranked(RankedSecurity security, WarningRef warning) {
         int rank = security.rank();
         return rank <= bufferEnd
-                ? new StatusReason(security.securityId(), Relevance.RANKED_WITHIN_BUFFER,
-                        "Ranked %d, within buffer end %d".formatted(rank, bufferEnd), warning)
-                : new StatusReason(security.securityId(), Relevance.RANKED_BELOW_BUFFER,
-                        "Ranked %d, below buffer end %d".formatted(rank, bufferEnd), warning);
+                ? new StatusReason(
+                        security.securityId(),
+                        Relevance.RANKED_WITHIN_BUFFER,
+                        "Ranked %d, within buffer end %d".formatted(rank, bufferEnd),
+                        warning)
+                : new StatusReason(
+                        security.securityId(),
+                        Relevance.RANKED_BELOW_BUFFER,
+                        "Ranked %d, below buffer end %d".formatted(rank, bufferEnd),
+                        warning);
     }
 }

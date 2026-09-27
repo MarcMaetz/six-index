@@ -8,14 +8,13 @@ import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.service.IndexCatalog;
 import com.example.indexreviewer.store.FileReportStore;
 import com.example.indexreviewer.store.ReportStore;
+import java.time.Clock;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.json.JsonMapper;
-
-import java.time.Clock;
 
 /**
  * Makes the framework-free catalog, input source, review engine, report builder and report store available as
@@ -41,11 +40,12 @@ public class ReviewConfiguration {
     }
 
     @Bean
-    ReportBuilder reportBuilder(IndexReviewerProperties properties, Clock clock,
-                                ObjectProvider<BuildProperties> buildProperties,
-                                ObjectProvider<GitProperties> gitProperties) {
-        return new ReportBuilder(clock,
-                build(buildProperties.getIfAvailable(), gitProperties.getIfAvailable()));
+    ReportBuilder reportBuilder(
+            IndexReviewerProperties properties,
+            Clock clock,
+            ObjectProvider<BuildProperties> buildProperties,
+            ObjectProvider<GitProperties> gitProperties) {
+        return new ReportBuilder(clock, build(buildProperties.getIfAvailable(), gitProperties.getIfAvailable()));
     }
 
     /**

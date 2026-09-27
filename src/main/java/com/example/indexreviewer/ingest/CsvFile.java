@@ -6,7 +6,6 @@ import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvValidationException;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -49,8 +48,7 @@ final class CsvFile {
         }
     }
 
-    private CsvFile() {
-    }
+    private CsvFile() {}
 
     static Content read(Path file, List<String> requiredColumns) {
         if (!Files.isRegularFile(file)) {
@@ -67,13 +65,16 @@ final class CsvFile {
 
     private static Content parse(Path file, List<String> requiredColumns) throws IOException, CsvValidationException {
         String source = file.getFileName().toString();
-        try (var reader = new BufferedReader(
-                new InputStreamReader(Files.newInputStream(file), StandardCharsets.UTF_8.newDecoder()
+        try (var reader = new BufferedReader(new InputStreamReader(
+                Files.newInputStream(file),
+                StandardCharsets.UTF_8
+                        .newDecoder()
                         .onMalformedInput(CodingErrorAction.REPORT)
                         .onUnmappableCharacter(CodingErrorAction.REPORT)))) {
             skipByteOrderMark(reader);
             var csv = new CSVReaderBuilder(reader)
-                    .withCSVParser(new CSVParserBuilder().withSeparator(SEPARATOR).build())
+                    .withCSVParser(
+                            new CSVParserBuilder().withSeparator(SEPARATOR).build())
                     .build();
             return readRows(csv, file, source, readHeader(csv, source, requiredColumns));
         }
@@ -91,7 +92,10 @@ final class CsvFile {
                 continue;
             }
             if (fields.length != columns.size()) {
-                warnings.add(new DataQualityWarning(source, line, Impact.MISSING_DATA,
+                warnings.add(new DataQualityWarning(
+                        source,
+                        line,
+                        Impact.MISSING_DATA,
                         "Row ignored: expected %d fields, found %d".formatted(columns.size(), fields.length),
                         List.of()));
                 continue;
@@ -113,7 +117,8 @@ final class CsvFile {
             throw new InputDataException(source + " is empty, expected header " + requiredColumns);
         }
         List<String> columns = Arrays.stream(header).map(String::trim).toList();
-        List<String> missing = requiredColumns.stream().filter(c -> !columns.contains(c)).toList();
+        List<String> missing =
+                requiredColumns.stream().filter(c -> !columns.contains(c)).toList();
         if (!missing.isEmpty()) {
             throw new InputDataException(source + " is missing column(s) " + missing + ", found " + columns);
         }

@@ -9,11 +9,10 @@ import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.store.ReportStore;
 import com.example.indexreviewer.store.StoredReport;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * The application's use cases, addressed by index name and review period id. Any entry point (the REST API
@@ -24,12 +23,10 @@ import java.util.List;
 public class ReviewService {
 
     /** The input of a review, loaded and validated, with the index and period it was loaded for. */
-    public record ReviewInput(IndexDefinition index, ReviewPeriod period, InputData data) {
-    }
+    public record ReviewInput(IndexDefinition index, ReviewPeriod period, InputData data) {}
 
     /** A review that was run and stored. */
-    public record ReviewRun(StoredReport stored, ReviewReport report) {
-    }
+    public record ReviewRun(StoredReport stored, ReviewReport report) {}
 
     private static final Logger LOG = LoggerFactory.getLogger(ReviewService.class);
 
@@ -39,8 +36,12 @@ public class ReviewService {
     private final ReportBuilder reportBuilder;
     private final ReportStore reportStore;
 
-    public ReviewService(IndexCatalog catalog, InputSource inputSource, ReviewEngine engine,
-                         ReportBuilder reportBuilder, ReportStore reportStore) {
+    public ReviewService(
+            IndexCatalog catalog,
+            InputSource inputSource,
+            ReviewEngine engine,
+            ReportBuilder reportBuilder,
+            ReportStore reportStore) {
         this.catalog = catalog;
         this.inputSource = inputSource;
         this.engine = engine;
@@ -56,8 +57,12 @@ public class ReviewService {
     public ReviewInput input(String index, String period) {
         var review = review(index, period);
         var data = inputSource.load(review.index(), review.period());
-        LOG.debug("Loaded input of {} {}: {} file(s), {} warning(s)", review.index().name(), review.period().id(),
-                data.files().size(), data.warnings().size());
+        LOG.debug(
+                "Loaded input of {} {}: {} file(s), {} warning(s)",
+                review.index().name(),
+                review.period().id(),
+                data.files().size(),
+                data.warnings().size());
         return new ReviewInput(review.index(), review.period(), data);
     }
 
@@ -66,8 +71,13 @@ public class ReviewService {
         var input = input(index, period);
         var report = reportBuilder.build(engine.run(input.index(), input.period(), input.data()));
         var stored = reportStore.save(report);
-        LOG.info("Review {} {} stored as report {}: {}, {} warning(s)", stored.index(), stored.reviewPeriod(),
-                stored.id(), stored.status(), report.warnings().size());
+        LOG.info(
+                "Review {} {} stored as report {}: {}, {} warning(s)",
+                stored.index(),
+                stored.reviewPeriod(),
+                stored.id(),
+                stored.status(),
+                report.warnings().size());
         return new ReviewRun(stored, report);
     }
 
@@ -89,6 +99,5 @@ public class ReviewService {
         return new Review(definition, catalog.reviewPeriod(definition, period));
     }
 
-    private record Review(IndexDefinition index, ReviewPeriod period) {
-    }
+    private record Review(IndexDefinition index, ReviewPeriod period) {}
 }

@@ -1,5 +1,9 @@
 package com.example.indexreviewer.review.status;
 
+import static com.example.indexreviewer.review.SecurityDataFixtures.securityData;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
+
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.IndexDefinition;
@@ -9,18 +13,13 @@ import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.domain.SecurityData;
 import com.example.indexreviewer.review.ReviewEngine;
 import com.example.indexreviewer.review.status.StatusReason.Relevance;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static com.example.indexreviewer.review.SecurityDataFixtures.securityData;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
+import org.junit.jupiter.api.Test;
 
 /**
  * Index of 2 constituents, rank 1 direct, buffer up to rank 3. Universe A–E with FFMCAP 500, 400, 300, 200,
@@ -31,9 +30,8 @@ class StatusAssessmentTest {
     private static final LocalDate CUT_OFF = LocalDate.parse("2026-09-10");
     private static final LocalDate REVIEW = LocalDate.parse("2026-09-21");
     private static final ReviewPeriod PERIOD = new ReviewPeriod("P", CUT_OFF, REVIEW);
-    private static final IndexDefinition INDEX =
-            new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 3, BigDecimal.ONE, RankingStrategy.FFMCAP,
-                    List.of(PERIOD));
+    private static final IndexDefinition INDEX = new IndexDefinition(
+            "TEST", "Rulebook v3.40", "SPI", 2, 1, 3, BigDecimal.ONE, RankingStrategy.FFMCAP, List.of(PERIOD));
 
     @Test
     void completedWithoutWarnings() {
@@ -70,10 +68,12 @@ class StatusAssessmentTest {
 
         // All reasons are kept, harmless ones included, so the audit trail shows the whole picture.
         assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(status.reasons()).extracting(StatusReason::securityId, StatusReason::relevance).containsExactly(
-                tuple("B", Relevance.CURRENT_CONSTITUENT),
-                tuple("C", Relevance.RANKED_WITHIN_BUFFER),
-                tuple("E", Relevance.RANKED_BELOW_BUFFER));
+        assertThat(status.reasons())
+                .extracting(StatusReason::securityId, StatusReason::relevance)
+                .containsExactly(
+                        tuple("B", Relevance.CURRENT_CONSTITUENT),
+                        tuple("C", Relevance.RANKED_WITHIN_BUFFER),
+                        tuple("E", Relevance.RANKED_BELOW_BUFFER));
     }
 
     @Test
@@ -81,8 +81,7 @@ class StatusAssessmentTest {
         var status = assess(fullData(), List.of(warning(Impact.MISSING_DATA)));
 
         assertThat(status.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(status.reasons()).extracting(StatusReason::relevance)
-                .containsExactly(Relevance.SECURITY_UNKNOWN);
+        assertThat(status.reasons()).extracting(StatusReason::relevance).containsExactly(Relevance.SECURITY_UNKNOWN);
     }
 
     @Test
@@ -103,13 +102,16 @@ class StatusAssessmentTest {
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "2", "1", 100L)));
         var nearBuffer = assess(data, List.of());
         assertThat(nearBuffer.status()).isEqualTo(ReviewStatus.REQUIRES_ATTENTION);
-        assertThat(nearBuffer.reasons()).extracting(StatusReason::relevance, StatusReason::explanation)
-                .containsExactly(tuple(Relevance.ESTIMATED_NEAR_BUFFER,
+        assertThat(nearBuffer.reasons())
+                .extracting(StatusReason::relevance, StatusReason::explanation)
+                .containsExactly(tuple(
+                        Relevance.ESTIMATED_NEAR_BUFFER,
                         "Not ranked, estimated FFMCAP 200 is not below half the value at buffer end rank 3 (300)"));
 
         // Exactly half the buffer-end value is not below it: still too close to call.
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1.5", "1", 100L)));
-        assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
+        assertThat(assess(data, List.of()).reasons())
+                .extracting(StatusReason::relevance)
                 .containsExactly(Relevance.ESTIMATED_NEAR_BUFFER);
     }
 
@@ -117,11 +119,13 @@ class StatusAssessmentTest {
     void unrankedSecurityWithoutPriceSharesOrFreeFloatIsNotEstimable() {
         // Any one of the three missing on both dates makes an estimate impossible, so it counts as relevant.
         var data = fullData();
-        for (var row : List.of(securityData("D", REVIEW, null, "1", 100L),
+        for (var row : List.of(
+                securityData("D", REVIEW, null, "1", 100L),
                 securityData("D", CUT_OFF, "1", "1", null),
                 securityData("D", CUT_OFF, "1", null, 100L))) {
             data.put("D", Map.of(row.date(), row));
-            assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
+            assertThat(assess(data, List.of()).reasons())
+                    .extracting(StatusReason::relevance)
                     .containsExactly(Relevance.NOT_ESTIMABLE);
         }
     }
@@ -132,27 +136,29 @@ class StatusAssessmentTest {
         var data = fullData();
         data.put("D", Map.of(REVIEW, securityData("D", REVIEW, "1", "1", 100L)));
 
-        assertThat(assess(data, List.of()).reasons()).extracting(StatusReason::relevance)
+        assertThat(assess(data, List.of()).reasons())
+                .extracting(StatusReason::relevance)
                 .containsExactly(Relevance.ESTIMATED_FAR_BELOW_BUFFER);
     }
 
     @Test
     void bufferEndReachedExactlyGivesAThreshold() {
         // Buffer end 4 and exactly 4 ranked (A, B, C, E): the buffer end value is E's 100, so D's 1 is harmless.
-        var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 4, BigDecimal.ONE,
-                RankingStrategy.FFMCAP, List.of(PERIOD));
+        var index = new IndexDefinition(
+                "TEST", "Rulebook v3.40", "SPI", 2, 1, 4, BigDecimal.ONE, RankingStrategy.FFMCAP, List.of(PERIOD));
         var data = fullData();
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
 
-        assertThat(assess(index, data, List.of()).reasons()).extracting(StatusReason::relevance)
+        assertThat(assess(index, data, List.of()).reasons())
+                .extracting(StatusReason::relevance)
                 .containsExactly(Relevance.ESTIMATED_FAR_BELOW_BUFFER);
     }
 
     @Test
     void unrankedSecurityNeedsAttentionWhenTheBufferIsNotFull() {
         // Buffer end 5, but only 4 securities can be ranked: D could take a buffer place whatever its size.
-        var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 5, BigDecimal.ONE,
-                RankingStrategy.FFMCAP, List.of(PERIOD));
+        var index = new IndexDefinition(
+                "TEST", "Rulebook v3.40", "SPI", 2, 1, 5, BigDecimal.ONE, RankingStrategy.FFMCAP, List.of(PERIOD));
         var data = fullData();
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
 
@@ -162,16 +168,17 @@ class StatusAssessmentTest {
         assertThat(status.reasons()).extracting(StatusReason::relevance).containsExactly(Relevance.BUFFER_NOT_FULL);
     }
 
-    private static StatusAssessment.Result assess(Map<String, Map<LocalDate, SecurityData>> data,
-                                                  List<DataQualityWarning> inputWarnings) {
+    private static StatusAssessment.Result assess(
+            Map<String, Map<LocalDate, SecurityData>> data, List<DataQualityWarning> inputWarnings) {
         return assess(INDEX, data, inputWarnings);
     }
 
-    private static StatusAssessment.Result assess(IndexDefinition index,
-                                                  Map<String, Map<LocalDate, SecurityData>> data,
-                                                  List<DataQualityWarning> inputWarnings) {
-        var input = new InputData(Map.of(REVIEW, Set.of("A", "B", "C", "D", "E")), data, Set.of("A", "B"),
-                inputWarnings, List.of());
+    private static StatusAssessment.Result assess(
+            IndexDefinition index,
+            Map<String, Map<LocalDate, SecurityData>> data,
+            List<DataQualityWarning> inputWarnings) {
+        var input = new InputData(
+                Map.of(REVIEW, Set.of("A", "B", "C", "D", "E")), data, Set.of("A", "B"), inputWarnings, List.of());
         return StatusAssessment.assess(new ReviewEngine().run(index, PERIOD, input));
     }
 
@@ -180,13 +187,17 @@ class StatusAssessmentTest {
         var data = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
         long shares = 500;
         for (String id : List.of("A", "B", "C", "D", "E")) {
-            data.put(id, Map.of(CUT_OFF, securityData(id, CUT_OFF, "1", null, null),
-                    REVIEW, securityData(id, REVIEW, null, "1", shares)));
+            data.put(
+                    id,
+                    Map.of(
+                            CUT_OFF,
+                            securityData(id, CUT_OFF, "1", null, null),
+                            REVIEW,
+                            securityData(id, REVIEW, null, "1", shares)));
             shares -= 100;
         }
         return data;
     }
-
 
     private static DataQualityWarning warning(Impact impact, String... ids) {
         return new DataQualityWarning("test.csv", 2, impact, "test warning", List.of(ids));

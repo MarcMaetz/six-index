@@ -134,7 +134,8 @@ final class WeightCapping {
         for (var entry : ffmcapById.entrySet()) {
             weightPerFfmcap.put(entry.getKey(), weights.get(entry.getKey()).divide(entry.getValue(), PRECISION));
         }
-        BigDecimal largestWeightPerFfmcap = weightPerFfmcap.values().stream().reduce(BigDecimal::max).orElseThrow();
+        BigDecimal largestWeightPerFfmcap =
+                weightPerFfmcap.values().stream().reduce(BigDecimal::max).orElseThrow();
         BigDecimal totalFfmcap = sum(ffmcapById.values());
 
         var result = new ArrayList<CappedWeight>();
@@ -156,8 +157,8 @@ final class WeightCapping {
         }
         for (var weight : weights) {
             if (weight.weight().compareTo(cap) > 0) {
-                throw new IllegalStateException(weight.securityId() + " weight " + weight.weight()
-                        + " exceeds the cap " + cap);
+                throw new IllegalStateException(
+                        weight.securityId() + " weight " + weight.weight() + " exceeds the cap " + cap);
             }
         }
     }

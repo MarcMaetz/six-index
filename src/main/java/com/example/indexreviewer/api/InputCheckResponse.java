@@ -4,7 +4,6 @@ import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.SortedMap;
@@ -34,8 +33,15 @@ public record InputCheckResponse(
         SortedMap<LocalDate, Long> countByDate = data.securityDataById().values().stream()
                 .flatMap(byDate -> byDate.keySet().stream())
                 .collect(Collectors.groupingBy(Function.identity(), TreeMap::new, Collectors.counting()));
-        return new InputCheckResponse(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
-                data.files(), data.universe(period.reviewDate()).size(), countByDate,
-                List.copyOf(data.currentComposition()), data.warnings());
+        return new InputCheckResponse(
+                index.name(),
+                period.id(),
+                period.cutOffDate(),
+                period.reviewDate(),
+                data.files(),
+                data.universe(period.reviewDate()).size(),
+                countByDate,
+                List.copyOf(data.currentComposition()),
+                data.warnings());
     }
 }

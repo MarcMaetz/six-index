@@ -6,7 +6,6 @@ import com.example.indexreviewer.review.Leaver;
 import com.example.indexreviewer.review.SelectionDecision;
 import com.example.indexreviewer.review.status.ReviewStatus;
 import com.example.indexreviewer.review.status.StatusReason;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -47,23 +46,39 @@ public record ReviewReport(
     }
 
     /** The index parameters the review ran with. */
-    public record Parameters(String methodology, String universe, int constituentCount, int directSelectionRank,
-                             int bufferEndRank, BigDecimal weightCapPercent, RankingStrategy rankingStrategy) {
-    }
+    public record Parameters(
+            String methodology,
+            String universe,
+            int constituentCount,
+            int directSelectionRank,
+            int bufferEndRank,
+            BigDecimal weightCapPercent,
+            RankingStrategy rankingStrategy) {}
 
-    public record Constituent(int rank, String securityId, SelectionDecision selection, boolean joiner,
-                              BigDecimal ffmcap, BigDecimal rawWeightPercent, BigDecimal weightPercent,
-                              BigDecimal cappingFactor, boolean capped) {
-    }
+    public record Constituent(
+            int rank,
+            String securityId,
+            SelectionDecision selection,
+            boolean joiner,
+            BigDecimal ffmcap,
+            BigDecimal rawWeightPercent,
+            BigDecimal weightPercent,
+            BigDecimal cappingFactor,
+            boolean capped) {}
 
-    public record Joiner(String securityId, int rank, SelectionDecision selection) {
-    }
+    public record Joiner(String securityId, int rank, SelectionDecision selection) {}
 
     /**
      * One line of the full ranking, with the values its FFMCAP was calculated from (price on the cut-off date,
      * shares and free float on the review date) and the selection decision taken for it.
      */
-    public record RankingEntry(int rank, String securityId, BigDecimal price, long shares, BigDecimal freeFloat,
-                               BigDecimal ffmcap, boolean incumbent, SelectionDecision selection) {
-    }
+    public record RankingEntry(
+            int rank,
+            String securityId,
+            BigDecimal price,
+            long shares,
+            BigDecimal freeFloat,
+            BigDecimal ffmcap,
+            boolean incumbent,
+            SelectionDecision selection) {}
 }

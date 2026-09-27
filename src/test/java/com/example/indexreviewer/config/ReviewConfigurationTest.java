@@ -1,13 +1,12 @@
 package com.example.indexreviewer.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.example.indexreviewer.report.ReviewReport;
+import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
-
-import java.util.Properties;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** How the build recorded in each report is read from Gradle's generated files. */
 class ReviewConfigurationTest {

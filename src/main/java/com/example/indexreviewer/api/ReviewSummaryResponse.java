@@ -5,7 +5,6 @@ import com.example.indexreviewer.review.Leaver;
 import com.example.indexreviewer.review.status.ReviewStatus;
 import com.example.indexreviewer.review.status.StatusReason;
 import com.example.indexreviewer.store.StoredReport;
-
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
@@ -34,16 +33,23 @@ public record ReviewSummaryResponse(
      * A security in the new composition; weights are in percent. Not named {@code Constituent}: the OpenAPI docs
      * name schemas by simple class name, and the report's {@code Constituent} would hide this one.
      */
-    public record ConstituentSummary(int rank, String securityId, boolean joiner, BigDecimal weightPercent,
-                                     boolean capped) {
-    }
+    public record ConstituentSummary(
+            int rank, String securityId, boolean joiner, BigDecimal weightPercent, boolean capped) {}
 
     static ReviewSummaryResponse of(StoredReport stored, URI reportUrl, ReviewReport report) {
         var constituents = report.constituents().stream()
                 .map(c -> new ConstituentSummary(c.rank(), c.securityId(), c.joiner(), c.weightPercent(), c.capped()))
                 .toList();
-        return new ReviewSummaryResponse(stored.id(), reportUrl, report.index(), report.reviewPeriod(),
-                report.generatedAt(), report.status(), report.statusReasons(), constituents, report.joiners(),
+        return new ReviewSummaryResponse(
+                stored.id(),
+                reportUrl,
+                report.index(),
+                report.reviewPeriod(),
+                report.generatedAt(),
+                report.status(),
+                report.statusReasons(),
+                constituents,
+                report.joiners(),
                 report.leavers());
     }
 }

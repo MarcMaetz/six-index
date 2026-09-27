@@ -10,6 +10,10 @@ import java.math.BigDecimal;
  * @param cappingFactor factor applied to FFMCAP to reach the final weight, normalised so the largest factor is 1
  * @param capped        whether the constituent was limited to the cap
  */
-public record CappedWeight(String securityId, BigDecimal ffmcap, BigDecimal rawWeight, BigDecimal weight,
-                           BigDecimal cappingFactor, boolean capped) {
-}
+public record CappedWeight(
+        String securityId,
+        BigDecimal ffmcap,
+        BigDecimal rawWeight,
+        BigDecimal weight,
+        BigDecimal cappingFactor,
+        boolean capped) {}

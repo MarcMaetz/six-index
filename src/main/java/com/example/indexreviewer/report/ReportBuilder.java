@@ -3,7 +3,6 @@ package com.example.indexreviewer.report;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.review.ReviewResult;
 import com.example.indexreviewer.review.status.StatusAssessment;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -36,17 +35,37 @@ public final class ReportBuilder {
                 .map(c -> new ReviewReport.Joiner(c.securityId(), c.rank(), c.decision()))
                 .toList();
 
-        return new ReviewReport(index.name(), period.id(), period.cutOffDate(), period.reviewDate(),
-                clock.instant(), build, status.status(), status.reasons(), parameters(index), constituents(result),
-                joiners, result.leavers(), ranking(result), result.cappingRounds(),
-                result.input().files(), result.warnings());
+        return new ReviewReport(
+                index.name(),
+                period.id(),
+                period.cutOffDate(),
+                period.reviewDate(),
+                clock.instant(),
+                build,
+                status.status(),
+                status.reasons(),
+                parameters(index),
+                constituents(result),
+                joiners,
+                result.leavers(),
+                ranking(result),
+                result.cappingRounds(),
+                result.input().files(),
+                result.warnings());
     }
 
     private static List<ReviewReport.Constituent> constituents(ReviewResult result) {
         return result.constituents().stream()
-                .map(c -> new ReviewReport.Constituent(c.rank(), c.securityId(), c.decision(), c.joiner(),
-                        ffmcap(c.weight().ffmcap()), percent(c.weight().rawWeight()), percent(c.weight().weight()),
-                        round(c.weight().cappingFactor(), CAPPING_FACTOR_DECIMALS), c.weight().capped()))
+                .map(c -> new ReviewReport.Constituent(
+                        c.rank(),
+                        c.securityId(),
+                        c.decision(),
+                        c.joiner(),
+                        ffmcap(c.weight().ffmcap()),
+                        percent(c.weight().rawWeight()),
+                        percent(c.weight().weight()),
+                        round(c.weight().cappingFactor(), CAPPING_FACTOR_DECIMALS),
+                        c.weight().capped()))
                 .toList();
     }
 
@@ -54,16 +73,28 @@ public final class ReportBuilder {
         return result.selection().stream()
                 .map(o -> {
                     var eligible = o.ranked().eligible();
-                    return new ReviewReport.RankingEntry(o.rank(), o.securityId(), eligible.price(), eligible.shares(),
-                            eligible.freeFloat(), ffmcap(eligible.ffmcap()), o.incumbent(), o.decision());
+                    return new ReviewReport.RankingEntry(
+                            o.rank(),
+                            o.securityId(),
+                            eligible.price(),
+                            eligible.shares(),
+                            eligible.freeFloat(),
+                            ffmcap(eligible.ffmcap()),
+                            o.incumbent(),
+                            o.decision());
                 })
                 .toList();
     }
 
     private static ReviewReport.Parameters parameters(IndexDefinition index) {
-        return new ReviewReport.Parameters(index.methodology(), index.universe(),
-                index.constituentCount(), index.directSelectionRank(), index.bufferEndRank(),
-                index.weightCap().movePointRight(2).stripTrailingZeros(), index.rankingStrategy());
+        return new ReviewReport.Parameters(
+                index.methodology(),
+                index.universe(),
+                index.constituentCount(),
+                index.directSelectionRank(),
+                index.bufferEndRank(),
+                index.weightCap().movePointRight(2).stripTrailingZeros(),
+                index.rankingStrategy());
     }
 
     private static BigDecimal percent(BigDecimal fraction) {

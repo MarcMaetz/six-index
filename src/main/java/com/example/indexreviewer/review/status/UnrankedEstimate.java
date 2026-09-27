@@ -6,7 +6,6 @@ import com.example.indexreviewer.review.RankedSecurity;
 import com.example.indexreviewer.review.ReviewResult;
 import com.example.indexreviewer.review.status.StatusReason.Relevance;
 import com.example.indexreviewer.review.status.StatusReason.WarningRef;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -39,20 +38,34 @@ final class UnrankedEstimate {
     StatusReason judge(String id, WarningRef warning) {
         var estimate = estimatedValue(id);
         if (estimate.isEmpty()) {
-            return new StatusReason(id, Relevance.NOT_ESTIMABLE,
-                    "Not ranked, and too little data to estimate its ranking value", warning);
+            return new StatusReason(
+                    id,
+                    Relevance.NOT_ESTIMABLE,
+                    "Not ranked, and too little data to estimate its ranking value",
+                    warning);
         }
         if (bufferEndValue.isEmpty()) {
-            return new StatusReason(id, Relevance.BUFFER_NOT_FULL, ("Not ranked, and fewer than %d securities are "
-                    + "ranked, so it could reach the buffer").formatted(bufferEnd), warning);
+            return new StatusReason(
+                    id,
+                    Relevance.BUFFER_NOT_FULL,
+                    ("Not ranked, and fewer than %d securities are " + "ranked, so it could reach the buffer")
+                            .formatted(bufferEnd),
+                    warning);
         }
         var value = bufferEndValue.get();
         boolean farBelow = estimate.get().compareTo(value.multiply(HARMLESS_SHARE_OF_BUFFER_END)) < 0;
-        String explanation = "Not ranked, estimated %s %s is %s half the value at buffer end rank %d (%s)".formatted(
-                result.index().rankingStrategy(), plain(estimate.get()), farBelow ? "below" : "not below", bufferEnd,
-                plain(value));
-        return new StatusReason(id, farBelow ? Relevance.ESTIMATED_FAR_BELOW_BUFFER : Relevance.ESTIMATED_NEAR_BUFFER,
-                explanation, warning);
+        String explanation = "Not ranked, estimated %s %s is %s half the value at buffer end rank %d (%s)"
+                .formatted(
+                        result.index().rankingStrategy(),
+                        plain(estimate.get()),
+                        farBelow ? "below" : "not below",
+                        bufferEnd,
+                        plain(value));
+        return new StatusReason(
+                id,
+                farBelow ? Relevance.ESTIMATED_FAR_BELOW_BUFFER : Relevance.ESTIMATED_NEAR_BUFFER,
+                explanation,
+                warning);
     }
 
     private static String plain(BigDecimal value) {

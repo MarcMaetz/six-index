@@ -1,12 +1,11 @@
 package com.example.indexreviewer.config;
 
 import com.example.indexreviewer.domain.IndexDefinition;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Application configuration under {@code index-reviewer}. Index definitions come from

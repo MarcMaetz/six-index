@@ -6,7 +6,6 @@ import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,8 +26,12 @@ public final class ReviewEngine {
         var eligibility = Eligibility.check(input, period);
         var warnings = new ArrayList<>(input.warnings());
         warnings.addAll(eligibility.excluded().stream()
-                .map(exclusion -> new DataQualityWarning(SOURCE, null, Impact.MISSING_DATA,
-                        "Excluded from ranking: " + exclusion.reason(), List.of(exclusion.securityId())))
+                .map(exclusion -> new DataQualityWarning(
+                        SOURCE,
+                        null,
+                        Impact.MISSING_DATA,
+                        "Excluded from ranking: " + exclusion.reason(),
+                        List.of(exclusion.securityId())))
                 .toList());
 
         var ranked = Ranking.rank(eligibility.eligible(), index.rankingStrategy(), input.currentComposition());
@@ -41,15 +44,23 @@ public final class ReviewEngine {
             ffmcapById.put(outcome.securityId(), outcome.ranked().eligible().ffmcap());
         }
         var capping = WeightCapping.cap(ffmcapById, index.weightCap());
-        Map<String, CappedWeight> weightById = capping.weights().stream()
-                .collect(Collectors.toMap(CappedWeight::securityId, Function.identity()));
+        Map<String, CappedWeight> weightById =
+                capping.weights().stream().collect(Collectors.toMap(CappedWeight::securityId, Function.identity()));
 
         var constituents = selected.stream()
                 .map(o -> new Constituent(o, weightById.get(o.securityId())))
                 .toList();
 
-        return new ReviewResult(index, period, input, eligibility.excluded(), selection, constituents,
-                leavers(input, period, eligibility, selection), capping.rounds(), warnings);
+        return new ReviewResult(
+                index,
+                period,
+                input,
+                eligibility.excluded(),
+                selection,
+                constituents,
+                leavers(input, period, eligibility, selection),
+                capping.rounds(),
+                warnings);
     }
 
     /**
@@ -59,18 +70,18 @@ public final class ReviewEngine {
     private static void requireEnoughRanked(IndexDefinition index, int ranked, int excluded) {
         if (ranked < index.constituentCount()) {
             throw new IncompleteIndexException(("%s needs %d constituents, but only %d securities could be ranked; "
-                    + "%d universe securities were excluded for missing data")
+                            + "%d universe securities were excluded for missing data")
                     .formatted(index.name(), index.constituentCount(), ranked, excluded));
         }
     }
 
     /** Current constituents not selected, in the order of the current composition. */
-    private static List<Leaver> leavers(InputData input, ReviewPeriod period, Eligibility.Result eligibility,
-                                        List<Selection.Outcome> selection) {
-        Map<String, Selection.Outcome> outcomeById = selection.stream()
-                .collect(Collectors.toMap(Selection.Outcome::securityId, Function.identity()));
-        Map<String, Exclusion> exclusionById = eligibility.excluded().stream()
-                .collect(Collectors.toMap(Exclusion::securityId, Function.identity()));
+    private static List<Leaver> leavers(
+            InputData input, ReviewPeriod period, Eligibility.Result eligibility, List<Selection.Outcome> selection) {
+        Map<String, Selection.Outcome> outcomeById =
+                selection.stream().collect(Collectors.toMap(Selection.Outcome::securityId, Function.identity()));
+        Map<String, Exclusion> exclusionById =
+                eligibility.excluded().stream().collect(Collectors.toMap(Exclusion::securityId, Function.identity()));
 
         var leavers = new ArrayList<Leaver>();
         for (String id : input.currentComposition()) {
@@ -80,11 +91,15 @@ public final class ReviewEngine {
                     leavers.add(notSelected(outcome));
                 }
             } else if (exclusionById.containsKey(id)) {
-                leavers.add(new Leaver(id, null, LeaveReason.NOT_ELIGIBLE, exclusionById.get(id).reason()));
+                leavers.add(new Leaver(
+                        id,
+                        null,
+                        LeaveReason.NOT_ELIGIBLE,
+                        exclusionById.get(id).reason()));
             } else {
                 // A universe security is either ranked or excluded, so this one left the universe.
-                leavers.add(new Leaver(id, null, LeaveReason.NOT_IN_UNIVERSE,
-                        "Not in the universe on " + period.reviewDate()));
+                leavers.add(new Leaver(
+                        id, null, LeaveReason.NOT_IN_UNIVERSE, "Not in the universe on " + period.reviewDate()));
             }
         }
         return leavers;
@@ -93,7 +108,9 @@ public final class ReviewEngine {
     private static Leaver notSelected(Selection.Outcome outcome) {
         int rank = outcome.rank();
         boolean bufferFull = outcome.decision() == SelectionDecision.NOT_SELECTED_BUFFER_FULL;
-        return new Leaver(outcome.securityId(), rank,
+        return new Leaver(
+                outcome.securityId(),
+                rank,
                 bufferFull ? LeaveReason.BUFFER_FULL : LeaveReason.BELOW_BUFFER,
                 "Rank %d, %s".formatted(rank, bufferFull ? "buffer slots taken" : "below the buffer"));
     }

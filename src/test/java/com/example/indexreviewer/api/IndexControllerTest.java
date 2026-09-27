@@ -1,5 +1,9 @@
 package com.example.indexreviewer.api;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-
-import java.nio.file.Path;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** Runs against the packaged {@code config/indices.yml} and the provided data in {@code data/SMI/2026-Q3}. */
 @SpringBootTest
@@ -35,23 +34,32 @@ class IndexControllerTest {
 
     @Test
     void listsConfiguredIndices() {
-        assertThat(mvc.get().uri("/api/indices")).hasStatusOk().bodyJson()
-                .satisfies(json -> {
-                    assertThat(json).extractingPath("$[0].name").isEqualTo("SMI");
-                    assertThat(json).extractingPath("$[0].weightCap").isEqualTo(0.18);
-                    assertThat(json).extractingPath("$[0].methodology").asString().contains("v3.40");
-                    assertThat(json).extractingPath("$[0].reviewPeriods[0].cutOffDate").isEqualTo("2026-09-10");
-                });
+        assertThat(mvc.get().uri("/api/indices")).hasStatusOk().bodyJson().satisfies(json -> {
+            assertThat(json).extractingPath("$[0].name").isEqualTo("SMI");
+            assertThat(json).extractingPath("$[0].weightCap").isEqualTo(0.18);
+            assertThat(json).extractingPath("$[0].methodology").asString().contains("v3.40");
+            assertThat(json).extractingPath("$[0].reviewPeriods[0].cutOffDate").isEqualTo("2026-09-10");
+        });
     }
 
     @Test
     void checksInputOfReview() {
-        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/input")).hasStatusOk().bodyJson()
+        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/input"))
+                .hasStatusOk()
+                .bodyJson()
                 .satisfies(json -> {
-                    assertThat(json).extractingPath("$.universeSizeOnReviewDate").isEqualTo(205);
-                    assertThat(json).extractingPath("$.securityDataCountByDate['2026-09-10']").isEqualTo(205);
-                    assertThat(json).extractingPath("$.securityDataCountByDate['2026-09-21']").isEqualTo(204);
-                    assertThat(json).extractingPath("$.currentComposition.length()").isEqualTo(20);
+                    assertThat(json)
+                            .extractingPath("$.universeSizeOnReviewDate")
+                            .isEqualTo(205);
+                    assertThat(json)
+                            .extractingPath("$.securityDataCountByDate['2026-09-10']")
+                            .isEqualTo(205);
+                    assertThat(json)
+                            .extractingPath("$.securityDataCountByDate['2026-09-21']")
+                            .isEqualTo(204);
+                    assertThat(json)
+                            .extractingPath("$.currentComposition.length()")
+                            .isEqualTo(20);
                     assertThat(json).extractingPath("$.files.length()").isEqualTo(3);
                     assertThat(json).extractingPath("$.files[0]").isEqualTo("data/SMI/2026-Q3/spi_universe.csv");
                     assertThat(json).extractingPath("$.warnings.length()").isEqualTo(1);
@@ -60,10 +68,16 @@ class IndexControllerTest {
 
     @Test
     void returnsNotFoundForUnknownIndexOrPeriod() {
-        assertThat(mvc.get().uri("/api/indices/XYZ/reviews/2026-Q3/input")).hasStatus(HttpStatus.NOT_FOUND)
-                .bodyJson().extractingPath("$.detail").isEqualTo("Index XYZ is not configured");
-        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q4/input")).hasStatus(HttpStatus.NOT_FOUND)
-                .bodyJson().extractingPath("$.detail").isEqualTo("Review period 2026-Q4 is not configured for SMI");
+        assertThat(mvc.get().uri("/api/indices/XYZ/reviews/2026-Q3/input"))
+                .hasStatus(HttpStatus.NOT_FOUND)
+                .bodyJson()
+                .extractingPath("$.detail")
+                .isEqualTo("Index XYZ is not configured");
+        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q4/input"))
+                .hasStatus(HttpStatus.NOT_FOUND)
+                .bodyJson()
+                .extractingPath("$.detail")
+                .isEqualTo("Review period 2026-Q4 is not configured for SMI");
     }
 
     @Test
@@ -77,10 +91,12 @@ class IndexControllerTest {
             assertThat(json).extractingPath("$.reportId").isEqualTo(location.substring(location.lastIndexOf('/') + 1));
             assertThat(json).extractingPath("$.reportUrl").isEqualTo(location);
             assertThat(json).extractingPath("$.status").isEqualTo("COMPLETED_WITH_WARNINGS");
-            assertThat(json).extractingPath("$.statusReasons[*].relevance")
+            assertThat(json)
+                    .extractingPath("$.statusReasons[*].relevance")
                     .isEqualTo(List.of("NO_DATA_LOST", "ESTIMATED_FAR_BELOW_BUFFER"));
             assertThat(json).extractingPath("$.constituents.length()").isEqualTo(20);
-            assertThat(json).extractingPath("$.constituents[?(@.capped == true)].securityId")
+            assertThat(json)
+                    .extractingPath("$.constituents[?(@.capped == true)].securityId")
                     .isEqualTo(List.of("155", "205"));
             assertThat(json).extractingPath("$.constituents[0].weightPercent").isEqualTo(18.0);
             assertThat(json).extractingPath("$.joiners[*].securityId").isEqualTo(List.of("177"));
@@ -103,20 +119,29 @@ class IndexControllerTest {
             assertThat(json).extractingPath("$.joiners[0].securityId").isEqualTo("177");
             assertThat(json).extractingPath("$.cappingRounds").isEqualTo(List.of(List.of("155", "205")));
             assertThat(json).extractingPath("$.warnings[1].securityIds").isEqualTo(List.of("166"));
-            assertThat(json).extractingPath("$.parameters.methodology").asString().contains("v3.40");
+            assertThat(json)
+                    .extractingPath("$.parameters.methodology")
+                    .asString()
+                    .contains("v3.40");
             assertThat(json).extractingPath("$.build.version").isEqualTo("0.0.1-SNAPSHOT");
             assertThat(json).extractingPath("$.build.revision").asString().matches("[0-9a-f]{7,}(-dirty)?");
             assertThat(json).extractingPath("$.ranking[34].price").isEqualTo(165.7);
         });
-        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/reports")).hasStatusOk().bodyJson()
-                .extractingPath("$[*].id").asArray().contains(id);
+        assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/reports"))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$[*].id")
+                .asArray()
+                .contains(id);
     }
 
     @Test
     void unknownStoredReportIsNotFound() {
         assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q3/reports/20000101T000000000Z"))
                 .hasStatus(HttpStatus.NOT_FOUND)
-                .bodyJson().extractingPath("$.title").isEqualTo("Report not found");
+                .bodyJson()
+                .extractingPath("$.title")
+                .isEqualTo("Report not found");
         assertThat(mvc.get().uri("/api/indices/SMI/reviews/2026-Q4/reports")).hasStatus(HttpStatus.NOT_FOUND);
     }
 
@@ -135,16 +160,22 @@ class IndexControllerTest {
 
     @Test
     void springErrorsAreProblemResponsesToo() {
-        assertThat(mvc.get().uri("/api/unknown")).hasStatus(HttpStatus.NOT_FOUND)
+        assertThat(mvc.get().uri("/api/unknown"))
+                .hasStatus(HttpStatus.NOT_FOUND)
                 .hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
-        assertThat(mvc.delete().uri("/api/indices")).hasStatus(HttpStatus.METHOD_NOT_ALLOWED)
+        assertThat(mvc.delete().uri("/api/indices"))
+                .hasStatus(HttpStatus.METHOD_NOT_ALLOWED)
                 .hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .bodyJson().extractingPath("$.status").isEqualTo(405);
+                .bodyJson()
+                .extractingPath("$.status")
+                .isEqualTo(405);
     }
 
     @Test
     void apiDocsDescribeStoredReportAsReviewReport() {
-        assertThat(mvc.get().uri("/api-docs")).hasStatusOk().bodyJson()
+        assertThat(mvc.get().uri("/api-docs"))
+                .hasStatusOk()
+                .bodyJson()
                 .extractingPath("$.paths['/api/indices/{index}/reviews/{period}/reports/{id}'].get.responses['200']"
                         + ".content['application/json'].schema['$ref']")
                 .isEqualTo("#/components/schemas/ReviewReport");
@@ -153,12 +184,18 @@ class IndexControllerTest {
     @Test
     void apiDocsKeepSummaryAndReportConstituentsApart() {
         assertThat(mvc.get().uri("/api-docs")).hasStatusOk().bodyJson().satisfies(json -> {
-            assertThat(json).extractingPath("$.components.schemas.ReviewSummaryResponse.properties.constituents"
-                    + ".items['$ref']").isEqualTo("#/components/schemas/ConstituentSummary");
-            assertThat(json).extractingPath("$.components.schemas.ConstituentSummary.properties")
-                    .asMap().doesNotContainKey("cappingFactor");
-            assertThat(json).extractingPath("$.components.schemas.Constituent.properties")
-                    .asMap().containsKey("cappingFactor");
+            assertThat(json)
+                    .extractingPath(
+                            "$.components.schemas.ReviewSummaryResponse.properties.constituents" + ".items['$ref']")
+                    .isEqualTo("#/components/schemas/ConstituentSummary");
+            assertThat(json)
+                    .extractingPath("$.components.schemas.ConstituentSummary.properties")
+                    .asMap()
+                    .doesNotContainKey("cappingFactor");
+            assertThat(json)
+                    .extractingPath("$.components.schemas.Constituent.properties")
+                    .asMap()
+                    .containsKey("cappingFactor");
         });
     }
 }

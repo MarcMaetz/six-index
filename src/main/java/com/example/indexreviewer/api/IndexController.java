@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,8 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.util.List;
 
 /** Maps HTTP to the {@link ReviewService} use cases; holds no review logic of its own. */
 @RestController
@@ -36,16 +35,18 @@ public class IndexController {
         return service.indices();
     }
 
-    @Operation(summary = "Load and validate the input of a review without running it",
-            description = "Returns the files read, data counts, the current composition "
-                    + "and all data-quality warnings.")
+    @Operation(
+            summary = "Load and validate the input of a review without running it",
+            description =
+                    "Returns the files read, data counts, the current composition " + "and all data-quality warnings.")
     @GetMapping("/{index}/reviews/{period}/input")
     public InputCheckResponse input(@PathVariable String index, @PathVariable String period) {
         var input = service.input(index, period);
         return InputCheckResponse.of(input.index(), input.period(), input.data());
     }
 
-    @Operation(summary = "Run a review, store its report and return a summary",
+    @Operation(
+            summary = "Run a review, store its report and return a summary",
             description = "Loads the review's input, ranks, selects and caps, and returns the review status, "
                     + "the new composition with weights, joiners and leavers. The full report with the audit "
                     + "trail is stored as written; reportUrl in the body and the Location header point to it.")
@@ -53,7 +54,9 @@ public class IndexController {
     public ResponseEntity<ReviewSummaryResponse> review(@PathVariable String index, @PathVariable String period) {
         var run = service.run(index, period);
         var location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/reports/{id}").buildAndExpand(run.stored().id()).toUri();
+                .path("/reports/{id}")
+                .buildAndExpand(run.stored().id())
+                .toUri();
         return ResponseEntity.created(location).body(ReviewSummaryResponse.of(run.stored(), location, run.report()));
     }
 
@@ -68,9 +71,13 @@ public class IndexController {
      * documents them with the current report schema.
      */
     @Operation(summary = "Get a stored report exactly as it was written")
-    @ApiResponse(responseCode = "200", description = "The stored report",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = ReviewReport.class)))
+    @ApiResponse(
+            responseCode = "200",
+            description = "The stored report",
+            content =
+                    @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ReviewReport.class)))
     @GetMapping(value = "/{index}/reviews/{period}/reports/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public byte[] report(@PathVariable String index, @PathVariable String period, @PathVariable String id) {
         return service.report(index, period, id);

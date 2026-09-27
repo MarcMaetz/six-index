@@ -6,6 +6,7 @@ plugins {
 	id 'com.gorylenko.gradle-git-properties' version '4.0.1'
 	id 'info.solidsoft.pitest' version '1.19.0'
 	id 'net.ltgt.errorprone' version '5.1.1'
+	id 'com.diffplug.spotless' version '7.0.2'
 }
 
 group = 'com.example'
@@ -40,6 +41,14 @@ dependencies {
 
 	// Static analysis at compile time
 	errorprone 'com.google.errorprone:error_prone_core:2.50.0'
+}
+
+// Formatting: palantir-java-format (4 spaces, 120 columns). ./gradlew spotlessApply fixes it; the build's
+// spotlessCheck fails on unformatted code, so formatting never comes up in review.
+spotless {
+	java {
+		palantirJavaFormat()
+	}
 }
 
 // Error Prone warnings fail the build, so they get fixed (or suppressed with a reason) instead of scrolling by

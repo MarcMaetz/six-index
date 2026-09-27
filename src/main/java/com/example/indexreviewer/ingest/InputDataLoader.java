@@ -4,7 +4,6 @@ import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.SecurityData;
-
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,14 +57,17 @@ public final class InputDataLoader {
         }
         var universeFile = new FileLoad(inputDir.resolve(universeFileName(universe)), List.of(DATE, ID));
         var universeByDate = loadUniverse(universeFile);
-        var securityFile = new FileLoad(inputDir.resolve(SECURITY_DATA_FILE),
-                List.of(ID, DATE, PRICE, FREE_FLOAT, SHARES));
+        var securityFile =
+                new FileLoad(inputDir.resolve(SECURITY_DATA_FILE), List.of(ID, DATE, PRICE, FREE_FLOAT, SHARES));
         var securityData = loadSecurityData(securityFile);
         var compositionFile = new FileLoad(inputDir.resolve(COMPOSITION_FILE), List.of(ID));
         var composition = loadComposition(compositionFile);
 
         var loaded = List.of(universeFile, securityFile, compositionFile);
-        return new InputData(universeByDate, securityData, composition,
+        return new InputData(
+                universeByDate,
+                securityData,
+                composition,
                 loaded.stream().flatMap(file -> file.warnings.stream()).toList(),
                 loaded.stream().map(file -> file.content.file().toString()).toList());
     }
@@ -76,7 +78,8 @@ public final class InputDataLoader {
         var duplicates = new ArrayList<String>();
         for (var parsed : file.parseRows(row -> new UniverseMember(parseDate(row, DATE), requireValue(row, ID)))) {
             var member = parsed.value();
-            if (!universe.computeIfAbsent(member.date(), d -> new LinkedHashSet<>()).add(member.id())) {
+            if (!universe.computeIfAbsent(member.date(), d -> new LinkedHashSet<>())
+                    .add(member.id())) {
                 duplicates.add(member.id());
             }
         }
@@ -92,8 +95,8 @@ public final class InputDataLoader {
         var byId = new LinkedHashMap<String, Map<LocalDate, SecurityData>>();
         var duplicates = new ArrayList<String>();
         var conflicts = new LinkedHashSet<SecurityData>();
-        for (var parsed : file.parseRows(row -> new SecurityData(requireValue(row, ID), parseDate(row, DATE),
-                parsePrice(row), parseFreeFloat(row), parseShares(row)))) {
+        for (var parsed : file.parseRows(row -> new SecurityData(
+                requireValue(row, ID), parseDate(row, DATE), parsePrice(row), parseFreeFloat(row), parseShares(row)))) {
             var data = parsed.value();
             var byDate = byId.computeIfAbsent(data.securityId(), id -> new LinkedHashMap<>());
             var existing = byDate.putIfAbsent(data.date(), data);
@@ -104,9 +107,12 @@ public final class InputDataLoader {
                 duplicates.add(data.securityId());
             } else {
                 conflicts.add(existing);
-                file.warn(parsed.line(), Impact.MISSING_DATA,
+                file.warn(
+                        parsed.line(),
+                        Impact.MISSING_DATA,
                         "Conflicting data for %s on %s; all rows for that date ignored"
-                                .formatted(data.securityId(), data.date()), List.of(data.securityId()));
+                                .formatted(data.securityId(), data.date()),
+                        List.of(data.securityId()));
             }
         }
         for (var conflict : conflicts) {
@@ -214,7 +220,10 @@ public final class InputDataLoader {
                     parsed.add(new ParsedRow<>(row.line(), parser.apply(row)));
                 } catch (InvalidRowException e) {
                     String id = row.get(ID);
-                    warn(row.line(), Impact.MISSING_DATA, "Row ignored: " + e.getMessage(),
+                    warn(
+                            row.line(),
+                            Impact.MISSING_DATA,
+                            "Row ignored: " + e.getMessage(),
                             id.isEmpty() ? List.of() : List.of(id));
                 }
             }
@@ -233,11 +242,9 @@ public final class InputDataLoader {
     }
 
     /** A row's parsed value with its line number, for warnings raised after parsing. */
-    private record ParsedRow<T>(int line, T value) {
-    }
+    private record ParsedRow<T>(int line, T value) {}
 
-    private record UniverseMember(LocalDate date, String id) {
-    }
+    private record UniverseMember(LocalDate date, String id) {}
 
     private static final class InvalidRowException extends RuntimeException {
         InvalidRowException(String message) {

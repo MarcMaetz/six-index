@@ -1,10 +1,11 @@
 package com.example.indexreviewer.ingest;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
+
 import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.InputData;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -12,10 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.tuple;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class InputDataLoaderTest {
 
@@ -33,10 +32,10 @@ class InputDataLoaderTest {
 
         assertThat(data.universe(REVIEW)).hasSize(205);
         assertThat(data.currentComposition()).hasSize(20);
-        assertThat(data.securityData("155", CUT_OFF)).get()
-                .satisfies(d -> assertThat(d.price()).isNotNull());
-        assertThat(data.securityData("155", REVIEW)).get()
-                .satisfies(d -> assertThat(d.price()).isNull());
+        assertThat(data.securityData("155", CUT_OFF)).get().satisfies(d -> assertThat(d.price())
+                .isNotNull());
+        assertThat(data.securityData("155", REVIEW)).get().satisfies(d -> assertThat(d.price())
+                .isNull());
         assertThat(data.securityData("166", CUT_OFF)).isPresent();
         assertThat(data.securityData("166", REVIEW)).isEmpty();
 
@@ -63,7 +62,8 @@ class InputDataLoaderTest {
             assertThat(d.freeFloat()).isEqualByComparingTo("0.8");
             assertThat(d.shares()).isEqualTo(1000L);
         });
-        assertThat(data.securityData("1", REVIEW)).get().satisfies(d -> assertThat(d.price()).isNull());
+        assertThat(data.securityData("1", REVIEW)).get().satisfies(d -> assertThat(d.price())
+                .isNull());
         assertThat(data.warnings()).isEmpty();
     }
 
@@ -78,10 +78,9 @@ class InputDataLoaderTest {
 
         assertThat(data.universe(REVIEW)).containsExactly("1", "2");
         assertThat(data.currentComposition()).containsExactly("1");
-        assertThat(data.warnings()).extracting(DataQualityWarning::source, DataQualityWarning::securityIds)
-                .containsExactly(
-                        tuple("spi_universe.csv", List.of("1")),
-                        tuple("composition.csv", List.of("1")));
+        assertThat(data.warnings())
+                .extracting(DataQualityWarning::source, DataQualityWarning::securityIds)
+                .containsExactly(tuple("spi_universe.csv", List.of("1")), tuple("composition.csv", List.of("1")));
     }
 
     @Test
@@ -103,14 +102,16 @@ class InputDataLoaderTest {
 
         assertThat(data.universe(REVIEW)).containsExactly("1");
         assertThat(data.securityDataById()).containsOnlyKeys("6");
-        assertThat(data.warnings()).extracting(DataQualityWarning::toString).containsExactly(
-                "spi_universe.csv:3: Row ignored: date '21.09.2026' is not an ISO date",
-                "spi_universe.csv:4: Row ignored: id is empty",
-                "sec_data.csv:6: Row ignored: expected 5 fields, found 4",
-                "sec_data.csv:2: Row ignored: price 'abc' is not a number",
-                "sec_data.csv:3: Row ignored: free_float 1.5 is not in (0, 1]",
-                "sec_data.csv:4: Row ignored: price -1 is not positive",
-                "sec_data.csv:5: Row ignored: shares 10.5 is not a positive whole number");
+        assertThat(data.warnings())
+                .extracting(DataQualityWarning::toString)
+                .containsExactly(
+                        "spi_universe.csv:3: Row ignored: date '21.09.2026' is not an ISO date",
+                        "spi_universe.csv:4: Row ignored: id is empty",
+                        "sec_data.csv:6: Row ignored: expected 5 fields, found 4",
+                        "sec_data.csv:2: Row ignored: price 'abc' is not a number",
+                        "sec_data.csv:3: Row ignored: free_float 1.5 is not in (0, 1]",
+                        "sec_data.csv:4: Row ignored: price -1 is not positive",
+                        "sec_data.csv:5: Row ignored: shares 10.5 is not a positive whole number");
     }
 
     @Test
@@ -131,17 +132,20 @@ class InputDataLoaderTest {
 
         assertThat(data.securityData("1", CUT_OFF)).isPresent();
         assertThat(data.securityData("2", CUT_OFF)).isEmpty();
-        assertThat(data.securityData("2", REVIEW)).get()
-                .satisfies(d -> assertThat(d.freeFloat()).isEqualTo(new BigDecimal("0.5")));
-        assertThat(data.warnings()).extracting(DataQualityWarning::toString).containsExactly(
-                "sec_data.csv:5: Conflicting data for 2 on 2026-09-10; all rows for that date ignored",
-                "sec_data.csv: 1 duplicate row(s) ignored");
+        assertThat(data.securityData("2", REVIEW)).get().satisfies(d -> assertThat(d.freeFloat())
+                .isEqualTo(new BigDecimal("0.5")));
+        assertThat(data.warnings())
+                .extracting(DataQualityWarning::toString)
+                .containsExactly(
+                        "sec_data.csv:5: Conflicting data for 2 on 2026-09-10; all rows for that date ignored",
+                        "sec_data.csv: 1 duplicate row(s) ignored");
     }
 
     @Test
     void readsFilesWithoutByteOrderMarkAndSkipsBlankLines() throws IOException {
         Files.writeString(dir.resolve(InputDataLoader.universeFileName("SPI")), "date;id\n\n2026-09-21;1\n");
-        Files.writeString(dir.resolve(InputDataLoader.SECURITY_DATA_FILE),
+        Files.writeString(
+                dir.resolve(InputDataLoader.SECURITY_DATA_FILE),
                 "id;date;price;free_float;shares\n1;2026-09-10;12.5;;\n\n");
         Files.writeString(dir.resolve(InputDataLoader.COMPOSITION_FILE), "id\n1\n");
 
@@ -172,10 +176,12 @@ class InputDataLoaderTest {
         InputData data = loader.load(dir, "SPI");
 
         assertThat(data.securityDataById()).isEmpty();
-        assertThat(data.warnings()).extracting(DataQualityWarning::toString).containsExactly(
-                "sec_data.csv:2: Row ignored: free_float 0 is not in (0, 1]",
-                "sec_data.csv:3: Row ignored: shares 99999999999999999999 is out of range",
-                "sec_data.csv:4: Row ignored: shares 0 is not a positive whole number");
+        assertThat(data.warnings())
+                .extracting(DataQualityWarning::toString)
+                .containsExactly(
+                        "sec_data.csv:2: Row ignored: free_float 0 is not in (0, 1]",
+                        "sec_data.csv:3: Row ignored: shares 99999999999999999999 is out of range",
+                        "sec_data.csv:4: Row ignored: shares 0 is not a positive whole number");
     }
 
     @Test
@@ -200,7 +206,7 @@ class InputDataLoaderTest {
     void failsOnInvalidUtf8() throws IOException {
         writeFiles("date;id\n2026-09-21;1\n", "id;date;price;free_float;shares\n", "id\n1\n");
         // 0xFF never occurs in UTF-8; a lenient decoder would read it as U+FFFD and carry on.
-        Files.write(dir.resolve(InputDataLoader.COMPOSITION_FILE), new byte[]{'i', 'd', '\n', (byte) 0xFF, '\n'});
+        Files.write(dir.resolve(InputDataLoader.COMPOSITION_FILE), new byte[] {'i', 'd', '\n', (byte) 0xFF, '\n'});
 
         assertThatThrownBy(() -> loader.load(dir, "SPI"))
                 .isInstanceOf(InputDataException.class)
@@ -228,8 +234,11 @@ class InputDataLoaderTest {
 
         InputData data = loader.load(dir, "SPI");
 
-        assertThat(data.files()).containsExactly(dir.resolve("spi_universe.csv").toString(),
-                dir.resolve("sec_data.csv").toString(), dir.resolve("composition.csv").toString());
+        assertThat(data.files())
+                .containsExactly(
+                        dir.resolve("spi_universe.csv").toString(),
+                        dir.resolve("sec_data.csv").toString(),
+                        dir.resolve("composition.csv").toString());
     }
 
     /** Writes the three input files with a UTF-8 byte order mark, as delivered. */

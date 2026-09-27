@@ -1,7 +1,6 @@
 package com.example.indexreviewer.review;
 
 import com.example.indexreviewer.domain.IndexDefinition;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -33,8 +32,7 @@ public final class Selection {
         }
     }
 
-    private Selection() {
-    }
+    private Selection() {}
 
     /** Decisions for all ranked securities, in rank order; at least the constituent count must be ranked. */
     static List<Outcome> select(List<RankedSecurity> ranked, IndexDefinition index) {
@@ -53,21 +51,25 @@ public final class Selection {
 
         // Ranks 1 to the direct selection rank are all taken, since at least the constituent count is ranked.
         fillBuffer(buffer, index.constituentCount() - index.directSelectionRank(), decisions);
-        return decisions.entrySet().stream().map(e -> new Outcome(e.getKey(), e.getValue())).toList();
+        return decisions.entrySet().stream()
+                .map(e -> new Outcome(e.getKey(), e.getValue()))
+                .toList();
     }
 
     /** Fills the free slots from the buffer: incumbents first, then new securities, each in rank order (A7). */
-    private static void fillBuffer(List<RankedSecurity> buffer, int slots,
-                                   Map<RankedSecurity, SelectionDecision> decisions) {
+    private static void fillBuffer(
+            List<RankedSecurity> buffer, int slots, Map<RankedSecurity, SelectionDecision> decisions) {
         // Incumbents sort first; the sort is stable, so each group keeps its rank order.
         var chosen = buffer.stream()
                 .sorted(Comparator.comparing(RankedSecurity::incumbent).reversed())
                 .limit(slots)
                 .toList();
         for (var security : chosen) {
-            decisions.put(security, security.incumbent()
-                    ? SelectionDecision.SELECTED_BUFFER_INCUMBENT
-                    : SelectionDecision.SELECTED_BUFFER_NEW);
+            decisions.put(
+                    security,
+                    security.incumbent()
+                            ? SelectionDecision.SELECTED_BUFFER_INCUMBENT
+                            : SelectionDecision.SELECTED_BUFFER_NEW);
         }
     }
 }

@@ -3,7 +3,6 @@ package com.example.indexreviewer.ingest;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
-
 import java.nio.file.Path;
 
 /** Reads a review's CSVs from {@code <data-dir>/<index>/<period>}, e.g. {@code data/SMI/2026-Q3}. */

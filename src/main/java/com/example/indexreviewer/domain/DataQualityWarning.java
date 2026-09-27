@@ -13,8 +13,7 @@ import java.util.Objects;
  * @param message     what was found and what was done about it
  * @param securityIds securities affected, empty if none can be named
  */
-public record DataQualityWarning(String source, Integer line, Impact impact, String message,
-                                 List<String> securityIds) {
+public record DataQualityWarning(String source, Integer line, Impact impact, String message, List<String> securityIds) {
 
     /** Whether a warning can affect the review result; drives the review status. */
     public enum Impact {

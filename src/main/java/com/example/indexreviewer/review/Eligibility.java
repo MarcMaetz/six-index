@@ -3,7 +3,6 @@ package com.example.indexreviewer.review;
 import com.example.indexreviewer.domain.InputData;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.domain.SecurityData;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,8 +22,7 @@ final class Eligibility {
         }
     }
 
-    private Eligibility() {
-    }
+    private Eligibility() {}
 
     static Result check(InputData data, ReviewPeriod period) {
         var eligible = new ArrayList<EligibleSecurity>();

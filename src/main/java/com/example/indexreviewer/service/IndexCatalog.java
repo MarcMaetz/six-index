@@ -2,7 +2,6 @@ package com.example.indexreviewer.service;
 
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
-
 import java.util.List;
 
 /**
@@ -29,7 +28,8 @@ public final class IndexCatalog {
     }
 
     public ReviewPeriod reviewPeriod(IndexDefinition index, String periodId) {
-        return index.reviewPeriod(periodId).orElseThrow(() -> new NotConfiguredException(
-                "Review period " + periodId + " is not configured for " + index.name()));
+        return index.reviewPeriod(periodId)
+                .orElseThrow(() -> new NotConfiguredException(
+                        "Review period " + periodId + " is not configured for " + index.name()));
     }
 }

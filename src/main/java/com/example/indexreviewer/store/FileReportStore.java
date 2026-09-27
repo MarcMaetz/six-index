@@ -2,10 +2,6 @@ package com.example.indexreviewer.store;
 
 import com.example.indexreviewer.report.ReviewReport;
 import com.example.indexreviewer.review.status.ReviewStatus;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectReader;
-import tools.jackson.databind.json.JsonMapper;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -18,6 +14,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectReader;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Stores each report as a pretty-printed JSON file {@code <root>/<index>/<period>/<id>.json}. The id is the UTC
@@ -31,6 +30,7 @@ public final class FileReportStore implements ReportStore {
             DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssSSSSSSSSS'Z'").withZone(ZoneOffset.UTC);
     /** Ids and path segments must not be able to leave the store's folder. */
     private static final Pattern SAFE_SEGMENT = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]*");
+
     private static final String SUFFIX = ".json";
 
     private final Path root;
@@ -100,8 +100,7 @@ public final class FileReportStore implements ReportStore {
     }
 
     /** The fields of a stored {@link ReviewReport} a listing shows; named like the report's components. */
-    private record Summary(Instant generatedAt, ReviewStatus status) {
-    }
+    private record Summary(Instant generatedAt, ReviewStatus status) {}
 
     private Path folder(String index, String reviewPeriod) {
         for (String segment : List.of(index, reviewPeriod)) {
