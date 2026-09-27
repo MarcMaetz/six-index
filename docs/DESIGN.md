@@ -199,7 +199,7 @@ checked in the build):
 - **Error Prone** runs on every compile; its warnings fail the build.
 - **Mutation testing** (`./gradlew pitest`) plants small bugs in `review` and checks that a test catches each:
   169 of 172 are caught; the 3 left are documented as harmless.
-- **Coverage** (`./gradlew test jacocoTestReport`): 98% of lines, 99.6% of branches; what is left uncovered is
+- **Coverage** (`./gradlew test jacocoTestReport`): 99% of lines, 99.6% of branches; what is left uncovered is
   one-line exception rethrows and code that cannot fail.
 
 Decimal assertions use tolerances where the last of 34 digits can round either way.

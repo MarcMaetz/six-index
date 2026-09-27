@@ -1,7 +1,8 @@
 # SIX Index Reviewer
 
 Runs the SMI index review for Q3 2026 and exposes it through a REST API. Solution to the SIX Index IT home
-assignment.
+assignment. The brief and the SIX rulebook are SIX's documents and not part of this repository; the rules applied
+are summarized in [docs/APPROACH.md](docs/APPROACH.md#rulebook-rules-applied).
 
 The review follows SIX rulebook section 5.12. Securities in the SPI universe are ranked by free float market
 capitalization (FFMCAP = price at cut-off × shares × free float at the review date). Ranks 1–18 are selected

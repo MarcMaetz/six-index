@@ -69,6 +69,8 @@ section 5.12, with definitions in 2 and 4.3.
   each other, so it runs top to bottom in newman.
 - **Delivered as the GitHub repository**, not a ZIP: reviewers see the history next to this file, and GitHub's
   "Download ZIP" still gives an archive. The README is the entry point; `DESIGN.md` gives the structured view.
+  The brief and the SIX rulebook PDF are not in the repository: they are SIX's documents, not mine to publish.
+  The rules the code applies are summarized under *Rulebook rules applied*, with section numbers.
 
 ## Architecture
 
