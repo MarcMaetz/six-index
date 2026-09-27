@@ -252,7 +252,8 @@ After the features were complete, the code was scanned smell by smell:
 - **Try blocks** wrap only the call whose exception they translate; a wide try can swallow a bug as an
   "invalid row".
 - **Long methods** were split into named steps, so the top-level method reads as the algorithm (capping:
-  distribute → over the cap? → repeat → factors). Single loops that read top to bottom were left alone.
+  weights this round → anyone above the cap? → cap them and repeat → final weights with capping factors).
+  Single loops that read top to bottom were left alone.
 - **Shared state in an object.** Where the steps of one calculation all need the same data (`WeightCapping`:
   FFMCAP, the cap, the growing capped set; `StatusAssessment`: the result and its rank lookup), a static entry
   point creates a private instance that holds it, instead of passing three parameters to every step. Steps
