@@ -1,6 +1,7 @@
 package com.example.indexreviewer.store;
 
 import com.example.indexreviewer.domain.IndexDefinition;
+import com.example.indexreviewer.domain.RankingStrategy;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
 import com.example.indexreviewer.report.ReportBuilder;
@@ -44,7 +45,7 @@ class FileReportStoreTest {
     static void runQ3Review() {
         var q3 = new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
         var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
-                "FFMCAP", List.of(q3));
+                RankingStrategy.FFMCAP, List.of(q3));
         result = new ReviewEngine().run(smi, q3, new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI"));
         report = withTime(NOW);
     }

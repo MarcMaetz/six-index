@@ -1,6 +1,7 @@
 package com.example.indexreviewer.report;
 
 import com.example.indexreviewer.domain.IndexDefinition;
+import com.example.indexreviewer.domain.RankingStrategy;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
 import com.example.indexreviewer.review.Exclusion;
@@ -29,7 +30,7 @@ class ReportBuilderTest {
             new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
     private static final IndexDefinition SMI =
             new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
-                    "FFMCAP", List.of(Q3));
+                    RankingStrategy.FFMCAP, List.of(Q3));
     private static final Instant NOW = Instant.parse("2026-09-25T12:00:00Z");
     private static final ReviewReport.Build BUILD = new ReviewReport.Build("1.0", "abc1234-dirty");
 

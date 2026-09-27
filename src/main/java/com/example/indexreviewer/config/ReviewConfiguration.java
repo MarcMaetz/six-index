@@ -29,7 +29,7 @@ public class ReviewConfiguration {
         return Clock.systemUTC();
     }
 
-    /** The indices of {@code config/indices.yml}; fails startup on an unknown ranking strategy. */
+    /** The indices of {@code config/indices.yml}. */
     @Bean
     IndexCatalog indexCatalog(IndexReviewerProperties properties) {
         return new IndexCatalog(properties.indices());

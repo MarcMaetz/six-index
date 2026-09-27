@@ -3,6 +3,7 @@ package com.example.indexreviewer.service;
 import com.example.indexreviewer.catalog.IndexCatalog;
 import com.example.indexreviewer.catalog.NotConfiguredException;
 import com.example.indexreviewer.domain.IndexDefinition;
+import com.example.indexreviewer.domain.RankingStrategy;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.CsvFolderInputSource;
 import com.example.indexreviewer.report.ReportBuilder;
@@ -45,7 +46,7 @@ class ReviewServiceTest {
     void setUp() {
         var q3 = new ReviewPeriod("2026-Q3", LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-21"));
         var smi = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
-                "FFMCAP", List.of(q3));
+                RankingStrategy.FFMCAP, List.of(q3));
         var catalog = new IndexCatalog(List.of(smi));
         service = new ReviewService(catalog, new CsvFolderInputSource(Path.of("data")), new ReviewEngine(),
                 new ReportBuilder(Clock.fixed(NOW, ZoneOffset.UTC), ReviewReport.Build.UNKNOWN),

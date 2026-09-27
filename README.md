@@ -84,9 +84,10 @@ message.
 **Adding a quarter:** add a review period to `config/indices.yml` and put its three CSVs in
 `data/SMI/<period>/`. **Adding an index** that follows the SMI's kind of rules (buffer selection, one cap for all):
 add an index block and a `data/<index>/<period>/` folder. **Adding a ranking rule** computed from price, shares and
-free float: implement `RankingStrategy`, register it, and select it by name in the YAML. Other rules, such as the
-SLI's tiered capping or the rulebook's full selection list, need code; what each takes, and what the design
-deliberately doesn't cover, is in [docs/DESIGN.md](docs/DESIGN.md#configuration-and-extensibility).
+free float: add a constant to the `RankingStrategy` enum and its `case` in `EligibleSecurity.rankingValue`, and
+select it by name in the YAML. Other rules, such as the SLI's tiered capping or the rulebook's full selection list,
+need code; what each takes, and what the design deliberately doesn't cover, is in
+[docs/DESIGN.md](docs/DESIGN.md#configuration-and-extensibility).
 
 ## Documentation
 

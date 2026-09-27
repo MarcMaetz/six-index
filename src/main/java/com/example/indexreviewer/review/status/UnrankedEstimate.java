@@ -78,7 +78,7 @@ final class UnrankedEstimate {
         if (price.isEmpty() || shares.isEmpty() || freeFloat.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(result.rankingStrategy()
-                .rankingValue(EligibleSecurity.of(id, price.get(), shares.get(), freeFloat.get())));
+        return Optional.of(EligibleSecurity.of(id, price.get(), shares.get(), freeFloat.get())
+                .rankingValue(result.index().rankingStrategy()));
     }
 }

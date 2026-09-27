@@ -17,7 +17,7 @@ import java.util.Optional;
  * @param directSelectionRank  securities ranked up to here are selected directly
  * @param bufferEndRank        last rank of the selection buffer; incumbents ranked below it leave
  * @param weightCap            maximum weight of one constituent, in (0, 1]
- * @param rankingStrategy      name of the ranking criterion, e.g. {@code FFMCAP}
+ * @param rankingStrategy      the criterion securities are ranked by, e.g. {@code FFMCAP}
  * @param reviewPeriods        scheduled reviews, with unique ids
  */
 public record IndexDefinition(
@@ -28,14 +28,14 @@ public record IndexDefinition(
         int directSelectionRank,
         int bufferEndRank,
         BigDecimal weightCap,
-        String rankingStrategy,
+        RankingStrategy rankingStrategy,
         List<ReviewPeriod> reviewPeriods) {
 
     public IndexDefinition {
         Validation.requireText(name, "index name");
         Validation.requireText(methodology, "methodology of " + name);
         Validation.requireText(universe, "universe of " + name);
-        Validation.requireText(rankingStrategy, "ranking strategy of " + name);
+        Objects.requireNonNull(rankingStrategy, "ranking strategy of " + name);
         Validation.require(constituentCount > 0,
                 "%s: constituent count %d must be positive".formatted(name, constituentCount));
         Validation.require(directSelectionRank >= 1 && directSelectionRank <= constituentCount,

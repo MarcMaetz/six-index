@@ -51,7 +51,7 @@ class IndexDefinitionTest {
     @Test
     void requiresMethodology() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                        new IndexDefinition("SMI", " ", "SPI", 20, 18, 22, new BigDecimal("0.18"), "FFMCAP", List.of()))
+                        new IndexDefinition("SMI", " ", "SPI", 20, 18, 22, new BigDecimal("0.18"), RankingStrategy.FFMCAP, List.of()))
                 .withMessageContaining("methodology of SMI must not be blank");
     }
 
@@ -59,7 +59,7 @@ class IndexDefinitionTest {
     void requiresName() {
         assertThatIllegalArgumentException().isThrownBy(() ->
                         new IndexDefinition(null, "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
-                                "FFMCAP", List.of()))
+                                RankingStrategy.FFMCAP, List.of()))
                 .withMessage("index name must not be blank");
     }
 
@@ -83,6 +83,6 @@ class IndexDefinitionTest {
 
     private static IndexDefinition smi(int count, int direct, int bufferEnd, String cap, List<ReviewPeriod> periods) {
         return new IndexDefinition("SMI", "Rulebook v3.40", "SPI", count, direct, bufferEnd, new BigDecimal(cap),
-                "FFMCAP", periods);
+                RankingStrategy.FFMCAP, periods);
     }
 }

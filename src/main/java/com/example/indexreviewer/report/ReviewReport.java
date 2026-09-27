@@ -1,6 +1,7 @@
 package com.example.indexreviewer.report;
 
 import com.example.indexreviewer.domain.DataQualityWarning;
+import com.example.indexreviewer.domain.RankingStrategy;
 import com.example.indexreviewer.review.Exclusion;
 import com.example.indexreviewer.review.Leaver;
 import com.example.indexreviewer.review.SelectionDecision;
@@ -49,7 +50,7 @@ public record ReviewReport(
 
     /** The index parameters the review ran with. */
     public record Parameters(String methodology, String universe, int constituentCount, int directSelectionRank,
-                             int bufferEndRank, BigDecimal weightCapPercent, String rankingStrategy) {
+                             int bufferEndRank, BigDecimal weightCapPercent, RankingStrategy rankingStrategy) {
     }
 
     public record Constituent(int rank, String securityId, SelectionDecision selection, boolean joiner,

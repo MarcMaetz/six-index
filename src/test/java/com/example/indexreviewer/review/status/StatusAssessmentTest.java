@@ -4,6 +4,7 @@ import com.example.indexreviewer.domain.DataQualityWarning;
 import com.example.indexreviewer.domain.DataQualityWarning.Impact;
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
+import com.example.indexreviewer.domain.RankingStrategy;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.domain.SecurityData;
 import com.example.indexreviewer.review.ReviewEngine;
@@ -31,7 +32,7 @@ class StatusAssessmentTest {
     private static final LocalDate REVIEW = LocalDate.parse("2026-09-21");
     private static final ReviewPeriod PERIOD = new ReviewPeriod("P", CUT_OFF, REVIEW);
     private static final IndexDefinition INDEX =
-            new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 3, BigDecimal.ONE, "FFMCAP", List.of(PERIOD));
+            new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 3, BigDecimal.ONE, RankingStrategy.FFMCAP, List.of(PERIOD));
 
     @Test
     void completedWithoutWarnings() {
@@ -137,7 +138,7 @@ class StatusAssessmentTest {
     void bufferEndReachedExactlyGivesAThreshold() {
         // Buffer end 4 and exactly 4 ranked (A, B, C, E): the buffer end value is E's 100, so D's 1 is harmless.
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 4, BigDecimal.ONE,
-                "FFMCAP", List.of(PERIOD));
+                RankingStrategy.FFMCAP, List.of(PERIOD));
         var data = fullData();
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
 
@@ -149,7 +150,7 @@ class StatusAssessmentTest {
     void unrankedSecurityNeedsAttentionWhenTheBufferIsNotFull() {
         // Buffer end 5, but only 4 securities can be ranked: D could take a buffer place whatever its size.
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 5, BigDecimal.ONE,
-                "FFMCAP", List.of(PERIOD));
+                RankingStrategy.FFMCAP, List.of(PERIOD));
         var data = fullData();
         data.put("D", Map.of(CUT_OFF, securityData("D", CUT_OFF, "1", "1", 1L)));
 

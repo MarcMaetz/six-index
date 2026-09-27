@@ -65,7 +65,7 @@ cycles, so a violation fails the build.
 | Step | Class | Rule |
 |---|---|---|
 | 1. Eligibility | `Eligibility` | In the universe on the review date, with a price on the cut-off date and shares and free float on the review date. Others are excluded with a reason (A2). |
-| 2. Ranking | `Ranking` + `RankingStrategy` | Ranking value from the strategy configured by name (`FFMCAP`), highest first. Ties are broken by id (A8). |
+| 2. Ranking | `Ranking` + `RankingStrategy` | Ranking value under the strategy configured by name (`FFMCAP`, an enum), highest first. Ties are broken by id (A8). |
 | 3. Selection | `Selection` | Ranks 1–18 are selected directly. From the buffer (ranks 19–22), current constituents are taken first, then new candidates, in rank order, until there are 20 (rulebook 5.12.3.2, A7). |
 | 4. Capping | `WeightCapping` | One cap for all constituents, 18% for the SMI. Constituents above the cap get exactly the cap. The rest share the remaining weight in proportion to FFMCAP. This repeats until none is above its cap (rulebook 5.12.4 and the brief's example). |
 
@@ -148,7 +148,7 @@ ties are broken by id.
 - **Business parameters** live in `config/indices.yml`. A default copy is packaged in the jar, and a file
   in the working directory overrides it. Inconsistent values stop the app at startup. The records it binds to
   reject a missing rulebook version, a buffer end below the constituent count, a cap outside (0, 1], or a cap
-  too small for the weights to reach 100%. `IndexCatalog` rejects an unknown ranking strategy.
+  too small for the weights to reach 100%. An unknown ranking strategy fails when the YAML is bound to the enum.
 - **Input** lives in one folder per index and review period, so past reviews can be re-run.
 - **Technical settings** (data and report folders) stay in `application.properties`.
 
@@ -157,8 +157,8 @@ ties are broken by id.
 | New quarter | Add a review period to the YAML and a `data/<index>/<period>/` folder. No code change. |
 | New index with a single cap and a buffer (the SMI's rules, other numbers) | Add an index block to the YAML and its data folder. No code change. |
 | Tiered capping (e.g. SLI: largest 4 at 9%, rest at 4.5%, rulebook 5.17.4) | Let `WeightCapping` take a cap per constituent instead of one value (the loop stays the same), add the tier parameters to `IndexDefinition` and the YAML, and compute the caps in `ReviewEngine`. |
-| New ranking criterion computed from price, shares and free float | Implement `RankingStrategy` (or, for a single value of the security, add a `ByValue` line) and register it in `RankingStrategies` (a static registry on purpose), and select it in the YAML. |
-| The rulebook's selection list (A4: 12-month average FFMCAP and turnover) | Three steps: add turnover and history to the input files, `InputData` and the loader; give `RankingStrategy` the review's input, not just one `EligibleSecurity`; decide what happens to securities without enough history. `Eligibility` stays: it checks the data the weights need. |
+| New ranking criterion computed from price, shares and free float | Add a constant to the `RankingStrategy` enum and its `case` in `EligibleSecurity.rankingValue` (the compiler insists), then select it in the YAML. |
+| The rulebook's selection list (A4: 12-month average FFMCAP and turnover) | Three steps: add turnover and history to the input files, `InputData` and the loader; compute the ranking value from the review's input, not just one `EligibleSecurity`; decide what happens to securities without enough history. `Eligibility` stays: it checks the data the weights need. |
 | New selection or weighting rule | Replace or add a step in `ReviewEngine`. Each step is a separate, tested class. |
 | Store reports in a database | Implement `ReportStore` and expose it as the bean in `ReviewConfiguration`. Nothing else changes. |
 | Read input from a market-data system or database | Implement `InputSource` and expose it as the bean in `ReviewConfiguration`. Nothing else changes. |
@@ -185,7 +185,7 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 
 | Level | Tests |
 |---|---|
-| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a weight exactly at the cap, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, incumbents outnumbering slots), `RankingTest` (tie-break by id, A8), `RankingStrategiesTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
+| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a weight exactly at the cap, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, incumbents outnumbering slots), `RankingTest` (tie-break by id, A8), `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
 | Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
 | Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, invalid UTF-8, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, files read, empty files, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round, and fails a review with too few rankable securities (A12) |

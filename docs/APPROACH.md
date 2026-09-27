@@ -144,9 +144,12 @@ section 5.12, with definitions in 2 and 4.3.
   leavers with reasons), so every line of the report traces to one rule, and each rule can change on its own.
 - **Eligibility** checks the data the weights need: price at cut-off, shares and free float at the review date.
   Weights always use FFMCAP, so this holds whatever the ranking strategy.
-- **Ranking by FFMCAP, through a named strategy.** The YAML picks a `RankingStrategy` by name; an unknown name
-  stops startup. Strategies live in a static registry, not Spring beans: with one strategy, beans would add
-  wiring and change nothing. They become beans once a strategy needs outside dependencies such as a database.
+- **Ranking by FFMCAP, through a named strategy.** `RankingStrategy` is an enum the YAML picks by name, so
+  Spring's binding rejects an unknown name at startup. `EligibleSecurity.rankingValue` computes each strategy in
+  a `switch` without a default: a new constant doesn't compile until it says how to rank. An earlier version
+  had a strategy interface, a registry with its own lookup error, and a startup check, all for one criterion;
+  the enum keeps the extension point with none of that. A strategy that needs outside services (a database of
+  history) would need an interface again, and a wider input anyway (below).
 - **The ranking seam is narrow on purpose.** A strategy sees one security's price, shares and free float. The
   rulebook's selection list (A4: 12-month average FFMCAP and turnover) needs more: turnover and history in the
   input, a strategy that sees the whole review's input, and a rule for securities with a short history. Widening
@@ -263,12 +266,11 @@ After the features were complete, the code was scanned smell by smell:
   without shared state (`Eligibility`, `Ranking`, `Selection`) stay static, with a private constructor and
   `final` so they can't be instantiated or extended.
 - **Duplication** was removed where it was the same rule. A `Constituent` is its selection outcome plus its
-  weight, and "joiner" is derived from the outcome, not stored a second time. Look-alikes stayed: API types that
-  repeat domain fields change independently, and eligibility and the status estimate read the same data under
+  weight, and "joiner" is derived from the outcome, not stored a second time. Look-alikes stayed where the shape or
+  the rule differs: the API's summary is a subset of the report, and eligibility and the status estimate read the same data under
   different rules.
 - **Visibility and naming.** The pipeline steps are package-private; other packages see only the engine and
-  its results. A strategy that only reads one value is a line in `RankingStrategies` (`FFMCAP`), not a class.
-  Accessor chains name each hop (`o.ranked().eligible().ffmcap()`).
+  its results.   Accessor chains name each hop (`o.ranked().eligible().ffmcap()`).
 - **Warnings** are collected per input file instead of in one list passed through every method.
 - **Dead code:** one unused import, plus two conditions that were always true, found by the tools below.
 
@@ -366,8 +368,8 @@ can be changed in one place.
 - **Rulebook simplifications** (A4–A6) and the deliberate assumptions.
 - **Testing:** hand-made cases per step, the real Q3 data at engine, report and API level, architecture rules as
   tests; test quality measured with mutation testing and coverage, which found real gaps.
-- **Spring shape:** a plain-Java core wired in an outermost `config`, one error format, and why ranking strategies
-  are a static registry for now.
+- **Spring shape:** a plain-Java core wired in an outermost `config`, one error format, and why the ranking
+  strategy is an enum, not a registry of beans.
 - **AI assistance:** Claude Code with this file, a commit hook and written conventions.
 - **Next steps:** the rulebook selection list once turnover and history exist (A4), issuer-level capping (A6),
   chaining reviews from the official stored run, a database behind the report store.

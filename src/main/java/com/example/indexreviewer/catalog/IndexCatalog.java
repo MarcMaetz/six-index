@@ -2,7 +2,6 @@ package com.example.indexreviewer.catalog;
 
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.ReviewPeriod;
-import com.example.indexreviewer.review.RankingStrategies;
 
 import java.util.List;
 
@@ -16,8 +15,6 @@ public final class IndexCatalog {
 
     public IndexCatalog(List<IndexDefinition> indices) {
         this.indices = List.copyOf(indices);
-        // Fail at startup, not at the first review, if an index names a ranking strategy that doesn't exist.
-        this.indices.forEach(index -> RankingStrategies.byName(index.rankingStrategy()));
     }
 
     public List<IndexDefinition> indices() {

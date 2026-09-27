@@ -1,6 +1,7 @@
 package com.example.indexreviewer.review;
 
 import com.example.indexreviewer.domain.IndexDefinition;
+import com.example.indexreviewer.domain.RankingStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -19,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SelectionTest {
 
     private static final IndexDefinition INDEX =
-            new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 5, 3, 7, new BigDecimal("0.5"), "FFMCAP", List.of());
+            new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 5, 3, 7, new BigDecimal("0.5"), RankingStrategy.FFMCAP, List.of());
 
     @Test
     void incumbentsInBufferHavePriorityOverHigherRankedNewCandidates() {

@@ -2,6 +2,7 @@ package com.example.indexreviewer.review;
 
 import com.example.indexreviewer.domain.IndexDefinition;
 import com.example.indexreviewer.domain.InputData;
+import com.example.indexreviewer.domain.RankingStrategy;
 import com.example.indexreviewer.domain.ReviewPeriod;
 import com.example.indexreviewer.ingest.InputDataLoader;
 import com.example.indexreviewer.review.Leaver.LeaveReason;
@@ -27,7 +28,7 @@ class ReviewEngineTest {
     private static final ReviewPeriod Q3 = new ReviewPeriod("2026-Q3", CUT_OFF, REVIEW);
     private static final IndexDefinition SMI =
             new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, new BigDecimal("0.18"),
-                    "FFMCAP", List.of(Q3));
+                    RankingStrategy.FFMCAP, List.of(Q3));
 
     private final ReviewEngine engine = new ReviewEngine();
 
@@ -81,7 +82,7 @@ class ReviewEngineTest {
     @Test
     void capsIterativelyWhenRedistributionPushesOthersOverTheCap() {
         var cap = new BigDecimal("0.15");
-        var index = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, cap, "FFMCAP", List.of(Q3));
+        var index = new IndexDefinition("SMI", "Rulebook v3.40", "SPI", 20, 18, 22, cap, RankingStrategy.FFMCAP, List.of(Q3));
         InputData input = new InputDataLoader().load(Path.of("data/SMI/2026-Q3"), "SPI");
 
         ReviewResult result = engine.run(index, Q3, input);
@@ -107,7 +108,7 @@ class ReviewEngineTest {
                         "B", Map.of(CUT_OFF, securityData("B", CUT_OFF, "10", null, null))),
                 Set.of("A", "B", "C"), List.of(), List.of());
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 1, 1, 1, BigDecimal.ONE,
-                "FFMCAP", List.of(Q3));
+                RankingStrategy.FFMCAP, List.of(Q3));
 
         var result = engine.run(index, Q3, input);
 
@@ -130,7 +131,7 @@ class ReviewEngineTest {
                         "B", Map.of(CUT_OFF, securityData("B", CUT_OFF, "10", null, null))),
                 Set.of("A", "B"), List.of(), List.of());
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 2, 1, 2, BigDecimal.ONE,
-                "FFMCAP", List.of(Q3));
+                RankingStrategy.FFMCAP, List.of(Q3));
 
         assertThatExceptionOfType(IncompleteIndexException.class)
                 .isThrownBy(() -> engine.run(index, Q3, input))
@@ -149,7 +150,7 @@ class ReviewEngineTest {
                                 REVIEW, securityData("B", REVIEW, null, "1", 100L))),
                 Set.of("B"), List.of(), List.of());
         var index = new IndexDefinition("TEST", "Rulebook v3.40", "SPI", 1, 1, 2, BigDecimal.ONE,
-                "FFMCAP", List.of(Q3));
+                RankingStrategy.FFMCAP, List.of(Q3));
 
         var result = engine.run(index, Q3, input);
 
