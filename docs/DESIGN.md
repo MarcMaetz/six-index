@@ -185,14 +185,23 @@ at `/api-docs`. The Postman collection in `postman/` holds example calls with te
 
 | Level | Tests |
 |---|---|
-| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a test-only tiered rule), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `IndexDefinitionTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin) |
-| Ingest | `InputDataLoaderTest`: BOM and CRLF, duplicates, invalid rows with line numbers, conflicts, checksums, missing files and columns |
+| Rules | `WeightCappingTest` (the brief's A/B/C example, a two-round cascade, all constituents capped, capping factors, a test-only tiered rule, the invariant check), `SelectionTest` (incumbent priority, buffer overflow, too few candidates), `RankingTest` (tie-break by id, A8), `RankingStrategiesTest`, `StatusAssessmentTest` (every status path, the estimate's safety margin and its exact boundaries) |
+| Validation | `IndexDefinitionTest`, `IndexReviewerPropertiesTest`, `ReportFormatTest`: every configuration rule that stops startup; `SecurityDataTest`: the duplicate/conflict comparison (A9) |
+| Ingest | `InputDataLoaderTest`: with and without BOM, CRLF, blank lines, duplicates, invalid and out-of-range rows with line numbers, conflicts, checksums, empty files, missing files and columns |
 | Real data | `ReviewEngineTest` and `ReportBuilderTest` check the Q3 result on the provided CSVs. `ReviewEngineTest` also runs the real data at a 15% cap, where capping needs a second round (D20) |
 | Storage | `FileReportStoreTest`: file naming, no overwrite for runs in the same millisecond, chronological listing, unknown and unsafe ids |
 | Use cases | `ReviewServiceTest`: runs, stores and lists a Q3 review without Spring, as a non-HTTP caller would; unknown index or period stores nothing |
-| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, 404s, problem responses for Spring's own 404/405, and the stored report's OpenAPI schema (D34). `ApiExceptionHandlerTest`: unexpected errors give a 500 without internals |
+| API | `IndexControllerTest`: all endpoints on the real config and data, including 201 with `Location`, stored reports returned as written, 404s, problem responses for Spring's own 404/405, and the stored report's OpenAPI schema (D34). `ApiExceptionHandlerTest`: unusable input gives a 422 with the reason, unexpected errors a 500 without internals |
 | Architecture | `ArchitectureTest` (ArchUnit): dependency direction between packages with `config` outermost, plain-Java review logic, Spring only in `config`, `service` and `api`, no package cycles (D30, D32) |
 | Manual | Postman test scripts for the same expected results |
+
+Three checks look at the tests and the code themselves (D40, D44, D45):
+
+- **Error Prone** runs on every compile; its warnings fail the build.
+- **Mutation testing** (`./gradlew pitest`) plants small bugs in `review` and checks that a test catches each:
+  169 of 172 are caught; the 3 left are documented as harmless.
+- **Coverage** (`./gradlew test jacocoTestReport`): 98% of lines, 99.6% of branches; what is left uncovered is
+  one-line exception rethrows and code that cannot fail.
 
 Decimal assertions use tolerances where the last of 34 digits can round either way.
 

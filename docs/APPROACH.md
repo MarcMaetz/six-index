@@ -57,6 +57,7 @@ decided, why, and what we rejected.
 | 2026-09-27 | Long parameter lists reviewed: report format kept flat, header fields now tested (D42); loader warnings owned per file instead of passed-in lists (D43) |
 | 2026-09-27 | Error Prone in the build with `-Werror`; 6 findings fixed, format strings checked at compile time (D44) |
 | 2026-09-27 | JaCoCo coverage: 97% → 98% lines, 89% → 99.6% branches with 11 new tests; one branch that could never be taken removed (D45) |
+| 2026-09-27 | Non-functional requirements rechecked after the refactors: Q3 result and report fields unchanged (run end to end on the packaged jar); DESIGN.md testing section brought up to date |
 
 ## Design decisions
 
