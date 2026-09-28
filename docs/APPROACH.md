@@ -1,13 +1,9 @@
 # Approach
 
-Why the Index Reviewer is built the way it is: the choices, what was rejected, and the assumptions behind them.
-It is written in hindsight and ordered by topic. [DESIGN.md](DESIGN.md) describes what the system is; this file
-explains why.
+Why the Index Reviewer is built the way it is: the choices I made, what I rejected, and the assumptions behind
+them. [DESIGN.md](DESIGN.md) describes what the system is; this file explains why.
 
 ## How the work went
-
-The first evening produced a working review with the Q3 result. The following days went into making it
-extensible, well tested and simple, without changing that result.
 
 - **Day 1 (2026-09-25).** Set up the project, this file and the commit hook that keeps it current. Profiled the
   data and read the rulebook before writing code, then built input loading, configuration, the review engine,
@@ -20,12 +16,12 @@ extensible, well tested and simple, without changing that result.
   interface, the rulebook version per index and ArchUnit layering tests. A Spring conventions pass (one error
   format, config outermost) and more traceability (FFMCAP inputs and build revision in every report) followed.
 - **Day 3 (2026-09-27).** Code-quality passes, then Error Prone, mutation testing, coverage and an
-  OpenRewrite/PMD scan; each tool found real gaps in the tests or the code. This file was rewritten by topic.
-  A final end-to-end check on the packaged jar recomputed Q3 independently (same result) and found that too few
-  rankable securities crashed capping; that now stops with a 422 (A12). A last simplification pass removed
-  what served no current need (input checksums, a capping interface, the ranking strategy registry, duplicate
-  records, configurable display precision) and replaced clever constructs with plain ones. All Java was then
-  formatted with palantir-java-format.
+  OpenRewrite/PMD scan; each tool found real gaps in the tests or the code. A final end-to-end check on the
+  packaged jar recomputed Q3 independently (same result) and found that too few rankable securities crashed
+  capping; that now stops with a 422 (A12). A last simplification pass removed what served no current need
+  (input checksums, a capping interface, the ranking strategy registry, duplicate records, configurable display
+  precision) and replaced clever constructs with plain ones. All Java was then formatted with
+  palantir-java-format.
 - **Day 4 (2026-09-28).** Read-through of the documentation as a reviewer would meet it: README, DESIGN.md and
   this file tightened, duplicates folded together, and the finished TODO list dropped.
 
