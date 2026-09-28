@@ -6,17 +6,28 @@ explains why.
 
 ## How the work went
 
-- **Day 1 (2026-09-25).** Profiled the data and read the rulebook before writing code. Built input loading,
-  configuration, the review engine, the report and the API, with the Q3 result confirmed in tests. Two design
-  reviews with the assistant then reshaped the review status, capping and report storage.
+The first evening produced a working review with the Q3 result. The following days went into making it
+extensible, well tested and simple, without changing that result.
+
+- **Day 1 (2026-09-25).** Set up the project, this file and the commit hook that keeps it current. Profiled the
+  data and read the rulebook before writing code, then built input loading, configuration, the review engine,
+  the report and the API, with the Q3 result confirmed in tests. Two design reviews with the assistant reshaped
+  the review status (judged by impact and position, with an estimate for unranked securities), iterative
+  capping and storing every run.
 - **Day 2 (2026-09-26).** Decided the open questions and recorded them as assumptions. An extensibility review
-  against the SLI (in the same rulebook) showed that the first version hard-coded the methodology, so it got the
-  seams described below. A Spring conventions pass and more traceability followed.
-- **Day 3 (2026-09-27).** Code-quality passes, then static analysis, mutation testing and coverage; each tool
-  found real gaps in the tests. A final end-to-end check on the packaged jar recomputed Q3 independently (same
-  result) and found that too few rankable securities crashed capping; that now stops with a 422 (A12). A last
-  simplification pass removed what served no current need: input checksums, a capping interface, duplicate
-  records and configurable display precision.
+  against the brief's non-functional list and the SLI (in the same rulebook) showed that the first version
+  hard-coded the methodology, so it got the seams described below: use cases in a service, input behind an
+  interface, the rulebook version per index and ArchUnit layering tests. A Spring conventions pass (one error
+  format, config outermost) and more traceability (FFMCAP inputs and build revision in every report) followed.
+- **Day 3 (2026-09-27).** Code-quality passes, then Error Prone, mutation testing, coverage and an
+  OpenRewrite/PMD scan; each tool found real gaps in the tests or the code. This file was rewritten by topic.
+  A final end-to-end check on the packaged jar recomputed Q3 independently (same result) and found that too few
+  rankable securities crashed capping; that now stops with a 422 (A12). A last simplification pass removed
+  what served no current need (input checksums, a capping interface, the ranking strategy registry, duplicate
+  records, configurable display precision) and replaced clever constructs with plain ones. All Java was then
+  formatted with palantir-java-format.
+- **Day 4 (2026-09-28).** Read-through of the documentation as a reviewer would meet it: README, DESIGN.md and
+  this file tightened, duplicates folded together, and the finished TODO list dropped.
 
 ## Starting point: the data and the rulebook
 
