@@ -83,6 +83,16 @@ A copy of `config/indices.yml` is packaged in the jar. A `config/indices.yml` in
 overrides it, so it can be changed without a rebuild. Inconsistent values stop the app at startup with a clear
 message.
 
+**Input files.** Each review reads its own folder `<data-dir>/<index>/<review period>/`; the root is set by
+`index-reviewer.data-dir`. The files are `;`-separated, UTF-8 with BOM, CRLF line endings. What the Q3 data
+contains and its quirks are in [docs/APPROACH.md](docs/APPROACH.md#input-data-findings).
+
+| File | Columns | Content |
+|---|---|---|
+| `spi_universe.csv` | `date;id` | SPI universe as of the review date (named `<universe>_universe.csv`) |
+| `sec_data.csv` | `id;date;price;free_float;shares` | Security data at cut-off and review date |
+| `composition.csv` | `id` | Current SMI constituents |
+
 **Adding a quarter:** add a review period to `config/indices.yml` and put its three CSVs in
 `data/SMI/<period>/`. **Adding an index** that follows the SMI's kind of rules (buffer selection, one cap for all):
 add an index block and a `data/<index>/<period>/` folder. **Adding a ranking rule** computed from price, shares and
@@ -96,7 +106,6 @@ need code; what each takes, and what the design deliberately doesn't cover, is i
 - [docs/DESIGN.md](docs/DESIGN.md): architecture, review pipeline, data quality, extensibility, testing, limits.
 - [docs/APPROACH.md](docs/APPROACH.md): why it is built this way, by topic; the input data findings, the
   rulebook rules applied, and the assumptions (A1–A15).
-- [data/README.md](data/README.md): input file formats.
 
 ## Layout
 
