@@ -7,7 +7,7 @@ Take-home assignment: SIX Index Reviewer for the SMI Q3 2026 review. Java 25 / S
 - `docs/ASSIGNMENT.md`: the assignment brief (source of truth for requirements). Local only, excluded in
   `.git/info/exclude`: never commit it.
 - `docs/DESIGN.md`: how the system is built (architecture, pipeline, validation, extensibility, limits).
-- `docs/APPROACH.md`: why the system is built this way (by topic), assumptions and interview talking points.
+- `docs/APPROACH.md`: why the system is built this way (by topic), assumptions and next steps.
 - `docs/six-methodology-smi-equity-and-re-en.pdf`: SIX methodology rulebook v3.40, local only like the brief.
   SMI rules are in section 5.12; its summary is in `docs/APPROACH.md` under **Rulebook rules applied**.
 
@@ -19,9 +19,8 @@ ordered by topic, not as a numbered log: it describes the system as it is and wh
   libraries and project setup count too,
 - changes an earlier choice → rewrite that part so it describes the current code, with the reason for the
   change; no "refined by" trail (the commit history has the order),
-- makes an assumption about ambiguous requirements or rulebook details → add it to **Assumptions**,
-- hits something the brief or rulebook leaves open → decide it, add it to **Assumptions**, and list it under
-  **Deliberate assumptions** if it would otherwise be a question for SIX,
+- makes an assumption about ambiguous requirements or rulebook details, or hits something the brief or rulebook
+  leaves open → decide it and add it to **Assumptions**, with its effect on the Q3 result if it has one,
 - completes a notable step → extend **How the work went** if it changes the story.
 
 Keep it short and easy to follow. Update it **in the same change** as the work it describes, before

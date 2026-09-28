@@ -9,7 +9,7 @@ explains why.
 - **Day 1 (2026-09-25).** Profiled the data and read the rulebook before writing code. Built input loading,
   configuration, the review engine, the report and the API, with the Q3 result confirmed in tests. Two design
   reviews with the assistant then reshaped the review status, capping and report storage.
-- **Day 2 (2026-09-26).** Decided the open questions myself instead of asking SIX. An extensibility review
+- **Day 2 (2026-09-26).** Decided the open questions and recorded them as assumptions. An extensibility review
   against the SLI (in the same rulebook) showed that the first version hard-coded the methodology, so it got the
   seams described below. A Spring conventions pass and more traceability followed.
 - **Day 3 (2026-09-27).** Code-quality passes, then static analysis, mutation testing and coverage; each tool
@@ -239,12 +239,13 @@ The brief allows AI assistance; this project was built with Claude Code.
 
 ## Assumptions
 
-Where the brief or rulebook is ambiguous, the assumption is recorded here and referenced in code.
+Where the brief or rulebook is ambiguous, the assumption is recorded here and referenced in code. None of them
+changes the Q3 result, and each is visible in the report and can be changed in one place.
 
 | #  | Assumption | Rationale |
 |----|------------|-----------|
-| A1 | Exact duplicate rows in `spi_universe.csv` are de-duplicated, with a warning. | They are identical, so no information conflicts. |
-| A2 | A universe security without review-date data (`166`) is excluded from ranking, with a warning. | FFMCAP needs shares and free float at the review date; cut-off values would break the brief's date rule. |
+| A1 | Exact duplicate rows in `spi_universe.csv` are de-duplicated, with a warning. | They are identical, so no information conflicts; the warning has impact `NONE`. |
+| A2 | A universe security without review-date data (`166`) is excluded from ranking, with a warning. | FFMCAP needs shares and free float at the review date; cut-off values would break the brief's date rule. Its estimated FFMCAP (12.9M) is far below rank 22 (15.4bn), so Q3 stays `COMPLETED_WITH_WARNINGS` (A13). |
 | A3 | The empty review-date price column is expected. | Prices are only taken at cut-off, as in the brief's formula. |
 | A4 | Ranking uses FFMCAP, as the brief specifies, not the rulebook's selection list (4.3: 50% 12-month average FFMCAP share, 50% 12-month turnover share). | No turnover or history data is provided. |
 | A5 | The liquidity rule for instruments listed on several exchanges (5.12.3.2) is not applied. | The data has no listing or turnover fields. |
@@ -253,41 +254,17 @@ Where the brief or rulebook is ambiguous, the assumption is recorded here and re
 | A8 | Ties in FFMCAP are broken by id. | Keeps results deterministic; no ties occur in this data. |
 | A9 | Conflicting rows in `sec_data.csv` (same id and date, different values) are all dropped with a warning; identical ones are de-duplicated. | Neither row can be trusted; the security becomes ineligible visibly instead of one row being picked silently. |
 | A10 | Rows with impossible values (price or shares not positive, fractional shares, free float outside (0, 1]) are skipped with a warning. | They would distort FFMCAP. |
-| A11 | Capping factors are scaled so the largest is 1. The brief's "weighting factors" are read as capping factors; final weights are reported too. | Only the ratios matter; this is the usual published form. |
-| A12 | If fewer securities can be ranked than the index needs, the review fails (422) and stores no report. | The rulebook doesn't cover it; an undersized index isn't a valid composition, and inventing a fill rule would be worse. |
+| A11 | Capping factors are scaled so the largest is 1. The brief's "weighting factors" are read as capping factors; final weights are reported too. | Only the ratios matter; this is the usual published form. Computed at full precision. |
+| A12 | If fewer securities can be ranked than the index needs, the review fails (422) and stores no report. | The rulebook doesn't cover it; an undersized index isn't a valid composition, and inventing a fill rule would be worse. For Q3, 204 of 205 can be ranked. |
 | A13 | For the status only, an unranked security's ranking value is estimated from either date's data. It counts as harmless only below **half** the value at the buffer end. | It never selects or weights. The margin covers the borrowed values (17 ids change shares, 41 free float between the dates). |
-| A14 | Capping is iterative: a security pushed above the cap by redistribution is capped too. | No published weight exceeds the cap; the rulebook's wording only names components above 18% of the total. |
+| A14 | Capping is iterative: a security pushed above the cap by redistribution is capped too. | No published weight exceeds the cap; the rulebook's wording only names components above 18% of the total. A single pass gives the same Q3 result. |
 | A15 | Market data is taken for the exact cut-off or review date, with no fallback to an earlier value. | The brief ties each value to one date; an older value would silently mix in stale data. Only `166` lacks a row. |
 
-## Deliberate assumptions
+## Next steps
 
-The points above that would otherwise be questions for SIX. I decided them myself: the brief asks for
-reasonable, documented assumptions, none of them changes the Q3 result, and each is visible in the report and
-can be changed in one place.
-
-- **Ranking by point-in-time FFMCAP (A4):** the selection list needs history the data doesn't have.
-- **Duplicate universe rows de-duplicated (A1):** kept visible as a warning with impact `NONE`.
-- **`166` excluded (A2):** its estimated FFMCAP (12.9M) is far below rank 22 (15.4bn), so Q3 stays
-  `COMPLETED_WITH_WARNINGS` (A13).
-- **Capping factors scaled so the largest is 1 (A11)**, computed at full precision.
-- **Iterative capping (A14):** a single pass gives the same Q3 result.
-- **Too few rankable securities fail the review (A12):** for Q3, 204 of 205 can be ranked.
-- **Market data only for the exact date (A15):** for Q3 only `166` lacks a row.
-
-## Interview talking points
-
-- **Designed for change:** quarters and SMI-like indices are configuration; ranking rules go behind the enum,
-  other rules into `review` as steps. Where it stops: DESIGN.md, *Limits of the design*. Seams removed as
-  speculative (capping interface, strategy registry) and a suggestion rejected (eligibility behind the strategy).
-- **The buffer decides the result:** a plain top 20 gives 3 joiners and 3 leavers, the buffer 1 and 1.
-- **Capping:** iterative vs. single pass, demo with `weight-cap: 0.15`; weights vs. capping factors; why the
-  displayed weights add up to 99.999999%.
-- **Validation and status:** lenient rows, status from impact and position, and why the estimate stays despite
-  "simplicity first".
-- **Traceability:** rulebook version, FFMCAP recomputable from the report, build revision, every run stored;
-  why checksums were dropped.
-- **Testing:** hand-made cases per rule, the real Q3 data at engine, report and API level, architecture as
-  tests; mutation testing and coverage found real gaps.
-- **AI assistance:** Claude Code with `AGENT.md`, this file and a commit hook.
-- **Next steps:** the selection list once turnover and history exist (A4), issuer-level capping (A6), chaining
-  reviews from the official stored run, a database behind the report store.
+- **The rulebook's selection list (A4)**, once the input has turnover and 12-month history. DESIGN.md, *Limits
+  of the design*, lists what that changes.
+- **Issuer-level capping (A6)**, once the input has an issuer field.
+- **Chaining reviews:** mark one stored run as official and take the next review's current composition from
+  it instead of a CSV.
+- **A database behind the report store**: one new `ReportStore` class and bean.
