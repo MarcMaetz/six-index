@@ -81,8 +81,9 @@ section 5.12, with definitions in 2 and 4.3.
   interface takes the index and period, not a path, so a non-file source doesn't have to fake one.
 - **One error format.** Every error, Spring's own included, is an RFC 9457 problem response, and a 500 never
   shows internals such as file paths. The plain-Java packages don't log; the report holds the detail.
-- **No `@WebMvcTest` slice.** The API tests run the full stack on the real data, which covers more than a
-  slice with a mocked service.
+- **No `@WebMvcTest` slice.** The controller tests run the full stack on the real data, which covers more than
+  a slice with a mocked service. Error responses the real data can't trigger are unit-tested on the exception
+  handler directly.
 
 ## Configuration
 
